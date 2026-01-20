@@ -1,0 +1,79 @@
+# ========================
+# GERAL & SISTEMA
+# ========================
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.local
+.env.*.local
+! .env.example
+
+# ========================
+# BACKEND (Java / Spring Boot)
+# ========================
+# Compilados e Classes
+target/
+build/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Logs de aplicação Spring
+logs/
+*.log
+
+# Wrapper do Maven
+!.mvn/wrapper/maven-wrapper.jar
+!mvnw
+!mvnw.cmd
+
+# Eclipse / IntelliJ / VS Code
+.classpath
+.project
+.settings/
+.idea/
+*.iml
+.vscode/
+*.ipr
+*.iws
+
+# Banco de Dados (PostgreSQL e Flyway)
+*.sql.gz
+*.sql.zip
+dump.rdb
+
+# ========================
+# FRONTEND (JS / Tailwind)
+# ========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Builds de produção (Tailwind/Webpack/Vite output)
+dist/
+out/
+build/
+.output/
+
+# Caches locais
+.cache/
+.parcel-cache/
+.eslintcache
+
+# ========================
+# DOCKER & INFRA
+# ========================
+postgres-data/
+db-data/
+data/
+
+# Arquivos de override local
+docker-compose.override.yml
