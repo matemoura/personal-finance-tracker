@@ -1,5 +1,6 @@
 package com.mouramateus.financial.finance_api.repository;
 
+import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.User;
 import com.mouramateus.financial.finance_api.entity.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,5 +14,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             User user,
             LocalDate start,
             LocalDate end
+    );
+
+    List<Transaction> findByUserAndDateBetweenAndType(
+            User user,
+            LocalDate start,
+            LocalDate end,
+            CategoryType type
+    );
+
+    List<Transaction> findByUserAndDateBetweenAndCategory_Id(
+            User user,
+            LocalDate start,
+            LocalDate end,
+            Long CategoryId
     );
 }

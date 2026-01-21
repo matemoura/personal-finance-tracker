@@ -2,6 +2,7 @@ package com.mouramateus.financial.finance_api.service;
 
 import com.mouramateus.financial.finance_api.dto.TransactionCreateRequest;
 import com.mouramateus.financial.finance_api.entity.Category;
+import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.User;
 import com.mouramateus.financial.finance_api.repository.CategoryRepository;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
@@ -10,6 +11,10 @@ import com.mouramateus.financial.finance_api.entity.Transaction;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -42,5 +47,36 @@ public class TransactionService {
                 .build();
 
         return transactionRepository.save(transaction);
+    }
+
+    public List<Transaction> listByMonth(
+            int year,
+            int month,
+            CategoryType type,
+            Long categoryId
+    ) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow();
+
+        YearMonth yearMonth = YearMonth.of(year, month);
+
+        LocalDate start = yearMonth.atDay(1);
+        LocalDate end = yearMonth.atEndOfMonth();
+
+        if (type != null) {
+            return transactionRepository.findByUserAndDateBetweenAndType(
+                    user, start, end, type
+            );
+        }
+
+        if (categoryId != null) {
+            return transactionRepository.findByUserAndDateBetweenAndCategory_Id(
+                    user, start, end, categoryId
+            );
+        }
+
+        return transactionRepository.findByUserAndDateBetween(user, start, end);
     }
 }
