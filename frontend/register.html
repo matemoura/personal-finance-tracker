@@ -1,31 +1,29 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
-    <title>Finance App - Login</title>
+    <title>Finance App - Criar Conta</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
 <body class="bg-gray-100 flex items-center justify-center h-screen">
 
     <div class="bg-white p-8 rounded shadow-md w-96">
-        <h1 class="text-2xl font-bold mb-6 text-center">Login</h1>
+        <h1 class="text-2xl font-bold mb-6 text-center">Criar Conta</h1>
 
+        <input id="name" class="w-full border p-2 mb-4" placeholder="Nome Completo" />
         <input id="email" class="w-full border p-2 mb-4" placeholder="Email" />
         <input id="password" type="password" class="w-full border p-2 mb-4" placeholder="Senha" />
 
-        <button onclick="login()" class="w-full bg-blue-600 text-white p-2 rounded">
-            Entrar
+        <button onclick="register()" class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
+            Registar
         </button>
 
         <p class="text-center mt-4">
-            <a href="register.html" class="text-blue-600">Criar conta</a>
+            <a href="index.html" class="text-blue-600 hover:underline">Já tenho conta</a>
         </p>
     </div>
 
     <script src="js/api.js"></script>
-    <script src="js/auth.js"></script>
+    <script src="js/register.js"></script>
 </body>
-
 </html>
