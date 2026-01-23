@@ -44,7 +44,9 @@ public class DashboardService {
                 user, CategoryType.EXPENSE, start, end
         );
 
-        return new DashboardSummaryResponse(income, expense);
+        BigDecimal accumulatedBalance = transactionRepository.calculateAccumulatedBalance(user, end);
+
+        return new DashboardSummaryResponse(income, expense, accumulatedBalance);
     }
 
     public List<ExpensesByCategoryResponse> getExpensesByCategory(int year, int month) {

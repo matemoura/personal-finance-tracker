@@ -37,6 +37,13 @@ public class TransactionService {
             throw new RuntimeException("Category does not belong to user");
         }
 
+        if (category.getType() != dto.type()) {
+            throw new RuntimeException(
+                    "Erro: O tipo da transação (" + dto.type() +
+                            ") não coincide com o tipo da categoria (" + category.getType() + ")"
+            );
+        }
+
         Transaction transaction = Transaction.builder()
                 .description(dto.description())
                 .amount(dto.amount())
@@ -78,5 +85,33 @@ public class TransactionService {
         }
 
         return transactionRepository.findByUserAndDateBetween(user, start, end);
+    }
+
+    public List<Integer> getAvailableYears() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElseThrow();
+
+        List<Integer> years = transactionRepository.findDistinctYearsByUser(user);
+
+        if (years.isEmpty()) {
+            return List.of(LocalDate.now().getYear());
+        }
+
+        return years;
+    }
+
+    public void deleteTransaction(Long id) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transação não encontrada"));
+
+        if (!transaction.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Acesso negado: Você não pode excluir esta transação.");
+        }
+
+        transactionRepository.delete(transaction);
     }
 }

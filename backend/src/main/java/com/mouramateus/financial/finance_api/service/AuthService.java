@@ -7,8 +7,10 @@ import com.mouramateus.financial.finance_api.dto.RegisterRequest;
 import com.mouramateus.financial.finance_api.entity.User;
 import com.mouramateus.financial.finance_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 
 @Service
@@ -21,7 +23,7 @@ public class AuthService {
 
     public void register( RegisterRequest request ) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new RuntimeException("Email already exists");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Email already exists");
         }
 
         User user = User.builder()

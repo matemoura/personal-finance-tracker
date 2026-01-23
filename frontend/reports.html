@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Finance Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brown: { 50: '#fbf9f6', 100: '#f2eae1', 200: '#e0d0c1', 500: '#a18068', 800: '#755c47', 900: '#5e4a3a', 950: '#45362b' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-brown-50 h-screen flex overflow-hidden text-brown-900">
+
+    <aside
+        class="w-64 bg-brown-950 text-brown-50 flex flex-col flex-shrink-0 transition-all duration-300 shadow-xl z-20">
+        <div class="p-6 text-center border-b border-brown-900 bg-brown-950">
+            <h2 class="text-2xl font-bold tracking-wide text-white">Minhas Finanças</h2>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-6">
+            <ul class="space-y-2 px-4">
+                <li>
+                    <a href="dashboard.html"
+                        class="flex items-center gap-3 py-3 px-4 text-brown-100 hover:bg-brown-900 hover:text-white rounded-lg transition-all">
+                        <span class="font-medium">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="transactions.html"
+                        class="flex items-center gap-3 py-3 px-4 text-brown-100 hover:bg-brown-900 hover:text-white rounded-lg transition-all">
+                        <span class="font-medium">Transações</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#"
+                        class="flex items-center gap-3 py-3 px-4 bg-brown-800 text-white rounded-lg shadow-sm border-l-4 border-brown-200 transition-all">
+                        <span class="font-medium">Relatórios</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="p-4 border-t border-brown-900 bg-brown-950">
+            <button id="logout-btn"
+                class="w-full bg-red-900/30 hover:bg-red-800 text-red-100 font-bold py-2 px-4 rounded border border-red-900/50 transition duration-200">Sair</button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto bg-brown-50">
+        <header
+            class="bg-white/80 backdrop-blur-md shadow-sm py-4 px-8 flex justify-between items-center sticky top-0 z-10 border-b border-brown-100">
+            <h1 class="text-2xl font-bold text-brown-950">Relatórios Mensais</h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-brown-800 font-medium">Olá, Usuário</span>
+                <div
+                    class="h-10 w-10 rounded-full bg-brown-800 flex items-center justify-center text-white font-bold border-2 border-brown-500 shadow-sm">
+                    U</div>
+            </div>
+        </header>
+
+        <div class="p-8 max-w-5xl mx-auto w-full">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-brown-200 mb-8">
+                <h2 class="text-lg font-bold text-brown-900 mb-4 border-b border-brown-100 pb-2">Selecione o Período
+                </h2>
+                <div class="flex flex-col md:flex-row gap-4 items-end">
+                    <div class="w-full md:w-1/4">
+                        <label class="block text-sm font-medium text-brown-800 mb-1">Ano</label>
+                        <input type="number" id="report-year"
+                            class="w-full p-2 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-500 focus:border-brown-500 bg-brown-50">
+                    </div>
+                    <div class="w-full md:w-1/4">
+                        <label class="block text-sm font-medium text-brown-800 mb-1">Mês</label>
+                        <select id="report-month"
+                            class="w-full p-2 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-500 focus:border-brown-500 bg-brown-50">
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="w-full md:w-auto flex gap-2">
+                        <button onclick="previewReport()"
+                            class="bg-brown-800 hover:bg-brown-900 text-white font-bold py-2 px-6 rounded-lg transition shadow-sm">Visualizar</button>
+                    </div>
+                </div>
+                <div class="mt-6 pt-4 border-t border-brown-100 flex flex-wrap gap-3">
+                    <button onclick="downloadReport('pdf')"
+                        class="flex items-center gap-2 bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-lg transition shadow-sm"><span>📄</span>
+                        Exportar PDF</button>
+                    <button onclick="downloadReport('excel')"
+                        class="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg transition shadow-sm"><span>📊</span>
+                        Exportar Excel</button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-brown-200 overflow-hidden">
+                <div class="p-6 border-b border-brown-100 flex justify-between items-center bg-brown-50">
+                    <h3 class="font-bold text-brown-800">Prévia do Relatório</h3>
+                    <span id="preview-date" class="text-sm text-brown-500 italic">--/--</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-brown-100 text-brown-800 text-sm uppercase tracking-wider">
+                                <th class="p-4 border-b border-brown-200">Data</th>
+                                <th class="p-4 border-b border-brown-200">Descrição</th>
+                                <th class="p-4 border-b border-brown-200">Categoria</th>
+                                <th class="p-4 border-b border-brown-200">Tipo</th>
+                                <th class="p-4 border-b border-brown-200 text-right">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="report-preview-body" class="text-brown-700 text-sm">
+                            <tr>
+                                <td colspan="5" class="p-8 text-center text-brown-400">Clique em "Visualizar" para
+                                    carregar os dados</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/reports.js"></script>
+</body>
+
+</html>
