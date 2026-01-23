@@ -8,10 +8,10 @@ public class DashboardSummaryResponse {
     private BigDecimal totalExpenses;
     private BigDecimal balance;
 
-    public DashboardSummaryResponse(BigDecimal totalIncome, BigDecimal totalExpenses) {
+    public DashboardSummaryResponse(BigDecimal totalIncome, BigDecimal totalExpenses, BigDecimal balance) {
         this.totalIncome = totalIncome;
         this.totalExpenses = totalExpenses;
-        this.balance = totalIncome.add(totalExpenses);
+        this.balance = balance;
     }
 
     public BigDecimal getTotalIncome() {

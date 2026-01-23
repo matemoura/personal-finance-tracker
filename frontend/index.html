@@ -1,26 +1,72 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 
 <head>
     <meta charset="UTF-8">
-    <title>Finance App - Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Finance Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brown: {
+                            50: '#fbf9f6',  // Bege muito suave (Quase branco)
+                            100: '#f2eae1', // Bege creme
+                            200: '#e0d0c1',
+                            500: '#a18068', // Marrom médio claro
+                            800: '#755c47', // Marrom Suave (Botões) - Mais claro que antes
+                            900: '#5e4a3a', // Marrom Café (Textos)
+                            950: '#45362b'  // Sidebar (Marrom Madeira visível, não preto)
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
 </head>
 
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<body class="bg-brown-50 flex items-center justify-center h-screen">
 
-    <div class="bg-white p-8 rounded shadow-md w-96">
-        <h1 class="text-2xl font-bold mb-6 text-center">Login</h1>
+    <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-8 border border-brown-100">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-brown-950">Bem-vindo</h1>
+            <p class="text-brown-800/70 mt-2">Faça login para gerenciar suas finanças</p>
+        </div>
 
-        <input id="email" class="w-full border p-2 mb-4" placeholder="Email" />
-        <input id="password" type="password" class="w-full border p-2 mb-4" placeholder="Senha" />
+        <form id="login-form" class="space-y-6">
+            <div>
+                <label for="email" class="block text-sm font-medium text-brown-900 mb-1">E-mail</label>
+                <input type="email" id="email" required
+                    class="w-full px-4 py-2 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 focus:border-brown-500 outline-none transition bg-brown-50/50"
+                    placeholder="seu@email.com">
+            </div>
 
-        <button onclick="login()" class="w-full bg-blue-600 text-white p-2 rounded">
-            Entrar
-        </button>
+            <div>
+                <label for="password" class="block text-sm font-medium text-brown-900 mb-1">Senha</label>
+                <input type="password" id="password" required
+                    class="w-full px-4 py-2 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 focus:border-brown-500 outline-none transition bg-brown-50/50"
+                    placeholder="••••••••">
+            </div>
 
-        <p class="text-center mt-4">
-            <a href="register.html" class="text-blue-600">Criar conta</a>
+            <button type="submit"
+                class="w-full bg-brown-800 hover:bg-brown-900 text-white font-semibold py-3 rounded-lg shadow transition duration-200 transform hover:-translate-y-0.5">
+                Entrar
+            </button>
+        </form>
+
+        <p class="mt-6 text-center text-sm text-brown-800">
+            Não tem uma conta?
+            <a href="register.html" class="text-brown-500 hover:text-brown-900 font-semibold hover:underline">
+                Cadastre-se
+            </a>
         </p>
     </div>
 

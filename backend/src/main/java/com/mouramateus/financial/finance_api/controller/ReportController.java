@@ -35,7 +35,7 @@ public class ReportController {
         byte[] excel = reportService.generateExcel(year, month);
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachament; filename=report.xlsx")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=report.xlsx")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(excel);
     }

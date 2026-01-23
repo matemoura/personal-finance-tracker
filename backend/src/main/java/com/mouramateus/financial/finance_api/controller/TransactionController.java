@@ -33,4 +33,15 @@ public class TransactionController {
             ) {
         return transactionService.listByMonth(year, month, type, categoryId);
     }
+
+    @GetMapping("/years")
+    public List<Integer> getAvailableYears() {
+        return transactionService.getAvailableYears();
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        transactionService.deleteTransaction(id);
+    }
 }

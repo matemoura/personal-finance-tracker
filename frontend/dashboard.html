@@ -1,108 +1,235 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Finance Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brown: { 50: '#fbf9f6', 100: '#f2eae1', 200: '#e0d0c1', 500: '#a18068', 800: '#755c47', 900: '#5e4a3a', 950: '#45362b' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
 </head>
 
-<body class="bg-gray-100 p-6">
+<body class="bg-brown-50 h-screen flex overflow-hidden text-brown-900">
 
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Dashboard</h1>
-        <div>
-            <button onclick="openModal()"
-                class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 mr-2">
-                + Nova Transação
-            </button>
-            <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded shadow hover:bg-red-700">
+    <aside
+        class="w-64 bg-brown-950 text-brown-50 flex flex-col flex-shrink-0 transition-all duration-300 shadow-xl z-20">
+        <div class="p-6 text-center border-b border-brown-900 bg-brown-950">
+            <h2 class="text-2xl font-bold tracking-wide text-white">Minhas Finanças</h2>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6">
+            <ul class="space-y-2 px-4">
+                <li>
+                    <a href="#"
+                        class="flex items-center gap-3 py-3 px-4 bg-brown-800 text-white rounded-lg shadow-sm border-l-4 border-brown-200 transition-all">
+                        <span class="font-medium">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="transactions.html"
+                        class="flex items-center gap-3 py-3 px-4 text-brown-100 hover:bg-brown-900 hover:text-white rounded-lg transition-all">
+                        <span class="font-medium">Transações</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="reports.html"
+                        class="flex items-center gap-3 py-3 px-4 text-brown-100 hover:bg-brown-900 hover:text-white rounded-lg transition-all">
+                        <span class="font-medium">Relatórios</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="p-4 border-t border-brown-900 bg-brown-950">
+            <button id="logout-btn"
+                class="w-full bg-red-900/40 hover:bg-red-800 text-red-50 font-bold py-2 px-4 rounded border border-red-900/50 transition duration-200">
                 Sair
             </button>
         </div>
-    </div>
+    </aside>
 
-    <div class="mb-6 flex gap-2">
-        <input id="year" type="number" class="border p-2 rounded" placeholder="Ano">
-        <input id="month" type="number" class="border p-2 rounded" placeholder="Mês">
-        <button onclick="applyFilter()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">
-            Filtrar
-        </button>
-    </div>
+    <main class="flex-1 flex flex-col overflow-y-auto overflow-x-hidden bg-brown-50">
+        <header
+            class="bg-white/80 backdrop-blur-md shadow-sm py-4 px-8 flex justify-between items-center sticky top-0 z-10 border-b border-brown-100">
+            <h1 class="text-2xl font-bold text-brown-950">Visão Geral</h1>
 
-    <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-white p-4 rounded shadow">
-            <p class="text-gray-500">Total Receitas</p>
-            <h2 id="income" class="text-green-600 text-xl font-bold">0</h2>
+            <div class="px-8 py-6 bg-brown-50 border-b border-brown-100">
+                <div
+                    class="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl shadow-sm border border-brown-100">
+                    <span class="font-bold text-brown-800 text-sm uppercase tracking-wide">Filtrar Período:</span>
+                    <select id="year"
+                        class="px-4 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900 focus:ring-2 focus:ring-brown-500 outline-none cursor-pointer hover:bg-brown-100 transition"></select>
+                    <select id="month"
+                        class="px-4 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900 focus:ring-2 focus:ring-brown-500 outline-none cursor-pointer hover:bg-brown-100 transition">
+                        <option value="1">Janeiro</option>
+                        <option value="2">Fevereiro</option>
+                        <option value="3">Março</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Maio</option>
+                        <option value="6">Junho</option>
+                        <option value="7">Julho</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Setembro</option>
+                        <option value="10">Outubro</option>
+                        <option value="11">Novembro</option>
+                        <option value="12">Dezembro</option>
+                    </select>
+                    <button onclick="applyFilter()"
+                        class="bg-brown-800 hover:bg-brown-900 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition transform active:scale-95">
+                        Atualizar
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="openModal()"
+                class="ml-6 bg-brown-800 hover:bg-brown-900 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-sm">
+                <span>+</span> Nova Transação
+            </button>
+
+            <div class="flex items-center space-x-4">
+                <span class="text-brown-800 font-medium user-info">Olá, Usuário</span>
+                <div
+                    class="h-10 w-10 rounded-full bg-brown-800 flex items-center justify-center text-white font-bold border-2 border-brown-500 shadow-sm">
+                    U</div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6 border-b-4 border-green-600 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-brown-800/70 text-sm uppercase font-bold tracking-wider">Receitas</h3>
+                        <div class="bg-green-100 text-green-700 p-2 rounded-lg">↑</div>
+                    </div>
+                    <p id="total-income" class="text-2xl font-bold text-brown-950">R$ 0,00</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border-b-4 border-red-600 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-brown-800/70 text-sm uppercase font-bold tracking-wider">Despesas</h3>
+                        <div class="bg-red-100 text-red-700 p-2 rounded-lg">↓</div>
+                    </div>
+                    <p id="total-expense" class="text-2xl font-bold text-brown-950">R$ 0,00</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border-b-4 border-brown-500 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-brown-800/70 text-sm uppercase font-bold tracking-wider">Saldo Atual</h3>
+                        <div class="bg-brown-100 text-brown-800 p-2 rounded-lg">$</div>
+                    </div>
+                    <p id="total-balance" class="text-2xl font-bold text-brown-950">R$ 0,00</p>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-brown-100 lg:col-span-2">
+                    <h3 class="text-lg font-bold text-brown-950 mb-6 border-b border-brown-100 pb-2">Despesas por
+                        Categoria</h3>
+                    <div class="relative w-full h-72"><canvas id="expensesChart"></canvas></div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-brown-100">
+                    <h3 class="text-lg font-bold text-brown-950 mb-6 border-b border-brown-100 pb-2">Últimas Transações
+                    </h3>
+                    <ul id="recent-transactions-list" class="divide-y divide-brown-100 space-y-2">
+                        <li class="py-4 text-brown-800/50 text-sm text-center italic">Carregando dados...</li>
+                    </ul>
+                    <div class="mt-6 text-center">
+                        <a href="transactions.html"
+                            class="inline-block px-4 py-2 bg-brown-100 text-brown-900 rounded-lg hover:bg-brown-200 text-sm font-semibold transition">Ver
+                            todas</a>
+                    </div>
+                </div>
+            </section>
         </div>
-        <div class="bg-white p-4 rounded shadow">
-            <p class="text-gray-500">Total Despesas</p>
-            <h2 id="expense" class="text-red-600 text-xl font-bold">0</h2>
-        </div>
-        <div class="bg-white p-4 rounded shadow">
-            <p class="text-gray-500">Saldo</p>
-            <h2 id="balance" class="text-blue-600 text-xl font-bold">0</h2>
-        </div>
-    </div>
+    </main>
 
-    <div class="bg-white p-4 rounded shadow mb-6">
-        <h2 class="text-xl font-bold mb-4">Transações do mês</h2>
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="border-b">
-                    <th class="p-2">Data</th>
-                    <th class="p-2">Descrição</th>
-                    <th class="p-2">Categoria</th>
-                    <th class="p-2">Tipo</th>
-                    <th class="p-2">Valor</th>
-                </tr>
-            </thead>
-            <tbody id="transactionsTable"></tbody>
-        </table>
-    </div>
-
-    <div class="bg-white p-4 rounded shadow mt-6">
-        <h2 class="text-xl font-bold mb-4">Gastos por categoria</h2>
-        <div class="h-64 flex justify-center">
-            <canvas id="expensesChart"></canvas>
-        </div>
-    </div>
-
-    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded shadow-lg w-96">
-            <h2 class="text-xl font-bold mb-4">Nova Transação</h2>
-
-            <label class="block mb-1 text-sm text-gray-700">Descrição</label>
-            <input id="description" class="border p-2 mb-3 w-full rounded" placeholder="Ex: Salário, Mercado...">
-
-            <label class="block mb-1 text-sm text-gray-700">Valor</label>
-            <input id="amount" type="number" step="0.01" class="border p-2 mb-3 w-full rounded" placeholder="0.00">
-
-            <label class="block mb-1 text-sm text-gray-700">Data</label>
-            <input id="date" type="date" class="border p-2 mb-3 w-full rounded">
-
-            <label class="block mb-1 text-sm text-gray-700">Tipo</label>
-            <select id="type" class="border p-2 mb-3 w-full rounded">
-                <option value="INCOME">Receita</option>
-                <option value="EXPENSE">Despesa</option>
-            </select>
-
-            <label class="block mb-1 text-sm text-gray-700">Categoria</label>
-            <select id="categoryId" class="border p-2 mb-6 w-full rounded bg-white">
-                <option value="" disabled selected>Carregando...</option>
-            </select>
-
-            <div class="flex justify-end gap-2">
-                <button onclick="closeModal()"
-                    class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">Cancelar</button>
+    <div id="modal" class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+            <div class="bg-brown-50 px-6 py-4 border-b border-brown-100 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-brown-900">Nova Transação</h3>
+                <button onclick="closeModal()" class="text-brown-400 hover:text-red-500 transition">✕</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <select id="type" onchange="filterCategoriesByType()"
+                        class="w-full px-4 py-2 bg-brown-50 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 outline-none text-brown-900 font-medium">
+                        <option value="EXPENSE">Despesa</option>
+                        <option value="INCOME">Receita</option>
+                    </select>
+                    <input type="date" id="date"
+                        class="w-full px-4 py-2 bg-brown-50 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 outline-none text-brown-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-brown-800/70 uppercase tracking-wider mb-1">Valor</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-2 text-brown-800 font-bold">R$</span>
+                        <input type="number" id="amount" step="0.01" placeholder="0,00"
+                            class="w-full pl-10 pr-4 py-2 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 outline-none transition text-lg font-bold text-brown-900">
+                    </div>
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-bold text-brown-800/70 uppercase tracking-wider mb-1">Descrição</label>
+                    <input type="text" id="description" placeholder="Ex: Mercado..."
+                        class="w-full px-4 py-2 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 outline-none transition bg-brown-50/50">
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-bold text-brown-800/70 uppercase tracking-wider mb-1">Categoria</label>
+                    <div class="flex gap-2">
+                        <select id="categoryId"
+                            class="w-full px-4 py-2 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 outline-none bg-white text-brown-900">
+                            <option value="" disabled selected>Selecione...</option>
+                        </select>
+                        <button onclick="openCategoryModal()"
+                            class="px-3 py-2 bg-brown-200 hover:bg-brown-300 rounded-lg text-brown-900 transition">+</button>
+                    </div>
+                </div>
                 <button onclick="createTransaction()"
-                    class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Salvar</button>
+                    class="w-full bg-brown-800 hover:bg-brown-900 text-white font-bold py-3 rounded-lg shadow-md transition mt-2">Salvar
+                    Transação</button>
             </div>
         </div>
     </div>
 
+    <div id="categoryModal" class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-lg p-6 w-80">
+            <h3 class="text-lg font-bold text-brown-900 mb-4">Nova Categoria</h3>
+            <input type="text" id="catName" placeholder="Nome"
+                class="w-full mb-3 px-4 py-2 border border-brown-200 rounded-lg text-brown-900">
+            <input type="text" id="catIcon" placeholder="Ícone"
+                class="w-full mb-3 px-4 py-2 border border-brown-200 rounded-lg text-brown-900">
+            <select id="catType"
+                class="w-full mb-4 px-4 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900">
+                <option value="EXPENSE">Despesa</option>
+                <option value="INCOME">Receita</option>
+            </select>
+            <div class="flex gap-2">
+                <button onclick="createCategory()"
+                    class="flex-1 bg-brown-700 text-white py-2 rounded-lg font-bold hover:bg-brown-800">Criar</button>
+                <button onclick="closeCategoryModal()"
+                    class="flex-1 bg-brown-100 text-brown-900 py-2 rounded-lg font-bold hover:bg-brown-200">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 

@@ -1,6 +1,7 @@
 package com.mouramateus.financial.finance_api.repository;
 
 import com.mouramateus.financial.finance_api.dto.ExpensesByCategoryResponse;
+import com.mouramateus.financial.finance_api.entity.Category;
 import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.User;
 import com.mouramateus.financial.finance_api.entity.Transaction;
@@ -64,4 +65,25 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             LocalDate start,
             LocalDate end
     );
+
+    boolean existsByCategory(Category category);
+
+    @Query("""
+        SELECT DISTINCT YEAR(t.date) 
+        FROM Transaction t 
+        WHERE t.user = :user 
+        ORDER BY YEAR(t.date) DESC
+    """)
+    List<Integer> findDistinctYearsByUser(User user);
+
+    @Query("""
+        SELECT COALESCE(
+            SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END), 
+            0
+        )
+        FROM Transaction t
+        WHERE t.user = :user
+        AND t.date <= :endDate
+    """)
+    BigDecimal calculateAccumulatedBalance(User user, LocalDate endDate);
 }
