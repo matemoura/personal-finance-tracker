@@ -1,5 +1,6 @@
 package com.mouramateus.financial.finance_api.security;
 
+import com.mouramateus.financial.finance_api.entity.User;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Jwts;
@@ -14,6 +15,10 @@ public class JwtService {
 
     private static final long EXPIRATION_TIME = 3 * 60 * 60 * 1000;
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+
+    public String generateToken(User user) {
+        return generateToken(user.getEmail());
+    }
 
     public String generateToken(String subject) {
         return Jwts.builder()

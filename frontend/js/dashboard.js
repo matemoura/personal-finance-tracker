@@ -13,18 +13,163 @@ document.addEventListener("DOMContentLoaded", () => {
     if (monthInput) monthInput.value = currentMonth;
 
     const logoutBtn = document.getElementById("logout-btn");
-    if (logoutBtn) {
-        logoutBtn.addEventListener("click", logout);
-    }
+    if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
     loadAvailableYears().then(() => {
         loadCategories().then(() => {
             loadDashboard();
             loadTransactions();
             loadExpensesChart();
+            loadUserData();
+            setupSettingsEvents();
         });
     });
+
+    document.addEventListener('click', function (event) {
+        const menu = document.getElementById("user-menu");
+        const avatarBtn = document.getElementById("user-avatar");
+        if (menu && !menu.classList.contains("hidden") && !menu.contains(event.target) && !avatarBtn.contains(event.target)) {
+            menu.classList.add("hidden");
+        }
+    });
 });
+
+function toggleUserMenu() {
+    const menu = document.getElementById("user-menu");
+    if (menu) menu.classList.toggle("hidden");
+}
+
+function openSettingsModal() {
+    document.getElementById("settings-modal").classList.remove("hidden");
+    document.getElementById("user-menu").classList.add("hidden");
+
+    const currentSrc = document.getElementById("user-avatar").src;
+    const preview = document.getElementById("settings-avatar-preview");
+    if (preview) preview.src = currentSrc;
+}
+
+function closeSettingsModal() {
+    document.getElementById("settings-modal").classList.add("hidden");
+    const ids = ["current-password", "new-password", "confirm-password"];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+}
+
+function switchTab(tab) {
+    const photoContent = document.getElementById("content-photo");
+    const passContent = document.getElementById("content-password");
+    const tabPhoto = document.getElementById("tab-photo");
+    const tabPass = document.getElementById("tab-password");
+
+    if (tab === 'photo') {
+        photoContent.classList.remove("hidden");
+        passContent.classList.add("hidden");
+
+        tabPhoto.classList.add("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
+        tabPhoto.classList.remove("text-brown-500");
+
+        tabPass.classList.remove("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
+        tabPass.classList.add("text-brown-500");
+    } else {
+        photoContent.classList.add("hidden");
+        passContent.classList.remove("hidden");
+
+        tabPass.classList.add("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
+        tabPass.classList.remove("text-brown-500");
+
+        tabPhoto.classList.remove("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
+        tabPhoto.classList.add("text-brown-500");
+    }
+}
+
+function setupSettingsEvents() {
+    const photoInput = document.getElementById('modal-photo-input');
+    if (photoInput) {
+        photoInput.addEventListener('change', async function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append("file", file);
+            const token = localStorage.getItem("token");
+
+            try {
+                const preview = document.getElementById("settings-avatar-preview");
+                if (preview) preview.style.opacity = "0.5";
+
+                const response = await fetch(`${API_URL}/api/users/upload-photo`, {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const newPhotoUrl = await response.text();
+                    localStorage.setItem("userPhoto", newPhotoUrl);
+
+                    document.getElementById("user-avatar").src = newPhotoUrl;
+                    if (preview) preview.src = newPhotoUrl;
+
+                    alert("Foto atualizada!");
+                } else {
+                    alert("Erro ao enviar foto.");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Erro de conexão.");
+            } finally {
+                const preview = document.getElementById("settings-avatar-preview");
+                if (preview) preview.style.opacity = "1";
+            }
+        });
+    }
+}
+
+async function saveNewPassword() {
+    const currentPassword = document.getElementById("current-password").value;
+    const newPassword = document.getElementById("new-password").value;
+    const confirmPassword = document.getElementById("confirm-password").value;
+
+    if (!currentPassword || !newPassword) {
+        alert("Preencha todos os campos.");
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        alert("A nova senha e a confirmação não coincidem.");
+        return;
+    }
+
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    if (!regex.test(newPassword)) {
+        alert("A nova senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).");
+        return;
+    }
+
+    const token = localStorage.getItem("token");
+    try {
+        const response = await fetch(`${API_URL}/api/users/change-password`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+
+        if (response.ok) {
+            alert("Senha alterada com sucesso!");
+            closeSettingsModal();
+        } else {
+            alert("Erro ao alterar senha. Verifique a senha atual.");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Erro de conexão.");
+    }
+}
 
 async function loadAvailableYears() {
     const token = getToken();
@@ -149,19 +294,15 @@ async function loadTransactions() {
             if (data.length === 0) {
                 listContainer.innerHTML = '<li class="py-4 text-stone-500 text-sm text-center italic">Nenhuma transação recente.</li>';
             }
-
             data.slice(0, 5).forEach(t => {
                 const li = document.createElement("li");
                 li.className = "py-3 flex justify-between items-center";
                 const isIncome = t.type === 'INCOME';
-
                 const dateParts = t.date.split('-');
-                const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-
                 li.innerHTML = `
                     <div>
                         <p class="text-sm font-medium text-stone-800">${t.description}</p>
-                        <p class="text-xs text-stone-500">${formattedDate}</p>
+                        <p class="text-xs text-stone-500">${dateParts[2]}/${dateParts[1]}/${dateParts[0]}</p>
                     </div>
                     <span class="font-bold text-sm ${isIncome ? 'text-green-600' : 'text-red-600'}">
                         ${isIncome ? '+' : '-'} R$ ${t.amount}
@@ -171,7 +312,7 @@ async function loadTransactions() {
             });
         }
     } catch (e) {
-        console.error("Erro ao carregar transações", e);
+        console.error("Erro transações", e);
     }
 }
 
@@ -370,7 +511,7 @@ async function loadExpensesChart() {
                 labels: labels,
                 datasets: [{
                     data: values,
-                    backgroundColor: ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6'],
+                    backgroundColor: ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6', '#a017c6', '#ff7c02', '#9aff02', '#0278ff69'],
                     hoverOffset: 4
                 }]
             },
@@ -381,5 +522,61 @@ async function loadExpensesChart() {
         });
     } catch (e) {
         console.error("Erro no gráfico", e);
+    }
+}
+
+function loadUserData() {
+    const name = localStorage.getItem("userName");
+    const photo = localStorage.getItem("userPhoto");
+
+    const nameElement = document.getElementById("user-name-display") || document.querySelector(".user-info");
+    const avatarElement = document.getElementById("user-avatar");
+
+    if (name && nameElement) {
+        const parts = name.trim().split(/\s+/); 
+        let displayName = name; 
+
+        if (parts.length > 1) {
+            displayName = `${parts[0]} ${parts[parts.length - 1]}`;
+        }
+
+        nameElement.textContent = `Olá, ${displayName}`;
+    }
+
+    if (avatarElement) {
+        if (photo) {
+            avatarElement.src = photo;
+        } else if (name) {
+            avatarElement.src = `https://ui-avatars.com/api/?name=${name}&background=755c47&color=fff`;
+        }
+    }
+}
+
+async function deletePhoto() {
+    if (!confirm("Tem certeza que deseja remover sua foto de perfil?")) return;
+
+    const token = localStorage.getItem("token");
+    try {
+        const response = await fetch(`${API_URL}/api/users/photo`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            localStorage.removeItem("userPhoto");
+            
+            const name = localStorage.getItem("userName");
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${name}&background=755c47&color=fff`;
+
+            document.getElementById("user-avatar").src = defaultAvatar;
+            document.getElementById("settings-avatar-preview").src = defaultAvatar;
+
+            alert("Foto removida com sucesso!");
+        } else {
+            alert("Erro ao remover foto.");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Erro de conexão.");
     }
 }
