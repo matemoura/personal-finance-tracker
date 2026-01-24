@@ -1,55 +1,63 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const registerForm = document.getElementById("register-form");
+document.getElementById("register-form").addEventListener("submit", async function (event) {
+    event.preventDefault();
 
-    if (registerForm) {
-        registerForm.addEventListener("submit", async (event) => {
-            event.preventDefault(); 
-            await register();
-        });
-    }
-});
-
-async function register() {
     const name = document.getElementById("name").value;
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
-    const confirmPassword = document.getElementById("confirm-password").value; 
 
-    if (!name || !email || !password || !confirmPassword) {
-        alert("Preencha todos os campos!");
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+
+    if (!regex.test(password)) {
+        alert("A senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).");
         return;
     }
 
-    if (password !== confirmPassword) {
-        alert("As senhas não coincidem!");
-        return;
-    }
+    const userData = {
+        name: name,
+        email: email,
+        password: password
+    };
 
-    if (password.length < 6) {
-        alert("A senha deve ter no mínimo 6 caracteres.");
-        return;
-    }
+    const submitBtn = document.querySelector("button[type='submit']");
+    const originalText = submitBtn.innerText;
+    submitBtn.innerText = "Cadastrando...";
+    submitBtn.disabled = true;
 
     try {
-        const response = await fetch(`${API_URL}/api/auth/register`, {
+        const response = await fetch(`${API_URL}/api/users`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email, password })
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(userData)
         });
 
         if (response.ok) {
-            alert("Conta criada com sucesso! Faça login.");
-            window.location.href = "index.html";
+            const data = await response.json();
+
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("userName", data.name);
+            localStorage.removeItem("userPhoto");
+
+            alert("Conta criada! Redirecionando...");
+            window.location.href = "dashboard.html"; 
         } else {
             try {
-                const data = await response.json();
-                alert("Erro: " + (data.message || "Não foi possível criar a conta."));
+                const errorData = await response.json();
+                if (errorData.errors) {
+                    alert("Erro: " + Object.values(errorData.errors).join("\n"));
+                } else {
+                    alert("Erro: " + (errorData.message || "Falha ao criar conta."));
+                }
             } catch (e) {
-                alert("Erro ao processar resposta do servidor.");
+                alert("Erro ao criar conta.");
             }
         }
     } catch (error) {
         console.error("Erro:", error);
-        alert("Erro de conexão com o servidor.");
+        alert("Erro de conexão.");
+    } finally {
+        submitBtn.innerText = originalText;
+        submitBtn.disabled = false;
     }
-}
+});

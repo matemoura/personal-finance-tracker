@@ -1,5 +1,5 @@
 async function login(event) {
-  
+
   event.preventDefault();
 
   const email = document.getElementById("email").value;
@@ -18,11 +18,18 @@ async function login(event) {
     }
 
     const data = await response.json();
-    
+
     localStorage.setItem("token", data.token);
+    localStorage.setItem("userName", data.name);
+
+    if (data.photoUrl) {
+      localStorage.setItem("userPhoto", data.photoUrl);
+    } else {
+      localStorage.removeItem("userPhoto"); 
+    }
 
     window.location.href = "dashboard.html";
-    
+
   } catch (error) {
     console.error("Erro na requisição:", error);
     alert("Erro ao conectar com o servidor. Verifique se o backend está rodando.");

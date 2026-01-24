@@ -21,7 +21,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public void register( RegisterRequest request ) {
+    public AuthResponse register( RegisterRequest request ) {
         if (userRepository.existsByEmail(request.email())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Email already exists");
         }
@@ -33,6 +33,10 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+
+        String token = jwtService.generateToken(user.getEmail());
+
+        return new AuthResponse(token, user.getName(), user.getPhotoUrl());
     }
 
     public AuthResponse login( LoginRequest request ) {
@@ -45,6 +49,6 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getEmail());
 
-        return new AuthResponse(token);
+        return new AuthResponse(token, user.getName(), user.getPhotoUrl());
     }
 }

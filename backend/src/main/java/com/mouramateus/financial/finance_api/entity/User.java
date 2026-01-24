@@ -3,6 +3,8 @@ package com.mouramateus.financial.finance_api.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -25,4 +27,8 @@ public class User {
     @Column(nullable = false)
     @com.fasterxml.jackson.annotation.JsonIgnore
     private String password;
+
+    private String photoUrl;
+    private String resetToken;
+    private LocalDateTime resetTokenExpiry;
 }
