@@ -3,6 +3,7 @@ let currentYear = now.getFullYear();
 let currentMonth = now.getMonth() + 1;
 let allCategories = [];
 let expensesChart = null;;
+let editingTransactionId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -276,14 +277,17 @@ async function loadTransactions() {
                 const typeLabel = t.type === 'INCOME' ? 'Receita' : 'Despesa';
 
                 const dateParts = t.date.split('-');
-                const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
 
                 tr.innerHTML = `
-                    <td class="p-2">${formattedDate}</td>
+                    <td class="p-2">${dateParts[2]}/${dateParts[1]}/${dateParts[0]}</td>
                     <td class="p-2">${t.description}</td>
                     <td class="p-2">${t.category ? t.category.name : 'Sem Categoria'}</td>
                     <td class="p-2 font-bold ${typeClass}">${typeLabel}</td>
-                    <td class="p-2 font-bold ${typeClass}">R$ ${t.amount}</td>
+                    <td class="p-2 font-bold ${typeClass}">R$ ${t.amount.toFixed(2)}</td>
+                    <td class="p-2 text-center">
+                         <button onclick='openEditModal(${safeTransaction})' class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase mr-2">Editar</button>
+                    </td>
                 `;
                 tableBody.appendChild(tr);
             });
@@ -296,17 +300,28 @@ async function loadTransactions() {
             }
             data.slice(0, 5).forEach(t => {
                 const li = document.createElement("li");
-                li.className = "py-3 flex justify-between items-center";
+                li.className = "py-3 flex justify-between items-center group";
                 const isIncome = t.type === 'INCOME';
                 const dateParts = t.date.split('-');
+                const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
                 li.innerHTML = `
-                    <div>
-                        <p class="text-sm font-medium text-stone-800">${t.description}</p>
-                        <p class="text-xs text-stone-500">${dateParts[2]}/${dateParts[1]}/${dateParts[0]}</p>
+                    <div class="flex items-center gap-3">
+                         <div class="bg-stone-100 p-2 rounded-lg text-lg w-10 h-10 flex items-center justify-center">
+                            ${t.category && t.category.icon ? t.category.icon : '📄'}
+                         </div>
+                        <div>
+                            <p class="text-sm font-medium text-stone-800">${t.description}</p>
+                            <p class="text-xs text-stone-500">${dateParts[2]}/${dateParts[1]}</p>
+                        </div>
                     </div>
-                    <span class="font-bold text-sm ${isIncome ? 'text-green-600' : 'text-red-600'}">
-                        ${isIncome ? '+' : '-'} R$ ${t.amount}
-                    </span>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-sm ${isIncome ? 'text-green-600' : 'text-red-600'}">
+                            ${isIncome ? '+' : '-'} R$ ${t.amount.toFixed(2)}
+                        </span>
+                        <button onclick='openEditModal(${safeTransaction})' class="p-2 text-stone-400 hover:text-brown-600 hover:bg-brown-50 rounded-full transition" title="Editar">
+                            ✎
+                        </button>
+                    </div>
                 `;
                 listContainer.appendChild(li);
             });
@@ -316,11 +331,29 @@ async function loadTransactions() {
     }
 }
 
-function openModal() {
-    document.getElementById("modal").classList.remove("hidden");
-    document.getElementById("date").valueAsDate = new Date();
-    document.getElementById("type").value = "INCOME";
-    filterCategoriesByType();
+function openModal(transaction = null) {
+    const modal = document.getElementById("modal");
+    modal.classList.remove("hidden");
+
+    if (transaction) {
+        editingTransactionId = transaction.id;
+        document.getElementById("modal-title").innerText = "Editar Transação";
+        document.getElementById("description").value = transaction.description;
+        document.getElementById("amount").value = transaction.amount;
+        document.getElementById("date").value = transaction.date;
+        document.getElementById("type").value = transaction.type;
+        
+        filterCategoriesByType(); 
+        document.getElementById("categoryId").value = transaction.category.id;
+    } else {
+        editingTransactionId = null;
+        document.getElementById("modal-title").innerText = "Nova Transação";
+        document.getElementById("description").value = "";
+        document.getElementById("amount").value = "";
+        document.getElementById("date").valueAsDate = new Date();
+        document.getElementById("type").value = "EXPENSE";
+        filterCategoriesByType();
+    }
 }
 
 function closeModal() {
@@ -364,6 +397,7 @@ async function createCategory() {
             alert("Categoria criada com sucesso!");
             closeCategoryModal();
             await loadCategories();
+            filterCategoriesByType();
         } else {
             alert("Erro ao criar categoria");
         }
@@ -414,43 +448,54 @@ function filterCategoriesByType() {
 }
 
 async function createTransaction() {
-    const token = getToken();
-    const categorySelect = document.getElementById("categoryId");
+    const token = localStorage.getItem("token");
+    const description = document.getElementById("description").value;
+    const amount = document.getElementById("amount").value;
+    const date = document.getElementById("date").value;
+    const type = document.getElementById("type").value;
+    const categoryId = document.getElementById("categoryId").value;
 
-    if (!categorySelect.value) {
-        alert("Selecione uma categoria!");
+    if (!description || !amount || !date || !categoryId) {
+        alert("Preencha todos os campos!");
         return;
     }
 
-    const body = {
-        description: document.getElementById("description").value,
-        amount: document.getElementById("amount").value,
-        date: document.getElementById("date").value,
-        type: document.getElementById("type").value,
-        categoryId: categorySelect.value
-    };
+    const body = { description, amount, date, type, categoryId };
 
-    const response = await fetch(`${API_URL}/api/transactions`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(body)
-    });
+    try {
+        let response;
+        if (editingTransactionId) {
+            response = await fetch(`${API_URL}/api/transactions/${editingTransactionId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+        } else {
+            response = await fetch(`${API_URL}/api/transactions`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+        }
 
-    if (!response.ok) {
-        const err = await response.text();
-        alert("Erro ao salvar: " + err);
-        return;
+        if (response.ok) {
+            alert(editingTransactionId ? "Transação atualizada!" : "Transação criada!");
+            closeModal();
+            
+            if (typeof loadDashboard === "function") loadDashboard();
+            if (typeof loadTransactions === "function") {
+                loadTransactions(); 
+            }
+            if (typeof loadExpensesChart === "function") loadExpensesChart();
+            
+        } else {
+            const err = await response.json();
+            alert("Erro: " + (err.message || "Falha ao salvar."));
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Erro de conexão.");
     }
-
-    alert("Transação salva!");
-    closeModal();
-
-    loadDashboard();
-    loadTransactions();
-    loadExpensesChart();
 }
 
 function applyFilter() {
@@ -579,4 +624,8 @@ async function deletePhoto() {
         console.error(error);
         alert("Erro de conexão.");
     }
+}
+
+function openEditModal(transaction) {
+    openModal(transaction);
 }

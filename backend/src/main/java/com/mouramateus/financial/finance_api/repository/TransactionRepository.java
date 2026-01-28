@@ -86,4 +86,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
         AND t.date <= :endDate
     """)
     BigDecimal calculateAccumulatedBalance(User user, LocalDate endDate);
+
+    List<Transaction> findByUserAndDateBetweenOrderByIdDesc(User user, LocalDate startDate, LocalDate endDate);
 }

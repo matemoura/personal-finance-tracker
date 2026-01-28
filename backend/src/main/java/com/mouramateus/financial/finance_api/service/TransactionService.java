@@ -84,7 +84,7 @@ public class TransactionService {
             );
         }
 
-        return transactionRepository.findByUserAndDateBetween(user, start, end);
+        return transactionRepository.findByUserAndDateBetweenOrderByIdDesc(user, start, end);
     }
 
     public List<Integer> getAvailableYears() {
@@ -113,5 +113,26 @@ public class TransactionService {
         }
 
         transactionRepository.delete(transaction);
+    }
+
+    public Transaction update(Long id, TransactionCreateRequest request) {
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transação não encontrada"));
+
+        transaction.setDescription(request.description());
+        transaction.setAmount(request.amount());
+        transaction.setDate(request.date());
+        transaction.setType(request.type());
+
+        Category category = categoryRepository.findById(request.categoryId())
+                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+
+        if (category.getType() != request.type()) {
+            throw new RuntimeException("O tipo da categoria não corresponde ao tipo da transação");
+        }
+
+        transaction.setCategory(category);
+
+        return transactionRepository.save(transaction);
     }
 }
