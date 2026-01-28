@@ -1,3 +1,6 @@
+let allCategories = [];
+let editingTransactionId = null;
+
 document.addEventListener("DOMContentLoaded", () => {
     const logoutBtn = document.getElementById("logout-btn");
     if (logoutBtn) {
@@ -9,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     loadUserData();
     setupSettingsEvents();
+    loadCategories();
 
     const now = new Date();
     loadTransactions(now.getFullYear(), now.getMonth() + 1);
@@ -185,14 +189,15 @@ async function loadTransactions(year, month) {
 
         data.forEach(t => {
             const tr = document.createElement("tr");
-            tr.className = "border-b border-stone-100 hover:bg-stone-50";
+            tr.className = "border-b border-stone-100 hover:bg-stone-50 transition";
 
             const isIncome = t.type === 'INCOME';
             const colorClass = isIncome ? 'text-green-700' : 'text-red-700';
             const typeLabel = isIncome ? 'Receita' : 'Despesa';
-
             const dateParts = t.date.split('-');
             const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
+            const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
 
             tr.innerHTML = `
                 <td class="p-4 text-stone-600">${formattedDate}</td>
@@ -200,8 +205,13 @@ async function loadTransactions(year, month) {
                 <td class="p-4"><span class="bg-stone-100 px-2 py-1 rounded text-xs text-stone-600">${t.category ? t.category.name : '-'}</span></td>
                 <td class="p-4"><span class="${isIncome ? 'bg-green-100' : 'bg-red-100'} px-2 py-1 rounded text-xs font-bold ${colorClass}">${typeLabel}</span></td>
                 <td class="p-4 text-right font-mono font-bold ${colorClass}">R$ ${t.amount.toFixed(2)}</td>
-                <td class="p-4 text-center">
-                    <button onclick="deleteTransaction(${t.id})" class="text-red-500 hover:text-red-700 font-bold text-xs uppercase">Excluir</button>
+                <td class="p-4 text-center space-x-2">
+                    <button onclick='openEditModal(${safeTransaction})' class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase px-2 py-1 hover:bg-blue-50 rounded transition">
+                        Editar
+                    </button>
+                    <button onclick="deleteTransaction(${t.id})" class="text-red-500 hover:text-red-700 font-bold text-xs uppercase px-2 py-1 hover:bg-red-50 rounded transition">
+                        Excluir
+                    </button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -283,6 +293,128 @@ async function deletePhoto() {
             alert("Foto removida com sucesso!");
         } else {
             alert("Erro ao remover foto.");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Erro de conexão.");
+    }
+}
+
+function openEditModal(transaction) {
+    openModal(transaction);
+}
+
+async function loadCategories() {
+    const token = localStorage.getItem("token");
+    try {
+        const response = await fetch(`${API_URL}/api/categories`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (response.ok) {
+            allCategories = await response.json();
+        }
+    } catch (error) {
+        console.error("Erro ao carregar categorias:", error);
+    }
+}
+
+function openModal(transaction = null) {
+    const modal = document.getElementById("modal");
+    modal.classList.remove("hidden");
+
+    if (transaction) {
+        editingTransactionId = transaction.id;
+        document.getElementById("modal-title").innerText = "Editar Transação";
+        document.getElementById("description").value = transaction.description;
+        document.getElementById("amount").value = transaction.amount;
+        document.getElementById("date").value = transaction.date;
+        document.getElementById("type").value = transaction.type;
+        
+        filterCategoriesByType(); 
+
+        setTimeout(() => {
+             if(transaction.category) {
+                 document.getElementById("categoryId").value = transaction.category.id;
+             }
+        }, 50);
+        
+    } else {
+        editingTransactionId = null;
+        document.getElementById("modal-title").innerText = "Nova Transação";
+        document.getElementById("description").value = "";
+        document.getElementById("amount").value = "";
+        document.getElementById("date").valueAsDate = new Date();
+        document.getElementById("type").value = "EXPENSE";
+        filterCategoriesByType();
+    }
+}
+
+function closeModal() {
+    document.getElementById("modal").classList.add("hidden");
+}
+
+function filterCategoriesByType() {
+    const selectedType = document.getElementById("type").value;
+    const select = document.getElementById("categoryId");
+    select.innerHTML = "";
+
+    const filtered = allCategories.filter(c => c.type === selectedType);
+
+    if (filtered.length === 0) {
+        const option = document.createElement("option");
+        option.text = "Nenhuma categoria deste tipo";
+        option.disabled = true;
+        option.selected = true;
+        select.appendChild(option);
+        return;
+    }
+
+    filtered.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.text = `${c.icon || '📃'} ${c.name}`;
+        select.appendChild(option);
+    });
+}
+
+async function createTransaction() {
+    const token = localStorage.getItem("token");
+    const description = document.getElementById("description").value;
+    const amount = document.getElementById("amount").value;
+    const date = document.getElementById("date").value;
+    const type = document.getElementById("type").value;
+    const categoryId = document.getElementById("categoryId").value;
+
+    if (!description || !amount || !date || !categoryId) {
+        alert("Preencha todos os campos!");
+        return;
+    }
+
+    const body = { description, amount, date, type, categoryId };
+
+    try {
+        let response;
+        if (editingTransactionId) {
+            response = await fetch(`${API_URL}/api/transactions/${editingTransactionId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+        } else {
+            response = await fetch(`${API_URL}/api/transactions`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+        }
+
+        if (response.ok) {
+            alert(editingTransactionId ? "Transação atualizada!" : "Transação criada!");
+            closeModal();
+            location.reload(); 
+        } else {
+            const err = await response.json();
+            alert("Erro: " + (err.message || "Falha ao salvar."));
         }
     } catch (error) {
         console.error(error);

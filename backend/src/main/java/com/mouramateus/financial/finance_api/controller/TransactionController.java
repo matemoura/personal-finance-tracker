@@ -7,6 +7,7 @@ import com.mouramateus.financial.finance_api.entity.Transaction;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,5 +44,10 @@ public class TransactionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         transactionService.deleteTransaction(id);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Transaction> update(@PathVariable Long id, @RequestBody @Valid TransactionCreateRequest request) {
+        return ResponseEntity.ok(transactionService.update(id, request));
     }
 }
