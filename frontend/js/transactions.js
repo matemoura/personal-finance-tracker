@@ -1,3 +1,8 @@
+const getDecimalSeparator = () => {
+    const n = 1.1;
+    return n.toLocaleString(navigator.language).substring(1, 2);
+};
+
 let allCategories = [];
 let editingTransactionId = null;
 
@@ -13,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadUserData();
     setupSettingsEvents();
     loadCategories();
+    setupMoneyInput();
 
     const now = new Date();
     loadTransactions(now.getFullYear(), now.getMonth() + 1);
@@ -194,8 +200,9 @@ async function loadTransactions(year, month) {
             const isIncome = t.type === 'INCOME';
             const colorClass = isIncome ? 'text-green-700' : 'text-red-700';
             const typeLabel = isIncome ? 'Receita' : 'Despesa';
-            const dateParts = t.date.split('-');
-            const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+            const formattedDate = formatDate(t.date);
+            const formattedValue = formatCurrencyDisplay(t.amount);
+            const symbol = isIncome ? '+' : '-';
 
             const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
 
@@ -204,7 +211,10 @@ async function loadTransactions(year, month) {
                 <td class="p-4 font-medium">${t.description}</td>
                 <td class="p-4"><span class="bg-stone-100 px-2 py-1 rounded text-xs text-stone-600">${t.category ? t.category.name : '-'}</span></td>
                 <td class="p-4"><span class="${isIncome ? 'bg-green-100' : 'bg-red-100'} px-2 py-1 rounded text-xs font-bold ${colorClass}">${typeLabel}</span></td>
-                <td class="p-4 text-right font-mono font-bold ${colorClass}">R$ ${t.amount.toFixed(2)}</td>
+
+                <td class="p-4 text-right font-mono font-bold ${colorClass}">
+                    ${symbol} ${formattedValue}
+                </td>
                 <td class="p-4 text-center space-x-2">
                     <button onclick='openEditModal(${safeTransaction})' class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase px-2 py-1 hover:bg-blue-50 rounded transition">
                         Editar
@@ -252,8 +262,8 @@ function loadUserData() {
     const avatarElement = document.getElementById("user-avatar");
 
     if (name && nameElement) {
-        const parts = name.trim().split(/\s+/); 
-        let displayName = name; 
+        const parts = name.trim().split(/\s+/);
+        let displayName = name;
 
         if (parts.length > 1) {
             displayName = `${parts[0]} ${parts[parts.length - 1]}`;
@@ -283,7 +293,7 @@ async function deletePhoto() {
 
         if (response.ok) {
             localStorage.removeItem("userPhoto");
-            
+
             const name = localStorage.getItem("userName");
             const defaultAvatar = `https://ui-avatars.com/api/?name=${name}&background=755c47&color=fff`;
 
@@ -326,18 +336,18 @@ function openModal(transaction = null) {
         editingTransactionId = transaction.id;
         document.getElementById("modal-title").innerText = "Editar Transação";
         document.getElementById("description").value = transaction.description;
-        document.getElementById("amount").value = transaction.amount;
+        document.getElementById("amount").value = formatCurrencyDisplay(transaction.amount);
         document.getElementById("date").value = transaction.date;
         document.getElementById("type").value = transaction.type;
-        
-        filterCategoriesByType(); 
+
+        filterCategoriesByType();
 
         setTimeout(() => {
-             if(transaction.category) {
-                 document.getElementById("categoryId").value = transaction.category.id;
-             }
+            if (transaction.category) {
+                document.getElementById("categoryId").value = transaction.category.id;
+            }
         }, 50);
-        
+
     } else {
         editingTransactionId = null;
         document.getElementById("modal-title").innerText = "Nova Transação";
@@ -380,7 +390,7 @@ function filterCategoriesByType() {
 async function createTransaction() {
     const token = localStorage.getItem("token");
     const description = document.getElementById("description").value;
-    const amount = document.getElementById("amount").value;
+    const amount = parseCurrencyInput(document.getElementById("amount").value);
     const date = document.getElementById("date").value;
     const type = document.getElementById("type").value;
     const categoryId = document.getElementById("categoryId").value;
@@ -411,7 +421,7 @@ async function createTransaction() {
         if (response.ok) {
             alert(editingTransactionId ? "Transação atualizada!" : "Transação criada!");
             closeModal();
-            location.reload(); 
+            location.reload();
         } else {
             const err = await response.json();
             alert("Erro: " + (err.message || "Falha ao salvar."));
@@ -420,4 +430,50 @@ async function createTransaction() {
         console.error(error);
         alert("Erro de conexão.");
     }
+}
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat(navigator.language, {
+        style: 'decimal',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(value);
+}
+
+function formatDate(dateString) {
+    if (!dateString) return "-";
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(year, month - 1, day);
+    return new Intl.DateTimeFormat(navigator.language).format(date);
+}
+
+function formatCurrencyDisplay(value) {
+    return new Intl.NumberFormat(navigator.language, {
+        style: 'decimal',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(value);
+}
+
+function parseCurrencyInput(formattedValue) {
+    const rawNumbers = formattedValue.replace(/\D/g, "");
+
+    return parseFloat(rawNumbers) / 100;
+}
+
+function setupMoneyInput() {
+    const input = document.getElementById("amount");
+    if (!input) return;
+
+    input.addEventListener("input", function (e) {
+        let value = e.target.value;
+        value = value.replace(/\D/g, "");
+
+        let numericValue = parseInt(value || "0") / 100;
+
+        e.target.value = new Intl.NumberFormat(navigator.language, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(numericValue);
+    });
 }
