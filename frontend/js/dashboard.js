@@ -1,3 +1,8 @@
+const getDecimalSeparator = () => {
+    const n = 1.1;
+    return n.toLocaleString(navigator.language).substring(1, 2);
+};
+
 const now = new Date();
 let currentYear = now.getFullYear();
 let currentMonth = now.getMonth() + 1;
@@ -23,8 +28,18 @@ document.addEventListener("DOMContentLoaded", () => {
             loadExpensesChart();
             loadUserData();
             setupSettingsEvents();
+            setupMoneyInput();
         });
     });
+
+    const amountInput = document.getElementById("amount");
+    if (amountInput) {
+        amountInput.addEventListener("blur", function() {
+            if (this.value) {
+                this.value = parseFloat(this.value).toFixed(2);
+            }
+        });
+    }
 
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");
@@ -277,16 +292,18 @@ async function loadTransactions() {
                 const typeLabel = t.type === 'INCOME' ? 'Receita' : 'Despesa';
 
                 const dateParts = t.date.split('-');
+                const formattedDate = formatDate(t.date);
+                const formattedValue = formatCurrency(t.amount);
                 const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
 
                 tr.innerHTML = `
-                    <td class="p-2">${dateParts[2]}/${dateParts[1]}/${dateParts[0]}</td>
-                    <td class="p-2">${t.description}</td>
-                    <td class="p-2">${t.category ? t.category.name : 'Sem Categoria'}</td>
-                    <td class="p-2 font-bold ${typeClass}">${typeLabel}</td>
-                    <td class="p-2 font-bold ${typeClass}">R$ ${t.amount.toFixed(2)}</td>
+                    <td class="p-2 text-stone-600 text-sm">${formattedDate}</td>
+                    <td class="p-2 font-medium text-stone-800">${t.description}</td>
+                    <td class="p-2 text-sm text-stone-500">${t.category ? t.category.name : 'Sem Categoria'}</td>
+                    <td class="p-2 font-bold text-xs uppercase ${typeClass}">${typeLabel}</td>
+                    <td class="p-2 font-mono font-bold ${typeClass}">${symbol} ${formattedValue}</td>
                     <td class="p-2 text-center">
-                         <button onclick='openEditModal(${safeTransaction})' class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase mr-2">Editar</button>
+                         <button onclick='openEditModal(${safeTransaction})' class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase hover:underline">Editar</button>
                     </td>
                 `;
                 tableBody.appendChild(tr);
@@ -302,23 +319,25 @@ async function loadTransactions() {
                 const li = document.createElement("li");
                 li.className = "py-3 flex justify-between items-center group";
                 const isIncome = t.type === 'INCOME';
-                const dateParts = t.date.split('-');
+                const symbol = isIncome ? '+' : '-';
+                const formattedDate = formatDate(t.date);
+                const formattedValue = formatCurrency(t.amount);
                 const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
                 li.innerHTML = `
                     <div class="flex items-center gap-3">
-                         <div class="bg-stone-100 p-2 rounded-lg text-lg w-10 h-10 flex items-center justify-center">
+                         <div class="bg-stone-100 p-2 rounded-lg text-lg w-10 h-10 flex items-center justify-center text-stone-600">
                             ${t.category && t.category.icon ? t.category.icon : '📄'}
                          </div>
                         <div>
-                            <p class="text-sm font-medium text-stone-800">${t.description}</p>
-                            <p class="text-xs text-stone-500">${dateParts[2]}/${dateParts[1]}</p>
+                            <p class="text-sm font-bold text-stone-800 truncate max-w-[120px]" title="${t.description}">${t.description}</p>
+                            <p class="text-xs text-stone-500">${formattedDate}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="font-bold text-sm ${isIncome ? 'text-green-600' : 'text-red-600'}">
-                            ${isIncome ? '+' : '-'} R$ ${t.amount.toFixed(2)}
+                            ${symbol} ${formattedValue}
                         </span>
-                        <button onclick='openEditModal(${safeTransaction})' class="p-2 text-stone-400 hover:text-brown-600 hover:bg-brown-50 rounded-full transition" title="Editar">
+                        <button onclick='openEditModal(${safeTransaction})' class="p-2 text-stone-300 hover:text-blue-600 hover:bg-blue-50 rounded-full transition" title="Editar">
                             ✎
                         </button>
                     </div>
@@ -327,7 +346,7 @@ async function loadTransactions() {
             });
         }
     } catch (e) {
-        console.error("Erro transações", e);
+        console.error("Erro ao carregar transações:", e);
     }
 }
 
@@ -339,11 +358,11 @@ function openModal(transaction = null) {
         editingTransactionId = transaction.id;
         document.getElementById("modal-title").innerText = "Editar Transação";
         document.getElementById("description").value = transaction.description;
-        document.getElementById("amount").value = transaction.amount;
+        document.getElementById("amount").value = formatCurrency(transaction.amount);
         document.getElementById("date").value = transaction.date;
         document.getElementById("type").value = transaction.type;
-        
-        filterCategoriesByType(); 
+
+        filterCategoriesByType();
         document.getElementById("categoryId").value = transaction.category.id;
     } else {
         editingTransactionId = null;
@@ -450,7 +469,7 @@ function filterCategoriesByType() {
 async function createTransaction() {
     const token = localStorage.getItem("token");
     const description = document.getElementById("description").value;
-    const amount = document.getElementById("amount").value;
+    const amount = parseCurrencyInput(document.getElementById("amount").value);
     const date = document.getElementById("date").value;
     const type = document.getElementById("type").value;
     const categoryId = document.getElementById("categoryId").value;
@@ -481,13 +500,13 @@ async function createTransaction() {
         if (response.ok) {
             alert(editingTransactionId ? "Transação atualizada!" : "Transação criada!");
             closeModal();
-            
+
             if (typeof loadDashboard === "function") loadDashboard();
             if (typeof loadTransactions === "function") {
-                loadTransactions(); 
+                loadTransactions();
             }
             if (typeof loadExpensesChart === "function") loadExpensesChart();
-            
+
         } else {
             const err = await response.json();
             alert("Erro: " + (err.message || "Falha ao salvar."));
@@ -578,8 +597,8 @@ function loadUserData() {
     const avatarElement = document.getElementById("user-avatar");
 
     if (name && nameElement) {
-        const parts = name.trim().split(/\s+/); 
-        let displayName = name; 
+        const parts = name.trim().split(/\s+/);
+        let displayName = name;
 
         if (parts.length > 1) {
             displayName = `${parts[0]} ${parts[parts.length - 1]}`;
@@ -609,7 +628,7 @@ async function deletePhoto() {
 
         if (response.ok) {
             localStorage.removeItem("userPhoto");
-            
+
             const name = localStorage.getItem("userName");
             const defaultAvatar = `https://ui-avatars.com/api/?name=${name}&background=755c47&color=fff`;
 
@@ -628,4 +647,42 @@ async function deletePhoto() {
 
 function openEditModal(transaction) {
     openModal(transaction);
+}
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat(navigator.language, {
+        style: 'decimal',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(value);
+}
+
+function formatDate(dateString) {
+    if (!dateString) return "-";
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(year, month - 1, day);
+    return new Intl.DateTimeFormat(navigator.language).format(date);
+}
+
+function parseCurrencyInput(formattedValue) {
+    const rawNumbers = formattedValue.replace(/\D/g, "");
+
+    return parseFloat(rawNumbers) / 100;
+}
+
+function setupMoneyInput() {
+    const input = document.getElementById("amount");
+    if (!input) return;
+
+    input.addEventListener("input", function (e) {
+        let value = e.target.value;
+        value = value.replace(/\D/g, "");
+
+        let numericValue = parseInt(value || "0") / 100;
+
+        e.target.value = new Intl.NumberFormat(navigator.language, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(numericValue);
+    });
 }
