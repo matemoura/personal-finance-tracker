@@ -1,10 +1,11 @@
 package com.mouramateus.financial.finance_api.security;
 
 import com.mouramateus.financial.finance_api.entity.User;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
 import java.security.Key;
@@ -14,7 +15,11 @@ import java.util.Date;
 public class JwtService {
 
     private static final long EXPIRATION_TIME = 3 * 60 * 60 * 1000;
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private final Key key;
+
+    public JwtService(@Value("${app.jwt-secret}") String jwtSecret) {
+        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+    }
 
     public String generateToken(User user) {
         return generateToken(user.getEmail());
