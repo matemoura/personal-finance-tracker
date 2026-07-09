@@ -1,0 +1,7 @@
+target/
+uploads/
+.idea/
+.mvn/
+*.iml
+HELP.md
+.env
