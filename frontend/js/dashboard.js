@@ -1,8 +1,3 @@
-const getDecimalSeparator = () => {
-    const n = 1.1;
-    return n.toLocaleString(navigator.language).substring(1, 2);
-};
-
 const now = new Date();
 let currentYear = now.getFullYear();
 let currentMonth = now.getMonth() + 1;
@@ -290,8 +285,8 @@ async function loadTransactions() {
                 tr.className = "border-b hover:bg-gray-50";
                 const typeClass = t.type === 'INCOME' ? 'text-green-600' : 'text-red-600';
                 const typeLabel = t.type === 'INCOME' ? 'Receita' : 'Despesa';
+                const symbol = t.type === 'INCOME' ? '+' : '-';
 
-                const dateParts = t.date.split('-');
                 const formattedDate = formatDate(t.date);
                 const formattedValue = formatCurrency(t.amount);
                 const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
@@ -361,8 +356,8 @@ function openModal(transaction = null) {
         document.getElementById("amount").value = formatCurrency(transaction.amount);
         document.getElementById("date").value = transaction.date;
         document.getElementById("type").value = transaction.type;
-
-        filterCategoriesByType();
+        
+        filterCategoriesByType(); 
         document.getElementById("categoryId").value = transaction.category.id;
     } else {
         editingTransactionId = null;
@@ -500,13 +495,13 @@ async function createTransaction() {
         if (response.ok) {
             alert(editingTransactionId ? "Transação atualizada!" : "Transação criada!");
             closeModal();
-
+            
             if (typeof loadDashboard === "function") loadDashboard();
             if (typeof loadTransactions === "function") {
-                loadTransactions();
+                loadTransactions(); 
             }
             if (typeof loadExpensesChart === "function") loadExpensesChart();
-
+            
         } else {
             const err = await response.json();
             alert("Erro: " + (err.message || "Falha ao salvar."));
@@ -597,8 +592,8 @@ function loadUserData() {
     const avatarElement = document.getElementById("user-avatar");
 
     if (name && nameElement) {
-        const parts = name.trim().split(/\s+/);
-        let displayName = name;
+        const parts = name.trim().split(/\s+/); 
+        let displayName = name; 
 
         if (parts.length > 1) {
             displayName = `${parts[0]} ${parts[parts.length - 1]}`;
@@ -628,7 +623,7 @@ async function deletePhoto() {
 
         if (response.ok) {
             localStorage.removeItem("userPhoto");
-
+            
             const name = localStorage.getItem("userName");
             const defaultAvatar = `https://ui-avatars.com/api/?name=${name}&background=755c47&color=fff`;
 
@@ -647,42 +642,4 @@ async function deletePhoto() {
 
 function openEditModal(transaction) {
     openModal(transaction);
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat(navigator.language, {
-        style: 'decimal',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(value);
-}
-
-function formatDate(dateString) {
-    if (!dateString) return "-";
-    const [year, month, day] = dateString.split('-');
-    const date = new Date(year, month - 1, day);
-    return new Intl.DateTimeFormat(navigator.language).format(date);
-}
-
-function parseCurrencyInput(formattedValue) {
-    const rawNumbers = formattedValue.replace(/\D/g, "");
-
-    return parseFloat(rawNumbers) / 100;
-}
-
-function setupMoneyInput() {
-    const input = document.getElementById("amount");
-    if (!input) return;
-
-    input.addEventListener("input", function (e) {
-        let value = e.target.value;
-        value = value.replace(/\D/g, "");
-
-        let numericValue = parseInt(value || "0") / 100;
-
-        e.target.value = new Intl.NumberFormat(navigator.language, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(numericValue);
-    });
 }

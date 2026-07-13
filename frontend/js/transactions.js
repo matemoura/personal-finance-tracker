@@ -1,8 +1,3 @@
-const getDecimalSeparator = () => {
-    const n = 1.1;
-    return n.toLocaleString(navigator.language).substring(1, 2);
-};
-
 let allCategories = [];
 let editingTransactionId = null;
 
@@ -201,7 +196,7 @@ async function loadTransactions(year, month) {
             const colorClass = isIncome ? 'text-green-700' : 'text-red-700';
             const typeLabel = isIncome ? 'Receita' : 'Despesa';
             const formattedDate = formatDate(t.date);
-            const formattedValue = formatCurrencyDisplay(t.amount);
+            const formattedValue = formatCurrency(t.amount);
             const symbol = isIncome ? '+' : '-';
 
             const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
@@ -211,7 +206,7 @@ async function loadTransactions(year, month) {
                 <td class="p-4 font-medium">${t.description}</td>
                 <td class="p-4"><span class="bg-stone-100 px-2 py-1 rounded text-xs text-stone-600">${t.category ? t.category.name : '-'}</span></td>
                 <td class="p-4"><span class="${isIncome ? 'bg-green-100' : 'bg-red-100'} px-2 py-1 rounded text-xs font-bold ${colorClass}">${typeLabel}</span></td>
-
+                
                 <td class="p-4 text-right font-mono font-bold ${colorClass}">
                     ${symbol} ${formattedValue}
                 </td>
@@ -336,7 +331,7 @@ function openModal(transaction = null) {
         editingTransactionId = transaction.id;
         document.getElementById("modal-title").innerText = "Editar Transação";
         document.getElementById("description").value = transaction.description;
-        document.getElementById("amount").value = formatCurrencyDisplay(transaction.amount);
+        document.getElementById("amount").value = formatCurrency(transaction.amount);
         document.getElementById("date").value = transaction.date;
         document.getElementById("type").value = transaction.type;
 
@@ -432,48 +427,3 @@ async function createTransaction() {
     }
 }
 
-function formatCurrency(value) {
-    return new Intl.NumberFormat(navigator.language, {
-        style: 'decimal',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(value);
-}
-
-function formatDate(dateString) {
-    if (!dateString) return "-";
-    const [year, month, day] = dateString.split('-');
-    const date = new Date(year, month - 1, day);
-    return new Intl.DateTimeFormat(navigator.language).format(date);
-}
-
-function formatCurrencyDisplay(value) {
-    return new Intl.NumberFormat(navigator.language, {
-        style: 'decimal',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(value);
-}
-
-function parseCurrencyInput(formattedValue) {
-    const rawNumbers = formattedValue.replace(/\D/g, "");
-
-    return parseFloat(rawNumbers) / 100;
-}
-
-function setupMoneyInput() {
-    const input = document.getElementById("amount");
-    if (!input) return;
-
-    input.addEventListener("input", function (e) {
-        let value = e.target.value;
-        value = value.replace(/\D/g, "");
-
-        let numericValue = parseInt(value || "0") / 100;
-
-        e.target.value = new Intl.NumberFormat(navigator.language, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(numericValue);
-    });
-}
