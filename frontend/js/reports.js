@@ -199,15 +199,15 @@ async function previewReport() {
             const colorClass = isIncome ? 'text-green-700' : 'text-red-700';
             const typeLabel = isIncome ? 'Receita' : 'Despesa';
 
-            const dateParts = t.date.split('-');
-            const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+            const formattedDate = formatDate(t.date);
+            const formattedValue = formatCurrency(t.amount);
 
             tr.innerHTML = `
                 <td class="p-4 text-stone-600">${formattedDate}</td>
                 <td class="p-4 font-medium">${t.description}</td>
                 <td class="p-4"><span class="bg-stone-100 px-2 py-1 rounded text-xs text-stone-600">${t.category.name}</span></td>
                 <td class="p-4"><span class="${isIncome ? 'bg-green-100' : 'bg-red-100'} px-2 py-1 rounded text-xs font-bold ${colorClass}">${typeLabel}</span></td>
-                <td class="p-4 text-right font-mono font-bold ${colorClass}">R$ ${t.amount.toFixed(2)}</td>
+                <td class="p-4 text-right font-mono font-bold ${colorClass}">R$ ${formattedValue}</td>
             `;
             tbody.appendChild(tr);
         });
