@@ -5,6 +5,11 @@ async function login(event) {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
+  const submitBtn = document.querySelector("button[type='submit']");
+  const originalText = submitBtn.innerText;
+  submitBtn.innerText = "Entrando...";
+  submitBtn.disabled = true;
+
   try {
     const response = await fetch(`${API_URL}/api/auth/login`, {
       method: "POST",
@@ -25,7 +30,7 @@ async function login(event) {
     if (data.photoUrl) {
       localStorage.setItem("userPhoto", data.photoUrl);
     } else {
-      localStorage.removeItem("userPhoto"); 
+      localStorage.removeItem("userPhoto");
     }
 
     window.location.href = "dashboard.html";
@@ -33,6 +38,9 @@ async function login(event) {
   } catch (error) {
     console.error("Erro na requisição:", error);
     alert("Erro ao conectar com o servidor. Verifique se o backend está rodando.");
+  } finally {
+    submitBtn.innerText = originalText;
+    submitBtn.disabled = false;
   }
 }
 
