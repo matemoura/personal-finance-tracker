@@ -21,6 +21,11 @@ async function doReset() {
         return;
     }
 
+    const btn = document.querySelector('button');
+    const originalText = btn.textContent;
+    btn.textContent = "Salvando...";
+    btn.disabled = true;
+
     try {
         const response = await fetch(`${API_URL}/api/auth/reset-password?token=${token}`, {
             method: 'POST',
@@ -40,5 +45,8 @@ async function doReset() {
     } catch (error) {
         console.error(error);
         alert("Erro de conexão.");
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
     }
 }
