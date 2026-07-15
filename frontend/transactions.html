@@ -25,9 +25,15 @@
     </style>
 </head>
 
-<body class="bg-brown-50 h-screen flex overflow-hidden text-brown-900">
+<body class="bg-brown-50 h-screen flex flex-col md:flex-row overflow-hidden text-brown-900">
 
-    <aside class="w-64 bg-brown-950 text-brown-50 flex flex-col flex-shrink-0 shadow-xl z-20">
+    <nav class="md:hidden flex items-center justify-around bg-brown-950 text-brown-50 px-2 py-3 shadow-xl z-20 flex-shrink-0">
+        <a href="dashboard.html" class="text-sm font-medium px-3 py-1.5 rounded-lg text-brown-100">Dashboard</a>
+        <a href="#" class="text-sm font-medium px-3 py-1.5 rounded-lg bg-brown-800 text-white">Transações</a>
+        <a href="reports.html" class="text-sm font-medium px-3 py-1.5 rounded-lg text-brown-100">Relatórios</a>
+    </nav>
+
+    <aside class="hidden md:flex w-64 bg-brown-950 text-brown-50 flex-col flex-shrink-0 shadow-xl z-20">
         <div class="p-6 text-center border-b border-brown-900 bg-brown-950">
             <h2 class="text-2xl font-bold tracking-wide text-white">Minhas Finanças</h2>
         </div>
@@ -132,7 +138,7 @@
                         <label class="block text-xs font-bold text-brown-800/70 uppercase tracking-wider mb-1">Valor</label>
                         <div class="relative">
                             <span class="absolute left-4 top-2 text-brown-800 font-bold">R$</span>
-                            <input type="number" id="amount" step="0.01" placeholder="0,00"
+                            <input type="text" id="amount" inputmode="numeric" placeholder="0,00"
                                 class="w-full pl-10 pr-4 py-2 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 outline-none transition text-lg font-bold text-brown-900">
                         </div>
                     </div>
