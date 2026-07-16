@@ -65,17 +65,16 @@
 
     <main class="flex-1 flex flex-col overflow-y-auto overflow-x-hidden bg-brown-50">
         <header
-            class="bg-white/80 backdrop-blur-md shadow-sm py-4 px-8 flex justify-between items-center sticky top-0 z-10 border-b border-brown-100">
+            class="bg-white/80 backdrop-blur-md shadow-sm py-4 px-4 md:px-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4 sticky top-0 z-10 border-b border-brown-100">
             <h1 class="text-2xl font-bold text-brown-950">Visão Geral</h1>
 
-            <div class="px-8 py-6 bg-brown-50 border-b border-brown-100">
-                <div
-                    class="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl shadow-sm border border-brown-100">
-                    <span class="font-bold text-brown-800 text-sm uppercase tracking-wide">Filtrar Período:</span>
+            <div class="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl shadow-sm border border-brown-100">
+                <span class="font-bold text-brown-800 text-sm uppercase tracking-wide">Filtrar Período:</span>
+                <div class="flex gap-2 w-full md:w-auto">
                     <select id="year"
-                        class="px-4 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900 focus:ring-2 focus:ring-brown-500 outline-none cursor-pointer hover:bg-brown-100 transition"></select>
+                        class="flex-1 md:flex-none px-4 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900 focus:ring-2 focus:ring-brown-500 outline-none cursor-pointer hover:bg-brown-100 transition"></select>
                     <select id="month"
-                        class="px-4 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900 focus:ring-2 focus:ring-brown-500 outline-none cursor-pointer hover:bg-brown-100 transition">
+                        class="flex-1 md:flex-none px-4 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900 focus:ring-2 focus:ring-brown-500 outline-none cursor-pointer hover:bg-brown-100 transition">
                         <option value="1">Janeiro</option>
                         <option value="2">Fevereiro</option>
                         <option value="3">Março</option>
@@ -89,19 +88,19 @@
                         <option value="11">Novembro</option>
                         <option value="12">Dezembro</option>
                     </select>
-                    <button onclick="applyFilter()"
-                        class="bg-brown-800 hover:bg-brown-900 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition transform active:scale-95">
-                        Atualizar
-                    </button>
                 </div>
+                <button onclick="applyFilter()"
+                    class="w-full md:w-auto bg-brown-800 hover:bg-brown-900 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition transform active:scale-95">
+                    Atualizar
+                </button>
             </div>
 
             <button onclick="openModal()"
-                class="ml-6 bg-brown-800 hover:bg-brown-900 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-sm">
+                class="w-full md:w-auto md:ml-6 bg-brown-800 hover:bg-brown-900 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 shadow-sm">
                 <span>+</span> Nova Transação
             </button>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center justify-between md:justify-start gap-4">
                 <span id="user-name-display" class="text-brown-800 font-medium user-info">Olá, Usuário</span>
 
                 <div class="relative">
@@ -127,7 +126,7 @@
             </div>
         </header>
 
-        <div class="p-8">
+        <div class="p-4 md:p-8">
             <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-white rounded-xl shadow-sm p-6 border-b-4 border-green-600 hover:shadow-md transition">
                     <div class="flex items-center justify-between mb-2">
@@ -174,7 +173,7 @@
         </div>
 
         <div id="modal"
-            class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+            class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 backdrop-blur-sm p-4">
             <div
                 class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
                 <div class="bg-brown-50 px-6 py-4 border-b border-brown-100 flex justify-between items-center">
@@ -225,7 +224,7 @@
             </div>
         </div>
 
-        <div id="categoryModal" class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50">
+        <div id="categoryModal" class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-xl shadow-lg p-6 w-80">
                 <h3 class="text-lg font-bold text-brown-900 mb-4">Nova Categoria</h3>
                 <input type="text" id="catName" placeholder="Nome"
@@ -247,7 +246,7 @@
         </div>
 
         <div id="settings-modal"
-            class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+            class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 backdrop-blur-sm p-4">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
                 <div class="bg-brown-50 px-6 py-4 border-b border-brown-100 flex justify-between items-center">
                     <h3 class="text-lg font-bold text-brown-900">Configurações da Conta</h3>
@@ -275,10 +274,6 @@
                     </div>
                     <p class="text-sm text-brown-500">Clique na imagem acima para escolher uma nova foto.</p>
                     <input type="file" id="modal-photo-input" accept="image/*" class="hidden">
-
-                    <div class="relative inline-block group">
-                        <img id="settings-avatar-preview" ... >
-                        </div>
 
                     <button onclick="deletePhoto()" class="block mx-auto mt-4 text-sm text-red-500 hover:text-red-700 font-medium hover:underline">
                         Remover foto atual
