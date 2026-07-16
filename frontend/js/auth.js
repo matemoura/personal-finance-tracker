@@ -18,7 +18,7 @@ async function login(event) {
     });
 
     if (!response.ok) {
-      alert("Login inválido. Verifique suas credenciais.");
+      showToast("Login inválido. Verifique suas credenciais.", "error");
       return;
     }
 
@@ -37,7 +37,7 @@ async function login(event) {
 
   } catch (error) {
     console.error("Erro na requisição:", error);
-    alert("Erro ao conectar com o servidor. Verifique se o backend está rodando.");
+    showToast("Erro ao conectar com o servidor. Verifique se o backend está rodando.", "error");
   } finally {
     submitBtn.innerText = originalText;
     submitBtn.disabled = false;

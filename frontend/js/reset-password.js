@@ -5,19 +5,19 @@ async function doReset() {
     const newPassword = document.getElementById('newPass').value;
 
     if (!token) {
-        alert("Link inválido ou expirado. Solicite novamente.");
+        showToast("Link inválido ou expirado. Solicite novamente.", "error");
         return;
     }
 
     if (!newPassword) {
-        alert("Digite a nova senha.");
+        showToast("Digite a nova senha.", "error");
         return;
     }
 
     const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
     
     if (!regex.test(newPassword)) {
-        alert("A senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial.");
+        showToast("A senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial.", "error");
         return;
     }
 
@@ -36,15 +36,15 @@ async function doReset() {
         });
 
         if (response.ok) {
-            alert("Senha alterada com sucesso! Faça login agora.");
-            window.location.href = "index.html";
+            showToast("Senha alterada com sucesso! Faça login agora.", "success");
+            setTimeout(() => { window.location.href = "index.html"; }, 1500);
         } else {
             const errorMsg = await response.text();
-            alert("Erro: " + errorMsg);
+            showToast("Erro: " + errorMsg, "error");
         }
     } catch (error) {
         console.error(error);
-        alert("Erro de conexão.");
+        showToast("Erro de conexão.", "error");
     } finally {
         btn.textContent = originalText;
         btn.disabled = false;

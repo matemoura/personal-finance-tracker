@@ -3,7 +3,7 @@ async function requestReset() {
     const email = emailInput.value;
 
     if (!email) {
-        alert("Por favor, digite seu e-mail.");
+        showToast("Por favor, digite seu e-mail.", "error");
         return;
     }
 
@@ -22,14 +22,14 @@ async function requestReset() {
         });
 
         if (response.ok) {
-            alert("E-mail enviado! Verifique sua caixa de entrada (e spam).");
-            window.location.href = "index.html"; 
+            showToast("E-mail enviado! Verifique sua caixa de entrada (e spam).", "success");
+            setTimeout(() => { window.location.href = "index.html"; }, 2000);
         } else {
-            alert("Erro ao enviar. Verifique se o e-mail está correto.");
+            showToast("Erro ao enviar. Verifique se o e-mail está correto.", "error");
         }
     } catch (error) {
         console.error("Erro:", error);
-        alert("Erro de conexão com o servidor.");
+        showToast("Erro de conexão com o servidor.", "error");
     } finally {
         btn.textContent = originalText;
         btn.disabled = false;
