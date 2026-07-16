@@ -8,7 +8,7 @@ document.getElementById("register-form").addEventListener("submit", async functi
     const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
 
     if (!regex.test(password)) {
-        alert("A senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).");
+        showToast("A senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).", "error");
         return;
     }
 
@@ -39,23 +39,23 @@ document.getElementById("register-form").addEventListener("submit", async functi
             localStorage.setItem("userName", data.name);
             localStorage.removeItem("userPhoto");
 
-            alert("Conta criada! Redirecionando...");
-            window.location.href = "dashboard.html"; 
+            showToast("Conta criada! Redirecionando...", "success");
+            setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
         } else {
             try {
                 const errorData = await response.json();
                 if (errorData.errors) {
-                    alert("Erro: " + Object.values(errorData.errors).join("\n"));
+                    showToast("Erro: " + Object.values(errorData.errors).join("\n"), "error");
                 } else {
-                    alert("Erro: " + (errorData.message || "Falha ao criar conta."));
+                    showToast("Erro: " + (errorData.message || "Falha ao criar conta."), "error");
                 }
             } catch (e) {
-                alert("Erro ao criar conta.");
+                showToast("Erro ao criar conta.", "error");
             }
         }
     } catch (error) {
         console.error("Erro:", error);
-        alert("Erro de conexão.");
+        showToast("Erro de conexão.", "error");
     } finally {
         submitBtn.innerText = originalText;
         submitBtn.disabled = false;
