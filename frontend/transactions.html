@@ -63,9 +63,9 @@
 
     <main class="flex-1 flex flex-col overflow-y-auto bg-brown-50">
         <header
-            class="bg-white/80 backdrop-blur-md shadow-sm py-4 px-8 flex justify-between items-center sticky top-0 z-10 border-b border-brown-100">
+            class="bg-white/80 backdrop-blur-md shadow-sm py-4 px-4 md:px-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4 sticky top-0 z-10 border-b border-brown-100">
             <h1 class="text-2xl font-bold text-brown-950">Histórico de Transações</h1>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center justify-between md:justify-start gap-4">
                 <span id="user-name-display" class="text-brown-800 font-medium user-info">Olá, Usuário</span>
 
                 <div class="relative">
@@ -91,7 +91,7 @@
             </div>
         </header>
 
-        <div class="p-8 max-w-6xl mx-auto w-full">
+        <div class="p-4 md:p-8 max-w-6xl mx-auto w-full">
             <div class="bg-white rounded-xl shadow-sm border border-brown-200 overflow-hidden">
                 <div class="p-6 border-b border-brown-100 bg-brown-50 flex justify-between items-center">
                     <h3 class="font-bold text-brown-900">Todas as Transações</h3>
@@ -118,7 +118,7 @@
             </div>
         </div>
 
-        <div id="modal" class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+        <div id="modal" class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 backdrop-blur-sm p-4">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
                 <div class="bg-brown-50 px-6 py-4 border-b border-brown-100 flex justify-between items-center">
                     <h3 id="modal-title" class="text-lg font-bold text-brown-900">Nova Transação</h3>
@@ -164,7 +164,7 @@
         </div>
 
         <div id="settings-modal"
-            class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+            class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 backdrop-blur-sm p-4">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
                 <div class="bg-brown-50 px-6 py-4 border-b border-brown-100 flex justify-between items-center">
                     <h3 class="text-lg font-bold text-brown-900">Configurações da Conta</h3>
@@ -192,10 +192,6 @@
                     </div>
                     <p class="text-sm text-brown-500">Clique na imagem acima para escolher uma nova foto.</p>
                     <input type="file" id="modal-photo-input" accept="image/*" class="hidden">
-
-                    <div class="relative inline-block group">
-                        <img id="settings-avatar-preview" ... >
-                        </div>
 
                     <button onclick="deletePhoto()" class="block mx-auto mt-4 text-sm text-red-500 hover:text-red-700 font-medium hover:underline">
                         Remover foto atual
