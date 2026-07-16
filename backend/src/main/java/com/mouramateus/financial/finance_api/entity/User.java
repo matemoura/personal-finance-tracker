@@ -29,6 +29,10 @@ public class User {
     private String password;
 
     private String photoUrl;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String resetToken;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private LocalDateTime resetTokenExpiry;
 }
