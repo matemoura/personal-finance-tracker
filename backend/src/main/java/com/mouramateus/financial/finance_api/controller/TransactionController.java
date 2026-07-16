@@ -5,9 +5,12 @@ import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.service.TransactionService;
 import com.mouramateus.financial.finance_api.entity.Transaction;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,6 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/transactions")
 @RequiredArgsConstructor
+@Validated
 public class TransactionController {
 
     private final TransactionService transactionService;
@@ -27,8 +31,8 @@ public class TransactionController {
 
     @GetMapping
     public List<Transaction> listByMonth(
-            @RequestParam int year,
-            @RequestParam int month,
+            @RequestParam @Min(1900) @Max(2200) int year,
+            @RequestParam @Min(1) @Max(12) int month,
             @RequestParam(required = false) CategoryType type,
             @RequestParam(required = false) Long categoryId
             ) {
