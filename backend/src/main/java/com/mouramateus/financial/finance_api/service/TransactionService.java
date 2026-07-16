@@ -72,6 +72,12 @@ public class TransactionService {
         LocalDate start = yearMonth.atDay(1);
         LocalDate end = yearMonth.atEndOfMonth();
 
+        if (type != null && categoryId != null) {
+            return transactionRepository.findByUserAndDateBetweenAndTypeAndCategory_Id(
+                    user, start, end, type, categoryId
+            );
+        }
+
         if (type != null) {
             return transactionRepository.findByUserAndDateBetweenAndType(
                     user, start, end, type

@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transações - Finance Tracker</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+    <meta name="description" content="Finance Tracker — controle suas receitas, despesas e relatórios financeiros pessoais.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script>
@@ -92,6 +94,50 @@
         </header>
 
         <div class="p-4 md:p-8 max-w-6xl mx-auto w-full">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-brown-200 mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-brown-800/70 uppercase tracking-wider mb-1">Ano</label>
+                        <select id="filter-year" onchange="applyTransactionFilters()"
+                            class="w-full px-3 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900 focus:ring-2 focus:ring-brown-500 outline-none cursor-pointer"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-brown-800/70 uppercase tracking-wider mb-1">Mês</label>
+                        <select id="filter-month" onchange="applyTransactionFilters()"
+                            class="w-full px-3 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900 focus:ring-2 focus:ring-brown-500 outline-none cursor-pointer">
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-brown-800/70 uppercase tracking-wider mb-1">Tipo</label>
+                        <select id="filter-type" onchange="applyTransactionFilters()"
+                            class="w-full px-3 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900 focus:ring-2 focus:ring-brown-500 outline-none cursor-pointer">
+                            <option value="">Todos</option>
+                            <option value="INCOME">Receita</option>
+                            <option value="EXPENSE">Despesa</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-brown-800/70 uppercase tracking-wider mb-1">Categoria</label>
+                        <select id="filter-category" onchange="applyTransactionFilters()"
+                            class="w-full px-3 py-2 border border-brown-200 rounded-lg bg-brown-50 text-brown-900 focus:ring-2 focus:ring-brown-500 outline-none cursor-pointer">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-white rounded-xl shadow-sm border border-brown-200 overflow-hidden">
                 <div class="p-6 border-b border-brown-100 bg-brown-50 flex justify-between items-center">
                     <h3 class="font-bold text-brown-900">Todas as Transações</h3>
