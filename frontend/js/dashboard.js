@@ -101,7 +101,7 @@ function setupSettingsEvents() {
                 const preview = document.getElementById("settings-avatar-preview");
                 if (preview) preview.style.opacity = "0.5";
 
-                const response = await fetch(`${API_URL}/api/users/upload-photo`, {
+                const response = await apiFetch(`/api/users/upload-photo`, {
                     method: "POST",
                     headers: { "Authorization": `Bearer ${token}` },
                     body: formData
@@ -114,13 +114,13 @@ function setupSettingsEvents() {
                     document.getElementById("user-avatar").src = newPhotoUrl;
                     if (preview) preview.src = newPhotoUrl;
 
-                    alert("Foto atualizada!");
+                    showToast("Foto atualizada!", "success");
                 } else {
-                    alert("Erro ao enviar foto.");
+                    showToast("Erro ao enviar foto.", "error");
                 }
             } catch (error) {
                 console.error(error);
-                alert("Erro de conexão.");
+                showToast("Erro de conexão.", "error");
             } finally {
                 const preview = document.getElementById("settings-avatar-preview");
                 if (preview) preview.style.opacity = "1";
@@ -135,24 +135,24 @@ async function saveNewPassword() {
     const confirmPassword = document.getElementById("confirm-password").value;
 
     if (!currentPassword || !newPassword) {
-        alert("Preencha todos os campos.");
+        showToast("Preencha todos os campos.", "error");
         return;
     }
 
     if (newPassword !== confirmPassword) {
-        alert("A nova senha e a confirmação não coincidem.");
+        showToast("A nova senha e a confirmação não coincidem.", "error");
         return;
     }
 
     const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
     if (!regex.test(newPassword)) {
-        alert("A nova senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).");
+        showToast("A nova senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).", "error");
         return;
     }
 
     const token = localStorage.getItem("token");
     try {
-        const response = await fetch(`${API_URL}/api/users/change-password`, {
+        const response = await apiFetch(`/api/users/change-password`, {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
@@ -162,14 +162,14 @@ async function saveNewPassword() {
         });
 
         if (response.ok) {
-            alert("Senha alterada com sucesso!");
+            showToast("Senha alterada com sucesso!", "success");
             closeSettingsModal();
         } else {
-            alert("Erro ao alterar senha. Verifique a senha atual.");
+            showToast("Erro ao alterar senha. Verifique a senha atual.", "error");
         }
     } catch (error) {
         console.error(error);
-        alert("Erro de conexão.");
+        showToast("Erro de conexão.", "error");
     }
 }
 
@@ -180,7 +180,7 @@ async function loadAvailableYears() {
     if (!yearSelect) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/transactions/years`, {
+        const response = await apiFetch(`/api/transactions/years`, {
             headers: { "Authorization": `Bearer ${token}` }
         });
 
@@ -230,11 +230,6 @@ async function loadDashboard() {
             `${API_URL}/api/dashboard/summary?year=${currentYear}&month=${currentMonth}`,
             { headers: { "Authorization": `Bearer ${token}` } }
         );
-
-        if (response.status === 403) {
-            logout();
-            return;
-        }
 
         const data = await response.json();
 
@@ -382,14 +377,14 @@ async function createCategory() {
     const icon = document.getElementById("catIcon").value || "📃";
 
     if (!name) {
-        alert("Digite um nome para a categoria!");
+        showToast("Digite um nome para a categoria!", "error");
         return;
     }
 
     const body = { name, type, icon };
 
     try {
-        const response = await fetch(`${API_URL}/api/categories`, {
+        const response = await apiFetch(`/api/categories`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -399,12 +394,12 @@ async function createCategory() {
         });
 
         if (response.ok) {
-            alert("Categoria criada com sucesso!");
+            showToast("Categoria criada com sucesso!", "success");
             closeCategoryModal();
             await loadCategories();
             filterCategoriesByType();
         } else {
-            alert("Erro ao criar categoria");
+            showToast("Erro ao criar categoria", "error");
         }
     } catch (error) {
         console.error("Erro:", error);
@@ -415,7 +410,7 @@ async function loadCategories() {
     const token = getToken();
 
     try {
-        const response = await fetch(`${API_URL}/api/categories`, {
+        const response = await apiFetch(`/api/categories`, {
             headers: { "Authorization": `Bearer ${token}` }
         });
 
@@ -461,7 +456,7 @@ async function createTransaction() {
     const categoryId = document.getElementById("categoryId").value;
 
     if (!description || !amount || !date || !categoryId) {
-        alert("Preencha todos os campos!");
+        showToast("Preencha todos os campos!", "error");
         return;
     }
 
@@ -470,13 +465,13 @@ async function createTransaction() {
     try {
         let response;
         if (editingTransactionId) {
-            response = await fetch(`${API_URL}/api/transactions/${editingTransactionId}`, {
+            response = await apiFetch(`/api/transactions/${editingTransactionId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify(body)
             });
         } else {
-            response = await fetch(`${API_URL}/api/transactions`, {
+            response = await apiFetch(`/api/transactions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify(body)
@@ -484,7 +479,7 @@ async function createTransaction() {
         }
 
         if (response.ok) {
-            alert(editingTransactionId ? "Transação atualizada!" : "Transação criada!");
+            showToast(editingTransactionId ? "Transação atualizada!" : "Transação criada!", "success");
             closeModal();
             
             if (typeof loadDashboard === "function") loadDashboard();
@@ -495,11 +490,11 @@ async function createTransaction() {
             
         } else {
             const err = await response.json();
-            alert("Erro: " + (err.message || "Falha ao salvar."));
+            showToast("Erro: " + (err.message || "Falha ao salvar."), "error");
         }
     } catch (error) {
         console.error(error);
-        alert("Erro de conexão.");
+        showToast("Erro de conexão.", "error");
     }
 }
 
@@ -515,7 +510,7 @@ function applyFilter() {
         loadTransactions();
         loadExpensesChart();
     } else {
-        alert("Por favor selecione ano e mês.");
+        showToast("Por favor selecione ano e mês.", "error");
     }
 }
 
@@ -607,7 +602,7 @@ async function deletePhoto() {
 
     const token = localStorage.getItem("token");
     try {
-        const response = await fetch(`${API_URL}/api/users/photo`, {
+        const response = await apiFetch(`/api/users/photo`, {
             method: "DELETE",
             headers: { "Authorization": `Bearer ${token}` }
         });
@@ -621,13 +616,13 @@ async function deletePhoto() {
             document.getElementById("user-avatar").src = defaultAvatar;
             document.getElementById("settings-avatar-preview").src = defaultAvatar;
 
-            alert("Foto removida com sucesso!");
+            showToast("Foto removida com sucesso!", "success");
         } else {
-            alert("Erro ao remover foto.");
+            showToast("Erro ao remover foto.", "error");
         }
     } catch (error) {
         console.error(error);
-        alert("Erro de conexão.");
+        showToast("Erro de conexão.", "error");
     }
 }
 

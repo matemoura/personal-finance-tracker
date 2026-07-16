@@ -5,6 +5,10 @@ const now = new Date();
 let currentYear = now.getFullYear();
 let currentMonth = now.getMonth() + 1;
 
+let allTransactions = [];
+let currentPage = 1;
+const PAGE_SIZE = 10;
+
 document.addEventListener("DOMContentLoaded", () => {
     const logoutBtn = document.getElementById("logout-btn");
     if (logoutBtn) {
@@ -18,6 +22,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setupSettingsEvents();
     loadCategories();
     setupMoneyInput();
+
+    const prevBtn = document.getElementById("prev-page");
+    const nextBtn = document.getElementById("next-page");
+    if (prevBtn) prevBtn.addEventListener("click", () => changePage(-1));
+    if (nextBtn) nextBtn.addEventListener("click", () => changePage(1));
 
     loadTransactions(currentYear, currentMonth);
 
@@ -95,7 +104,7 @@ function setupSettingsEvents() {
                 const preview = document.getElementById("settings-avatar-preview");
                 if (preview) preview.style.opacity = "0.5";
 
-                const response = await fetch(`${API_URL}/api/users/upload-photo`, {
+                const response = await apiFetch(`/api/users/upload-photo`, {
                     method: "POST",
                     headers: { "Authorization": `Bearer ${token}` },
                     body: formData
@@ -108,13 +117,13 @@ function setupSettingsEvents() {
                     document.getElementById("user-avatar").src = newPhotoUrl;
                     if (preview) preview.src = newPhotoUrl;
 
-                    alert("Foto atualizada!");
+                    showToast("Foto atualizada!", "success");
                 } else {
-                    alert("Erro ao enviar foto.");
+                    showToast("Erro ao enviar foto.", "error");
                 }
             } catch (error) {
                 console.error(error);
-                alert("Erro de conexão.");
+                showToast("Erro de conexão.", "error");
             } finally {
                 const preview = document.getElementById("settings-avatar-preview");
                 if (preview) preview.style.opacity = "1";
@@ -129,24 +138,24 @@ async function saveNewPassword() {
     const confirmPassword = document.getElementById("confirm-password").value;
 
     if (!currentPassword || !newPassword) {
-        alert("Preencha todos os campos.");
+        showToast("Preencha todos os campos.", "error");
         return;
     }
 
     if (newPassword !== confirmPassword) {
-        alert("A nova senha e a confirmação não coincidem.");
+        showToast("A nova senha e a confirmação não coincidem.", "error");
         return;
     }
 
     const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
     if (!regex.test(newPassword)) {
-        alert("A nova senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).");
+        showToast("A nova senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).", "error");
         return;
     }
 
     const token = localStorage.getItem("token");
     try {
-        const response = await fetch(`${API_URL}/api/users/change-password`, {
+        const response = await apiFetch(`/api/users/change-password`, {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
@@ -156,14 +165,14 @@ async function saveNewPassword() {
         });
 
         if (response.ok) {
-            alert("Senha alterada com sucesso!");
+            showToast("Senha alterada com sucesso!", "success");
             closeSettingsModal();
         } else {
-            alert("Erro ao alterar senha. Verifique a senha atual.");
+            showToast("Erro ao alterar senha. Verifique a senha atual.", "error");
         }
     } catch (error) {
         console.error(error);
-        alert("Erro de conexão.");
+        showToast("Erro de conexão.", "error");
     }
 }
 
@@ -177,58 +186,86 @@ async function loadTransactions(year, month) {
     const tbody = document.getElementById("transactions-body");
 
     try {
-        const response = await fetch(`${API_URL}/api/transactions?year=${year}&month=${month}`, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
+        const response = await apiFetch(`/api/transactions?year=${year}&month=${month}`);
 
         if (!response.ok) throw new Error("Erro ao buscar transações");
 
-        const data = await response.json();
-        tbody.innerHTML = "";
-
-        if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-stone-500">Nenhuma transação encontrada neste mês.</td></tr>';
-            return;
-        }
-
-        data.forEach(t => {
-            const tr = document.createElement("tr");
-            tr.className = "border-b border-stone-100 hover:bg-stone-50 transition";
-
-            const isIncome = t.type === 'INCOME';
-            const colorClass = isIncome ? 'text-green-700' : 'text-red-700';
-            const typeLabel = isIncome ? 'Receita' : 'Despesa';
-            const formattedDate = formatDate(t.date);
-            const formattedValue = formatCurrency(t.amount);
-            const symbol = isIncome ? '+' : '-';
-
-            const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
-
-            tr.innerHTML = `
-                <td class="p-4 text-stone-600">${formattedDate}</td>
-                <td class="p-4 font-medium">${t.description}</td>
-                <td class="p-4"><span class="bg-stone-100 px-2 py-1 rounded text-xs text-stone-600">${t.category ? t.category.name : '-'}</span></td>
-                <td class="p-4"><span class="${isIncome ? 'bg-green-100' : 'bg-red-100'} px-2 py-1 rounded text-xs font-bold ${colorClass}">${typeLabel}</span></td>
-                
-                <td class="p-4 text-right font-mono font-bold ${colorClass}">
-                    ${symbol} ${formattedValue}
-                </td>
-                <td class="p-4 text-center space-x-2">
-                    <button onclick='openEditModal(${safeTransaction})' class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase px-2 py-1 hover:bg-blue-50 rounded transition">
-                        Editar
-                    </button>
-                    <button onclick="deleteTransaction(${t.id})" class="text-red-500 hover:text-red-700 font-bold text-xs uppercase px-2 py-1 hover:bg-red-50 rounded transition">
-                        Excluir
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
+        allTransactions = await response.json();
+        currentPage = 1;
+        renderTransactionsPage();
 
     } catch (error) {
         console.error(error);
         tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-red-500">Erro ao carregar dados.</td></tr>';
+        document.getElementById("pagination").classList.add("hidden");
     }
+}
+
+function renderTransactionsPage() {
+    const tbody = document.getElementById("transactions-body");
+    const pagination = document.getElementById("pagination");
+    tbody.innerHTML = "";
+
+    if (allTransactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-stone-500">Nenhuma transação encontrada neste mês.</td></tr>';
+        pagination.classList.add("hidden");
+        return;
+    }
+
+    const totalPages = Math.ceil(allTransactions.length / PAGE_SIZE);
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageItems = allTransactions.slice(start, start + PAGE_SIZE);
+
+    pageItems.forEach(t => {
+        const tr = document.createElement("tr");
+        tr.className = "border-b border-stone-100 hover:bg-stone-50 transition";
+
+        const isIncome = t.type === 'INCOME';
+        const colorClass = isIncome ? 'text-green-700' : 'text-red-700';
+        const typeLabel = isIncome ? 'Receita' : 'Despesa';
+        const formattedDate = formatDate(t.date);
+        const formattedValue = formatCurrency(t.amount);
+        const symbol = isIncome ? '+' : '-';
+
+        const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
+
+        tr.innerHTML = `
+            <td class="p-4 text-stone-600">${formattedDate}</td>
+            <td class="p-4 font-medium">${t.description}</td>
+            <td class="p-4"><span class="bg-stone-100 px-2 py-1 rounded text-xs text-stone-600">${t.category ? t.category.name : '-'}</span></td>
+            <td class="p-4"><span class="${isIncome ? 'bg-green-100' : 'bg-red-100'} px-2 py-1 rounded text-xs font-bold ${colorClass}">${typeLabel}</span></td>
+
+            <td class="p-4 text-right font-mono font-bold ${colorClass}">
+                ${symbol} ${formattedValue}
+            </td>
+            <td class="p-4 text-center space-x-2">
+                <button onclick='openEditModal(${safeTransaction})' class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase px-2 py-1 hover:bg-blue-50 rounded transition">
+                    Editar
+                </button>
+                <button onclick="deleteTransaction(${t.id})" class="text-red-500 hover:text-red-700 font-bold text-xs uppercase px-2 py-1 hover:bg-red-50 rounded transition">
+                    Excluir
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if (totalPages > 1) {
+        pagination.classList.remove("hidden");
+        document.getElementById("page-info").textContent =
+            `Página ${currentPage} de ${totalPages} (${allTransactions.length} transações)`;
+        document.getElementById("prev-page").disabled = currentPage === 1;
+        document.getElementById("next-page").disabled = currentPage === totalPages;
+    } else {
+        pagination.classList.add("hidden");
+    }
+}
+
+function changePage(delta) {
+    currentPage += delta;
+    renderTransactionsPage();
 }
 
 async function deleteTransaction(id) {
@@ -236,16 +273,16 @@ async function deleteTransaction(id) {
 
     const token = localStorage.getItem("token");
     try {
-        const response = await fetch(`${API_URL}/api/transactions/${id}`, {
+        const response = await apiFetch(`/api/transactions/${id}`, {
             method: 'DELETE',
             headers: { "Authorization": `Bearer ${token}` }
         });
 
         if (response.ok) {
-            alert("Transação excluída!");
+            showToast("Transação excluída!", "success");
             loadTransactions(currentYear, currentMonth);
         } else {
-            alert("Erro ao excluir.");
+            showToast("Erro ao excluir.", "error");
         }
     } catch (error) {
         console.error(error);
@@ -284,7 +321,7 @@ async function deletePhoto() {
 
     const token = localStorage.getItem("token");
     try {
-        const response = await fetch(`${API_URL}/api/users/photo`, {
+        const response = await apiFetch(`/api/users/photo`, {
             method: "DELETE",
             headers: { "Authorization": `Bearer ${token}` }
         });
@@ -298,13 +335,13 @@ async function deletePhoto() {
             document.getElementById("user-avatar").src = defaultAvatar;
             document.getElementById("settings-avatar-preview").src = defaultAvatar;
 
-            alert("Foto removida com sucesso!");
+            showToast("Foto removida com sucesso!", "success");
         } else {
-            alert("Erro ao remover foto.");
+            showToast("Erro ao remover foto.", "error");
         }
     } catch (error) {
         console.error(error);
-        alert("Erro de conexão.");
+        showToast("Erro de conexão.", "error");
     }
 }
 
@@ -315,7 +352,7 @@ function openEditModal(transaction) {
 async function loadCategories() {
     const token = localStorage.getItem("token");
     try {
-        const response = await fetch(`${API_URL}/api/categories`, {
+        const response = await apiFetch(`/api/categories`, {
             headers: { "Authorization": `Bearer ${token}` }
         });
         if (response.ok) {
@@ -394,7 +431,7 @@ async function createTransaction() {
     const categoryId = document.getElementById("categoryId").value;
 
     if (!description || !amount || !date || !categoryId) {
-        alert("Preencha todos os campos!");
+        showToast("Preencha todos os campos!", "error");
         return;
     }
 
@@ -403,13 +440,13 @@ async function createTransaction() {
     try {
         let response;
         if (editingTransactionId) {
-            response = await fetch(`${API_URL}/api/transactions/${editingTransactionId}`, {
+            response = await apiFetch(`/api/transactions/${editingTransactionId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify(body)
             });
         } else {
-            response = await fetch(`${API_URL}/api/transactions`, {
+            response = await apiFetch(`/api/transactions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify(body)
@@ -417,16 +454,16 @@ async function createTransaction() {
         }
 
         if (response.ok) {
-            alert(editingTransactionId ? "Transação atualizada!" : "Transação criada!");
+            showToast(editingTransactionId ? "Transação atualizada!" : "Transação criada!", "success");
             closeModal();
             loadTransactions(currentYear, currentMonth);
         } else {
             const err = await response.json();
-            alert("Erro: " + (err.message || "Falha ao salvar."));
+            showToast("Erro: " + (err.message || "Falha ao salvar."), "error");
         }
     } catch (error) {
         console.error(error);
-        alert("Erro de conexão.");
+        showToast("Erro de conexão.", "error");
     }
 }
 
