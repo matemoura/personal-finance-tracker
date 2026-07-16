@@ -61,7 +61,7 @@ function showToast(message, type = "info") {
 }
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat(navigator.language, {
+  return new Intl.NumberFormat("pt-BR", {
     style: "decimal",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -72,7 +72,7 @@ function formatDate(dateString) {
   if (!dateString) return "-";
   const [year, month, day] = dateString.split("-");
   const date = new Date(year, month - 1, day);
-  return new Intl.DateTimeFormat(navigator.language).format(date);
+  return new Intl.DateTimeFormat("pt-BR").format(date);
 }
 
 function parseCurrencyInput(formattedValue) {
@@ -88,7 +88,7 @@ function setupMoneyInput() {
     let value = e.target.value.replace(/\D/g, "");
     let numericValue = parseInt(value || "0") / 100;
 
-    e.target.value = new Intl.NumberFormat(navigator.language, {
+    e.target.value = new Intl.NumberFormat("pt-BR", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(numericValue);
