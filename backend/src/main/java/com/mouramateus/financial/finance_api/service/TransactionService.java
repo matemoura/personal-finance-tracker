@@ -116,21 +116,32 @@ public class TransactionService {
     }
 
     public Transaction update(Long id, TransactionCreateRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
         Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Transação não encontrada"));
 
-        transaction.setDescription(request.description());
-        transaction.setAmount(request.amount());
-        transaction.setDate(request.date());
-        transaction.setType(request.type());
+        if (!transaction.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Acesso negado: Você não pode editar esta transação.");
+        }
 
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+
+        if (!category.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Category does not belong to user");
+        }
 
         if (category.getType() != request.type()) {
             throw new RuntimeException("O tipo da categoria não corresponde ao tipo da transação");
         }
 
+        transaction.setDescription(request.description());
+        transaction.setAmount(request.amount());
+        transaction.setDate(request.date());
+        transaction.setType(request.type());
         transaction.setCategory(category);
 
         return transactionRepository.save(transaction);

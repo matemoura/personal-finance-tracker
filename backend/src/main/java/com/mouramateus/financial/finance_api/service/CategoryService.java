@@ -80,12 +80,12 @@ public class CategoryService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow();
 
-        if (transactionRepository.existsByCategory(category)) {
-            throw new RuntimeException("Não é possível deletar uma categoria que possui transações.");
-        }
-
         if (!category.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("Access denied");
+        }
+
+        if (transactionRepository.existsByCategory(category)) {
+            throw new RuntimeException("Não é possível deletar uma categoria que possui transações.");
         }
 
         categoryRepository.delete(category);

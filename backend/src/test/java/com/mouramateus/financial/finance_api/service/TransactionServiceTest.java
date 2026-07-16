@@ -139,4 +139,64 @@ class TransactionServiceTest {
 
         verify(transactionRepository).delete(transaction);
     }
+
+    @Test
+    void update_ownedByAnotherUser_throwsAccessDenied() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        User otherUser = User.builder().id(2L).build();
+        Transaction transaction = Transaction.builder().id(99L).user(otherUser).build();
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L
+        );
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findById(99L)).thenReturn(Optional.of(transaction));
+
+        assertThatThrownBy(() -> transactionService.update(99L, request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Acesso negado");
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void update_withCategoryFromAnotherUser_throws() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        User otherUser = User.builder().id(2L).build();
+        Transaction transaction = Transaction.builder().id(99L).user(owner).build();
+        Category category = Category.builder().id(10L).user(otherUser).type(CategoryType.EXPENSE).build();
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L
+        );
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findById(99L)).thenReturn(Optional.of(transaction));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+
+        assertThatThrownBy(() -> transactionService.update(99L, request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("does not belong to user");
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void update_ownedByCurrentUser_savesChanges() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Transaction transaction = Transaction.builder().id(99L).user(owner).build();
+        Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L
+        );
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findById(99L)).thenReturn(Optional.of(transaction));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Transaction result = transactionService.update(99L, request);
+
+        assertThat(result.getDescription()).isEqualTo("Mercado");
+        assertThat(result.getCategory()).isEqualTo(category);
+    }
 }
