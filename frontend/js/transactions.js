@@ -9,6 +9,9 @@ let allTransactions = [];
 let currentPage = 1;
 const PAGE_SIZE = 10;
 
+let currentType = "";
+let currentCategoryFilter = "";
+
 document.addEventListener("DOMContentLoaded", () => {
     const logoutBtn = document.getElementById("logout-btn");
     if (logoutBtn) {
@@ -27,6 +30,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const nextBtn = document.getElementById("next-page");
     if (prevBtn) prevBtn.addEventListener("click", () => changePage(-1));
     if (nextBtn) nextBtn.addEventListener("click", () => changePage(1));
+
+    const monthSelect = document.getElementById("filter-month");
+    if (monthSelect) monthSelect.value = currentMonth;
+    loadAvailableYears();
 
     loadTransactions(currentYear, currentMonth);
 
@@ -186,7 +193,11 @@ async function loadTransactions(year, month) {
     const tbody = document.getElementById("transactions-body");
 
     try {
-        const response = await apiFetch(`/api/transactions?year=${year}&month=${month}`);
+        let query = `/api/transactions?year=${year}&month=${month}`;
+        if (currentType) query += `&type=${currentType}`;
+        if (currentCategoryFilter) query += `&categoryId=${currentCategoryFilter}`;
+
+        const response = await apiFetch(query);
 
         if (!response.ok) throw new Error("Erro ao buscar transações");
 
@@ -357,10 +368,73 @@ async function loadCategories() {
         });
         if (response.ok) {
             allCategories = await response.json();
+            populateCategoryFilter();
         }
     } catch (error) {
         console.error("Erro ao carregar categorias:", error);
     }
+}
+
+function populateCategoryFilter() {
+    const select = document.getElementById("filter-category");
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Todas</option>';
+    allCategories.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.text = `${c.icon || '📃'} ${c.name}`;
+        select.appendChild(option);
+    });
+}
+
+async function loadAvailableYears() {
+    const yearSelect = document.getElementById("filter-year");
+    if (!yearSelect) return;
+
+    const fillFallback = () => {
+        yearSelect.innerHTML = "";
+        const option = document.createElement("option");
+        option.value = currentYear;
+        option.text = currentYear;
+        yearSelect.appendChild(option);
+    };
+
+    try {
+        const response = await apiFetch(`/api/transactions/years`);
+        if (!response.ok) {
+            fillFallback();
+            return;
+        }
+
+        const years = await response.json();
+        yearSelect.innerHTML = "";
+
+        if (years.length === 0) {
+            fillFallback();
+        } else {
+            years.forEach(year => {
+                const option = document.createElement("option");
+                option.value = year;
+                option.text = year;
+                yearSelect.appendChild(option);
+            });
+            if (!years.includes(currentYear)) currentYear = years[0];
+        }
+
+        yearSelect.value = currentYear;
+    } catch (error) {
+        console.error("Erro ao carregar anos:", error);
+        fillFallback();
+    }
+}
+
+function applyTransactionFilters() {
+    currentYear = parseInt(document.getElementById("filter-year").value);
+    currentMonth = parseInt(document.getElementById("filter-month").value);
+    currentType = document.getElementById("filter-type").value;
+    currentCategoryFilter = document.getElementById("filter-category").value;
+    loadTransactions(currentYear, currentMonth);
 }
 
 function openModal(transaction = null) {

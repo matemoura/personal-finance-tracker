@@ -34,6 +34,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             Long CategoryId
     );
 
+    List<Transaction> findByUserAndDateBetweenAndTypeAndCategory_Id(
+            User user,
+            LocalDate start,
+            LocalDate end,
+            CategoryType type,
+            Long categoryId
+    );
+
     @Query("""
         select coalesce(sum(t.amount), 0)
         from Transaction t
