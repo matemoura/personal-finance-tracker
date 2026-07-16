@@ -27,15 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    const amountInput = document.getElementById("amount");
-    if (amountInput) {
-        amountInput.addEventListener("blur", function() {
-            if (this.value) {
-                this.value = parseFloat(this.value).toFixed(2);
-            }
-        });
-    }
-
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");
         const avatarBtn = document.getElementById("user-avatar");

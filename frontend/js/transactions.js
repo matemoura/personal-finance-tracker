@@ -1,6 +1,10 @@
 let allCategories = [];
 let editingTransactionId = null;
 
+const now = new Date();
+let currentYear = now.getFullYear();
+let currentMonth = now.getMonth() + 1;
+
 document.addEventListener("DOMContentLoaded", () => {
     const logoutBtn = document.getElementById("logout-btn");
     if (logoutBtn) {
@@ -15,8 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadCategories();
     setupMoneyInput();
 
-    const now = new Date();
-    loadTransactions(now.getFullYear(), now.getMonth() + 1);
+    loadTransactions(currentYear, currentMonth);
 
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");
@@ -240,7 +243,7 @@ async function deleteTransaction(id) {
 
         if (response.ok) {
             alert("Transação excluída!");
-            location.reload();
+            loadTransactions(currentYear, currentMonth);
         } else {
             alert("Erro ao excluir.");
         }
@@ -416,7 +419,7 @@ async function createTransaction() {
         if (response.ok) {
             alert(editingTransactionId ? "Transação atualizada!" : "Transação criada!");
             closeModal();
-            location.reload();
+            loadTransactions(currentYear, currentMonth);
         } else {
             const err = await response.json();
             alert("Erro: " + (err.message || "Falha ao salvar."));
