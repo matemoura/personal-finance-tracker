@@ -237,9 +237,9 @@ async function loadDashboard() {
         const expense = data.totalExpenses || 0;
         const balance = data.balance || 0;
 
-        document.getElementById("total-income").innerText = `R$ ${income.toFixed(2)}`;
-        document.getElementById("total-expense").innerText = `R$ ${expense.toFixed(2)}`;
-        document.getElementById("total-balance").innerText = `R$ ${balance.toFixed(2)}`;
+        document.getElementById("total-income").innerText = `R$ ${formatCurrency(income)}`;
+        document.getElementById("total-expense").innerText = `R$ ${formatCurrency(expense)}`;
+        document.getElementById("total-balance").innerText = `R$ ${formatCurrency(balance)}`;
 
     } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
