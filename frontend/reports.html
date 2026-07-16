@@ -8,106 +8,88 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
     <meta name="description" content="Finance Tracker — controle suas receitas, despesas e relatórios financeiros pessoais.">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brown: { 50: '#fbf9f6', 100: '#f2eae1', 200: '#e0d0c1', 500: '#a18068', 800: '#755c47', 900: '#5e4a3a', 950: '#45362b' }
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/app.css">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+        body { font-family: 'Inter', system-ui, sans-serif; }
     </style>
 </head>
 
-<body class="bg-brown-50 h-screen flex flex-col md:flex-row overflow-hidden text-brown-900">
+<body class="app-shell h-screen flex flex-col md:flex-row overflow-hidden text-[13.5px]">
 
-    <nav class="md:hidden flex items-center justify-around bg-brown-950 text-brown-50 px-2 py-3 shadow-xl z-20 flex-shrink-0">
-        <a href="dashboard.html" class="text-sm font-medium px-3 py-1.5 rounded-lg text-brown-100">Dashboard</a>
-        <a href="transactions.html" class="text-sm font-medium px-3 py-1.5 rounded-lg text-brown-100">Transações</a>
-        <a href="#" class="text-sm font-medium px-3 py-1.5 rounded-lg bg-brown-800 text-white">Relatórios</a>
+    <nav class="mobile-nav md:hidden flex items-center justify-around px-2 py-3 shadow-xl z-20 flex-shrink-0">
+        <a href="dashboard.html" class="text-sm font-medium px-3 py-1.5 rounded-lg">Dashboard</a>
+        <a href="transactions.html" class="text-sm font-medium px-3 py-1.5 rounded-lg">Transações</a>
+        <a href="#" class="is-active text-sm font-semibold px-3 py-1.5 rounded-lg">Relatórios</a>
+        <button onclick="toggleUserMenu()" data-user-trigger class="focus:outline-none">
+            <img id="user-avatar-mobile" src="https://ui-avatars.com/api/?name=U&background=3b82c4&color=fff"
+                class="h-8 w-8 rounded-full border-2 border-white/30 object-cover" alt="Foto de Perfil">
+        </button>
     </nav>
 
-    <aside
-        class="hidden md:flex w-64 bg-brown-950 text-brown-50 flex-col flex-shrink-0 transition-all duration-300 shadow-xl z-20">
-        <div class="p-6 text-center border-b border-brown-900 bg-brown-950">
-            <h2 class="text-2xl font-bold tracking-wide text-white">Minhas Finanças</h2>
+    <aside class="app-sidebar hidden md:flex w-[224px] flex-none flex-col z-20">
+        <div class="px-5 py-[22px] flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-extrabold text-base" style="background:var(--app-primary)">M</div>
+            <span class="text-[16.5px] font-bold text-white">Minhas Finanças</span>
         </div>
-        <nav class="flex-1 overflow-y-auto py-6">
-            <ul class="space-y-2 px-4">
-                <li>
-                    <a href="dashboard.html"
-                        class="flex items-center gap-3 py-3 px-4 text-brown-100 hover:bg-brown-900 hover:text-white rounded-lg transition-all">
-                        <span class="font-medium">Dashboard</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="transactions.html"
-                        class="flex items-center gap-3 py-3 px-4 text-brown-100 hover:bg-brown-900 hover:text-white rounded-lg transition-all">
-                        <span class="font-medium">Transações</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#"
-                        class="flex items-center gap-3 py-3 px-4 bg-brown-800 text-white rounded-lg shadow-sm border-l-4 border-brown-200 transition-all">
-                        <span class="font-medium">Relatórios</span>
-                    </a>
-                </li>
-            </ul>
+        <nav class="p-3.5 flex flex-col gap-1">
+            <a href="dashboard.html" class="flex items-center gap-3 px-3 py-[11px] rounded-lg font-medium no-underline">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1"></rect><rect x="9" y="1.5" width="5.5" height="5.5" rx="1"></rect><rect x="1.5" y="9" width="5.5" height="5.5" rx="1"></rect><rect x="9" y="9" width="5.5" height="5.5" rx="1"></rect></svg>
+                Dashboard
+            </a>
+            <a href="transactions.html" class="flex items-center gap-3 px-3 py-[11px] rounded-lg font-medium no-underline">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 5h12M2 8h12M2 11h8"></path></svg>
+                Transações
+            </a>
+            <a href="#" class="is-active flex items-center gap-3 px-3 py-[11px] rounded-lg font-semibold no-underline">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 14V9M6.5 14V5M11 14V2M15 14H1"></path></svg>
+                Relatórios
+            </a>
         </nav>
+        <div onclick="toggleUserMenu()" data-user-trigger
+            class="sidebar-user mt-auto p-4 flex items-center gap-2.5 cursor-pointer">
+            <img id="user-avatar" src="https://ui-avatars.com/api/?name=U&background=3b82c4&color=fff"
+                class="w-8 h-8 rounded-full object-cover" alt="Foto de Perfil">
+            <div class="leading-snug min-w-0">
+                <div id="user-name-display" class="text-white font-semibold text-[12.5px] truncate">Usuário</div>
+                <div class="text-[11px]" style="color:#8fa3ba">Configurações · Sair</div>
+            </div>
+        </div>
     </aside>
 
-    <main class="flex-1 flex flex-col overflow-y-auto bg-brown-50">
-        <header
-            class="bg-white/80 backdrop-blur-md shadow-sm py-4 px-4 md:px-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4 sticky top-0 z-10 border-b border-brown-100">
-            <h1 class="text-2xl font-bold text-brown-950">Relatórios Mensais</h1>
-            <div class="flex items-center justify-between md:justify-start gap-4">
-                <span id="user-name-display" class="text-brown-800 font-medium user-info">Olá, Usuário</span>
+    <div id="user-menu" class="user-menu-pop hidden fixed z-50 w-52 rounded-xl py-2
+        md:left-4 md:bottom-[76px] max-md:right-3 max-md:top-14">
+        <a href="#" onclick="openSettingsModal()"
+            class="block px-4 py-2 text-sm hover:bg-[#edf3f8] transition-colors" style="color:var(--app-text)">
+            ⚙️ Configurações
+        </a>
+        <div class="border-t my-1" style="border-color:var(--app-border)"></div>
+        <button onclick="logout()"
+            class="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors font-medium">
+            🚪 Sair
+        </button>
+    </div>
 
-                <div class="relative">
-                    <button onclick="toggleUserMenu()" class="focus:outline-none block">
-                        <img id="user-avatar" src="https://ui-avatars.com/api/?name=U&background=random"
-                            class="h-10 w-10 rounded-full border-2 border-brown-500 shadow-sm object-cover hover:border-brown-800 transition-all cursor-pointer"
-                            alt="Foto de Perfil">
-                    </button>
-
-                    <div id="user-menu"
-                        class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 border border-brown-100 z-50">
-                        <a href="#" onclick="openSettingsModal()"
-                            class="block px-4 py-2 text-sm text-brown-800 hover:bg-brown-50 hover:text-brown-900 transition-colors">
-                            ⚙️ Configurações
-                        </a>
-                        <div class="border-t border-brown-100 my-1"></div>
-                        <button id="logout-btn-dropdown" onclick="logout()"
-                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium">
-                            🚪 Sair
-                        </button>
-                    </div>
-                </div>
+    <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <header class="app-header border-b px-4 md:px-7 py-[15px] flex items-center gap-4 sticky top-0 z-10">
+            <div>
+                <div class="text-[19px] font-bold" style="color:var(--app-heading)">Relatórios Mensais</div>
+                <div class="text-xs" style="color:var(--app-muted)">Exporte seus dados em PDF ou Excel</div>
             </div>
         </header>
 
-        <div class="p-4 md:p-8 max-w-5xl mx-auto w-full">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-brown-200 mb-8">
-                <h2 class="text-lg font-bold text-brown-900 mb-4 border-b border-brown-100 pb-2">Selecione o Período
-                </h2>
-                <div class="flex flex-col md:flex-row gap-4 items-end">
-                    <div class="w-full md:w-1/4">
-                        <label class="block text-sm font-medium text-brown-800 mb-1">Ano</label>
-                        <input type="number" id="report-year"
-                            class="w-full p-2 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-500 focus:border-brown-500 bg-brown-50">
+        <div class="p-4 md:px-7 md:py-6 flex flex-col gap-5 max-w-[980px] w-full mx-auto">
+
+            <div class="app-card px-5 py-5">
+                <div class="text-[15px] font-bold mb-3.5" style="color:var(--app-heading)">Selecione o período</div>
+                <div class="flex gap-3.5 items-end flex-wrap">
+                    <div class="w-full sm:w-[130px]">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Ano</label>
+                        <select id="report-year" class="app-select w-full px-3 py-2 rounded-lg text-[13px] cursor-pointer"></select>
                     </div>
-                    <div class="w-full md:w-1/4">
-                        <label class="block text-sm font-medium text-brown-800 mb-1">Mês</label>
-                        <select id="report-month"
-                            class="w-full p-2 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-500 focus:border-brown-500 bg-brown-50">
+                    <div class="w-full sm:w-[160px]">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Mês</label>
+                        <select id="report-month" class="app-select w-full px-3 py-2 rounded-lg text-[13px] cursor-pointer">
                             <option value="1">Janeiro</option>
                             <option value="2">Fevereiro</option>
                             <option value="3">Março</option>
@@ -122,41 +104,58 @@
                             <option value="12">Dezembro</option>
                         </select>
                     </div>
-                    <div class="w-full md:w-auto flex gap-2">
-                        <button onclick="previewReport()"
-                            class="bg-brown-800 hover:bg-brown-900 text-white font-bold py-2 px-6 rounded-lg transition shadow-sm">Visualizar</button>
-                    </div>
-                </div>
-                <div class="mt-6 pt-4 border-t border-brown-100 flex flex-wrap gap-3">
+                    <button onclick="previewReport()"
+                        class="app-button px-5 py-[9px] rounded-lg font-bold text-[13px] transition">Visualizar</button>
+                    <div class="flex-1 hidden sm:block"></div>
                     <button onclick="downloadReport('pdf')"
-                        class="flex items-center gap-2 bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-lg transition shadow-sm"><span>📄</span>
-                        Exportar PDF</button>
+                        class="flex items-center gap-2 px-4 py-[9px] bg-white text-red-700 border rounded-lg font-bold text-[13px] transition hover:bg-red-50"
+                        style="border-color:#f3d2d2">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 1v8M4 6l3 3 3-3M2 12h10"></path></svg>
+                        PDF
+                    </button>
                     <button onclick="downloadReport('excel')"
-                        class="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg transition shadow-sm"><span>📊</span>
-                        Exportar Excel</button>
+                        class="flex items-center gap-2 px-4 py-[9px] bg-white border rounded-lg font-bold text-[13px] transition hover:bg-green-50"
+                        style="border-color:#cfe8d5;color:var(--app-success)">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 1v8M4 6l3 3 3-3M2 12h10"></path></svg>
+                        Excel
+                    </button>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm border border-brown-200 overflow-hidden">
-                <div class="p-6 border-b border-brown-100 flex justify-between items-center bg-brown-50">
-                    <h3 class="font-bold text-brown-800">Prévia do Relatório</h3>
-                    <span id="preview-date" class="text-sm text-brown-500 italic">--/--</span>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-[18px]">
+                <div class="app-card px-5 py-4">
+                    <div class="text-xs font-semibold" style="color:var(--app-muted)">Receitas no período</div>
+                    <div id="report-income" class="text-[22px] font-extrabold mt-1" style="color:var(--app-success)">—</div>
+                </div>
+                <div class="app-card px-5 py-4">
+                    <div class="text-xs font-semibold" style="color:var(--app-muted)">Despesas no período</div>
+                    <div id="report-expense" class="text-[22px] font-extrabold mt-1" style="color:var(--app-danger)">—</div>
+                </div>
+                <div class="app-card px-5 py-4">
+                    <div class="text-xs font-semibold" style="color:var(--app-muted)">Resultado</div>
+                    <div id="report-result" class="text-[22px] font-extrabold mt-1" style="color:var(--app-heading)">—</div>
+                </div>
+            </div>
+
+            <div class="app-card overflow-hidden mb-6">
+                <div class="px-5 py-[15px] border-b flex justify-between items-center" style="border-color:var(--app-border);background:#f8fafc">
+                    <span class="font-bold text-sm" style="color:var(--app-heading)">Prévia do relatório</span>
+                    <span id="preview-date" class="text-xs italic" style="color:var(--app-muted)">--/--</span>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full border-collapse text-left text-[13px]">
                         <thead>
-                            <tr class="bg-brown-100 text-brown-800 text-sm uppercase tracking-wider">
-                                <th class="p-4 border-b border-brown-200">Data</th>
-                                <th class="p-4 border-b border-brown-200">Descrição</th>
-                                <th class="p-4 border-b border-brown-200">Categoria</th>
-                                <th class="p-4 border-b border-brown-200">Tipo</th>
-                                <th class="p-4 border-b border-brown-200 text-right">Valor</th>
+                            <tr class="table-head text-[11px] uppercase tracking-wider">
+                                <th class="px-5 py-3 font-bold">Data</th>
+                                <th class="px-5 py-3 font-bold">Descrição</th>
+                                <th class="px-5 py-3 font-bold">Categoria</th>
+                                <th class="px-5 py-3 font-bold">Tipo</th>
+                                <th class="px-5 py-3 font-bold text-right">Valor</th>
                             </tr>
                         </thead>
-                        <tbody id="report-preview-body" class="text-brown-700 text-sm">
+                        <tbody id="report-preview-body">
                             <tr>
-                                <td colspan="5" class="p-8 text-center text-brown-400">Clique em "Visualizar" para
-                                    carregar os dados</td>
+                                <td colspan="5" class="p-9 text-center" style="color:#9daebf">Clique em "Visualizar" para carregar os dados</td>
                             </tr>
                         </tbody>
                     </table>
@@ -164,73 +163,58 @@
             </div>
         </div>
 
-        <div id="settings-modal"
-                class="fixed inset-0 bg-brown-950/50 hidden flex items-center justify-center z-50 backdrop-blur-sm p-4">
-                <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
-                    <div class="bg-brown-50 px-6 py-4 border-b border-brown-100 flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-brown-900">Configurações da Conta</h3>
-                        <button onclick="closeSettingsModal()"
-                            class="text-brown-400 hover:text-red-500 transition font-bold text-xl">✕</button>
-                    </div>
+        <div id="settings-modal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
+            style="background:rgba(30,41,59,.55);backdrop-filter:blur(3px)">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+                <div class="px-5 py-4 border-b flex justify-between items-center" style="background:var(--app-bg);border-color:var(--app-border)">
+                    <h3 class="text-[15.5px] font-bold" style="color:var(--app-heading)">Configurações da Conta</h3>
+                    <button onclick="closeSettingsModal()" class="text-base font-bold hover:text-red-600 transition" style="color:#9daebf">✕</button>
+                </div>
 
-                    <div class="flex border-b border-brown-100">
-                        <button onclick="switchTab('photo')" id="tab-photo"
-                            class="flex-1 py-3 text-sm font-medium text-brown-800 border-b-2 border-brown-800 bg-brown-50/50">Foto
-                            de Perfil</button>
-                        <button onclick="switchTab('password')" id="tab-password"
-                            class="flex-1 py-3 text-sm font-medium text-brown-500 hover:text-brown-800 transition">Alterar
-                            Senha</button>
-                    </div>
+                <div class="flex border-b" style="border-color:var(--app-border)">
+                    <button onclick="switchTab('photo')" id="tab-photo"
+                        class="settings-tab tab-active flex-1 py-3 text-sm font-semibold transition">Foto de Perfil</button>
+                    <button onclick="switchTab('password')" id="tab-password"
+                        class="settings-tab flex-1 py-3 text-sm font-semibold transition">Alterar Senha</button>
+                </div>
 
-                    <div id="content-photo" class="p-8 text-center space-y-6">
-                        <div class="relative inline-block group">
-                            <img id="settings-avatar-preview" src=""
-                                class="h-32 w-32 rounded-full border-4 border-brown-200 object-cover shadow-md mx-auto">
-                            <div onclick="document.getElementById('modal-photo-input').click()"
-                                class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer text-white font-medium">
-                                Alterar
-                            </div>
+                <div id="content-photo" class="p-8 text-center space-y-6">
+                    <div class="relative inline-block group">
+                        <img id="settings-avatar-preview" src=""
+                            class="h-32 w-32 rounded-full border-4 object-cover shadow-md mx-auto" style="border-color:var(--app-border)">
+                        <div onclick="document.getElementById('modal-photo-input').click()"
+                            class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer text-white font-medium">
+                            Alterar
                         </div>
-                        <p class="text-sm text-brown-500">Clique na imagem acima para escolher uma nova foto.</p>
-                        <input type="file" id="modal-photo-input" accept="image/*" class="hidden">
-
-                        <button onclick="deletePhoto()" class="block mx-auto mt-4 text-sm text-red-500 hover:text-red-700 font-medium hover:underline">
-                            Remover foto atual
-                        </button>
                     </div>
+                    <p class="text-sm" style="color:var(--app-muted)">Clique na imagem acima para escolher uma nova foto.</p>
+                    <input type="file" id="modal-photo-input" accept="image/*" class="hidden">
 
-                    <div id="content-password" class="p-8 space-y-4 hidden">
-                        <div>
-                            <label class="block text-xs font-bold text-brown-800 uppercase mb-1">Senha Atual</label>
-                            <input type="password" id="current-password"
-                                class="w-full px-4 py-2 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-brown-800 uppercase mb-1">Nova Senha</label>
-                            <input type="password" id="new-password"
-                                class="w-full px-4 py-2 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 outline-none">
-                            <p class="text-xs text-brown-500 mt-2 flex items-center gap-1">
-                                <span class="text-lg leading-none">•</span> Min 8 caracteres, 1 letra, 1 número e 1 especial
-                                (@#$...).
-                            </p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-brown-800 uppercase mb-1">Confirmar Nova
-                                Senha</label>
-                            <input type="password" id="confirm-password"
-                                class="w-full px-4 py-2 border border-brown-200 rounded-lg focus:ring-2 focus:ring-brown-500 outline-none">
-                            <p class="text-xs text-brown-500 mt-2 flex items-center gap-1">
-                                <span class="text-lg leading-none">•</span> Min 8 caracteres, 1 letra, 1 número e 1 especial
-                                (@#$...).
-                            </p>
-                        </div>
-                        <button onclick="saveNewPassword()"
-                            class="w-full bg-brown-800 hover:bg-brown-900 text-white font-bold py-3 rounded-lg shadow-md transition mt-2">
-                            Atualizar Senha
-                        </button>
+                    <button onclick="deletePhoto()" class="block mx-auto mt-4 text-sm text-red-600 hover:text-red-700 font-medium hover:underline">
+                        Remover foto atual
+                    </button>
+                </div>
+
+                <div id="content-password" class="p-8 space-y-4 hidden">
+                    <div>
+                        <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Senha Atual</label>
+                        <input type="password" id="current-password" class="app-input w-full px-3 py-2.5 rounded-lg text-sm">
                     </div>
+                    <div>
+                        <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Nova Senha</label>
+                        <input type="password" id="new-password" class="app-input w-full px-3 py-2.5 rounded-lg text-sm">
+                        <p class="text-xs mt-2" style="color:var(--app-muted)">Min 8 caracteres, 1 letra, 1 número e 1 especial (@#$...).</p>
+                    </div>
+                    <div>
+                        <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Confirmar Nova Senha</label>
+                        <input type="password" id="confirm-password" class="app-input w-full px-3 py-2.5 rounded-lg text-sm">
+                    </div>
+                    <button onclick="saveNewPassword()" class="app-button w-full font-bold text-sm py-3 rounded-lg transition mt-2">
+                        Atualizar Senha
+                    </button>
                 </div>
             </div>
+        </div>
     </main>
 
     <script src="js/api.js"></script>

@@ -2,39 +2,61 @@ const now = new Date();
 let currentYear = now.getFullYear();
 let currentMonth = now.getMonth() + 1;
 let allCategories = [];
-let expensesChart = null;;
 let editingTransactionId = null;
 
+const MONTHS_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const MONTHS_LONG = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
 document.addEventListener("DOMContentLoaded", () => {
+    const todayLabel = document.getElementById("today-label");
+    if (todayLabel) {
+        const formatted = new Intl.DateTimeFormat("pt-BR", {
+            weekday: "long", day: "numeric", month: "long", year: "numeric"
+        }).format(new Date());
+        todayLabel.textContent = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
 
-    const yearInput = document.getElementById("year");
-    const monthInput = document.getElementById("month");
+    const prevBtn = document.getElementById("month-prev");
+    const nextBtn = document.getElementById("month-next");
+    if (prevBtn) prevBtn.addEventListener("click", () => stepMonth(-1));
+    if (nextBtn) nextBtn.addEventListener("click", () => stepMonth(1));
+    updateMonthLabel();
 
-    if (yearInput) yearInput.value = currentYear;
-    if (monthInput) monthInput.value = currentMonth;
-
-    const logoutBtn = document.getElementById("logout-btn");
-    if (logoutBtn) logoutBtn.addEventListener("click", logout);
-
-    loadAvailableYears().then(() => {
-        loadCategories().then(() => {
-            loadDashboard();
-            loadTransactions();
-            loadExpensesChart();
-            loadUserData();
-            setupSettingsEvents();
-            setupMoneyInput();
-        });
+    loadCategories().then(() => {
+        refreshDashboard();
+        loadUserData();
+        setupSettingsEvents();
+        setupMoneyInput();
     });
 
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");
-        const avatarBtn = document.getElementById("user-avatar");
-        if (menu && !menu.classList.contains("hidden") && !menu.contains(event.target) && !avatarBtn.contains(event.target)) {
+        if (menu && !menu.classList.contains("hidden") &&
+            !menu.contains(event.target) && !event.target.closest("[data-user-trigger]")) {
             menu.classList.add("hidden");
         }
     });
 });
+
+function stepMonth(delta) {
+    currentMonth += delta;
+    if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+    if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+    updateMonthLabel();
+    refreshDashboard();
+}
+
+function updateMonthLabel() {
+    const label = document.getElementById("month-label");
+    if (label) label.textContent = `${MONTHS_SHORT[currentMonth - 1]} ${currentYear}`;
+}
+
+function refreshDashboard() {
+    loadDashboard();
+    loadTransactions();
+    loadCategoryBars();
+    loadCharts();
+}
 
 function toggleUserMenu() {
     const menu = document.getElementById("user-menu");
@@ -65,25 +87,18 @@ function switchTab(tab) {
     const tabPhoto = document.getElementById("tab-photo");
     const tabPass = document.getElementById("tab-password");
 
-    if (tab === 'photo') {
-        photoContent.classList.remove("hidden");
-        passContent.classList.add("hidden");
+    const isPhoto = tab === 'photo';
+    photoContent.classList.toggle("hidden", !isPhoto);
+    passContent.classList.toggle("hidden", isPhoto);
+    tabPhoto.classList.toggle("tab-active", isPhoto);
+    tabPass.classList.toggle("tab-active", !isPhoto);
+}
 
-        tabPhoto.classList.add("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
-        tabPhoto.classList.remove("text-brown-500");
-
-        tabPass.classList.remove("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
-        tabPass.classList.add("text-brown-500");
-    } else {
-        photoContent.classList.add("hidden");
-        passContent.classList.remove("hidden");
-
-        tabPass.classList.add("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
-        tabPass.classList.remove("text-brown-500");
-
-        tabPhoto.classList.remove("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
-        tabPhoto.classList.add("text-brown-500");
-    }
+function setAvatarEverywhere(src) {
+    ["user-avatar", "user-avatar-mobile"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.src = src;
+    });
 }
 
 function setupSettingsEvents() {
@@ -95,7 +110,6 @@ function setupSettingsEvents() {
 
             const formData = new FormData();
             formData.append("file", file);
-            const token = localStorage.getItem("token");
 
             try {
                 const preview = document.getElementById("settings-avatar-preview");
@@ -103,7 +117,6 @@ function setupSettingsEvents() {
 
                 const response = await apiFetch(`/api/users/upload-photo`, {
                     method: "POST",
-                    headers: { "Authorization": `Bearer ${token}` },
                     body: formData
                 });
 
@@ -111,7 +124,7 @@ function setupSettingsEvents() {
                     const newPhotoUrl = await response.text();
                     localStorage.setItem("userPhoto", newPhotoUrl);
 
-                    document.getElementById("user-avatar").src = newPhotoUrl;
+                    setAvatarEverywhere(newPhotoUrl);
                     if (preview) preview.src = newPhotoUrl;
 
                     showToast("Foto atualizada!", "success");
@@ -150,14 +163,10 @@ async function saveNewPassword() {
         return;
     }
 
-    const token = localStorage.getItem("token");
     try {
         const response = await apiFetch(`/api/users/change-password`, {
             method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ currentPassword, newPassword })
         });
 
@@ -173,49 +182,21 @@ async function saveNewPassword() {
     }
 }
 
-async function loadAvailableYears() {
-    const token = getToken();
-    const yearSelect = document.getElementById("year");
+async function fetchSummary(year, month) {
+    const response = await apiFetch(`/api/dashboard/summary?year=${year}&month=${month}`);
+    if (!response.ok) throw new Error("Falha ao carregar resumo");
+    return response.json();
+}
 
-    if (!yearSelect) return;
-
-    try {
-        const response = await apiFetch(`/api/transactions/years`, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-            const years = await response.json();
-
-            yearSelect.innerHTML = "";
-
-            if (years.length === 0) {
-                const option = document.createElement("option");
-                option.value = currentYear;
-                option.text = currentYear;
-                yearSelect.appendChild(option);
-            } else {
-                years.forEach(year => {
-                    const option = document.createElement("option");
-                    option.value = year;
-                    option.text = year;
-                    yearSelect.appendChild(option);
-                });
-            }
-
-            if (years.length > 0 && !years.includes(currentYear)) {
-                currentYear = years[0];
-            }
-
-            yearSelect.value = currentYear;
-        }
-    } catch (error) {
-        console.error("Erro ao carregar anos:", error);
-        const option = document.createElement("option");
-        option.value = currentYear;
-        option.text = currentYear;
-        yearSelect.appendChild(option);
+function lastMonths(count) {
+    const months = [];
+    let y = currentYear, m = currentMonth;
+    for (let i = 0; i < count; i++) {
+        months.unshift({ year: y, month: m });
+        m--;
+        if (m < 1) { m = 12; y--; }
     }
+    return months;
 }
 
 async function loadDashboard() {
@@ -226,108 +207,223 @@ async function loadDashboard() {
     }
 
     try {
-        const response = await fetch(
-            `${API_URL}/api/dashboard/summary?year=${currentYear}&month=${currentMonth}`,
-            { headers: { "Authorization": `Bearer ${token}` } }
-        );
-
-        const data = await response.json();
+        const prev = lastMonths(2)[0];
+        const [data, prevData] = await Promise.all([
+            fetchSummary(currentYear, currentMonth),
+            fetchSummary(prev.year, prev.month).catch(() => null)
+        ]);
 
         const income = data.totalIncome || 0;
         const expense = data.totalExpenses || 0;
         const balance = data.balance || 0;
+        const monthBalance = income - expense;
 
         document.getElementById("total-income").innerText = `R$ ${formatCurrency(income)}`;
         document.getElementById("total-expense").innerText = `R$ ${formatCurrency(expense)}`;
+        document.getElementById("month-balance").innerText = `R$ ${formatCurrency(monthBalance)}`;
         document.getElementById("total-balance").innerText = `R$ ${formatCurrency(balance)}`;
+
+        const prevName = MONTHS_LONG[prev.month - 1];
+        renderVariationBadge("income-badge", "income-vs", income, prevData ? prevData.totalIncome : null, prevName, true);
+        renderVariationBadge("expense-badge", "expense-vs", expense, prevData ? prevData.totalExpenses : null, prevName, false);
+
+        const savedBadge = document.getElementById("saved-badge");
+        const savedBar = document.getElementById("saved-bar");
+        if (income > 0) {
+            const pct = Math.max(0, Math.min(100, Math.round((monthBalance / income) * 100)));
+            savedBadge.textContent = `${pct}% poupado`;
+            savedBadge.classList.remove("hidden");
+            savedBar.style.width = `${pct}%`;
+        } else {
+            savedBadge.classList.add("hidden");
+            savedBar.style.width = "0%";
+        }
 
     } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
     }
 }
 
+function renderVariationBadge(badgeId, vsId, current, previous, prevMonthName, upIsGood) {
+    const badge = document.getElementById(badgeId);
+    const vs = document.getElementById(vsId);
+
+    if (previous === null || previous === undefined || previous === 0) {
+        badge.classList.add("hidden");
+        vs.innerHTML = "&nbsp;";
+        return;
+    }
+
+    const pct = ((current - previous) / previous) * 100;
+    const sign = pct >= 0 ? "+" : "−";
+    badge.textContent = `${sign}${Math.abs(pct).toFixed(1).replace(".", ",")}%`;
+    badge.classList.remove("hidden", "badge-up", "badge-down");
+    const isGood = upIsGood ? pct >= 0 : pct < 0;
+    badge.classList.add(isGood ? "badge-up" : "badge-down");
+
+    vs.textContent = `vs. R$ ${formatCurrency(previous)} em ${prevMonthName}`;
+}
+
 async function loadTransactions() {
-    const token = getToken();
-
     try {
-        const response = await fetch(
-            `${API_URL}/api/transactions?year=${currentYear}&month=${currentMonth}`,
-            { headers: { "Authorization": `Bearer ${token}` } }
-        );
-
+        const response = await apiFetch(`/api/transactions?year=${currentYear}&month=${currentMonth}`);
         const data = await response.json();
 
-        const tableBody = document.getElementById("transactionsTable");
         const listContainer = document.getElementById("recent-transactions-list");
+        if (!listContainer) return;
 
-        if (tableBody) {
-            tableBody.innerHTML = "";
-            if (data.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-stone-500">Nenhuma transação neste período.</td></tr>';
-            }
-
-            data.forEach(t => {
-                const tr = document.createElement("tr");
-                tr.className = "border-b hover:bg-gray-50";
-                const typeClass = t.type === 'INCOME' ? 'text-green-600' : 'text-red-600';
-                const typeLabel = t.type === 'INCOME' ? 'Receita' : 'Despesa';
-                const symbol = t.type === 'INCOME' ? '+' : '-';
-
-                const formattedDate = formatDate(t.date);
-                const formattedValue = formatCurrency(t.amount);
-                const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
-
-                tr.innerHTML = `
-                    <td class="p-2 text-stone-600 text-sm">${formattedDate}</td>
-                    <td class="p-2 font-medium text-stone-800">${t.description}</td>
-                    <td class="p-2 text-sm text-stone-500">${t.category ? t.category.name : 'Sem Categoria'}</td>
-                    <td class="p-2 font-bold text-xs uppercase ${typeClass}">${typeLabel}</td>
-                    <td class="p-2 font-mono font-bold ${typeClass}">${symbol} ${formattedValue}</td>
-                    <td class="p-2 text-center">
-                         <button onclick='openEditModal(${safeTransaction})' class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase hover:underline">Editar</button>
-                    </td>
-                `;
-                tableBody.appendChild(tr);
-            });
+        listContainer.innerHTML = "";
+        if (data.length === 0) {
+            listContainer.innerHTML = '<li class="py-6 text-center text-sm italic" style="color:#9daebf">Nenhuma transação neste período.</li>';
+            return;
         }
 
-        if (listContainer) {
-            listContainer.innerHTML = "";
-            if (data.length === 0) {
-                listContainer.innerHTML = '<li class="py-4 text-stone-500 text-sm text-center italic">Nenhuma transação recente.</li>';
-            }
-            data.slice(0, 5).forEach(t => {
-                const li = document.createElement("li");
-                li.className = "py-3 flex justify-between items-center group";
-                const isIncome = t.type === 'INCOME';
-                const symbol = isIncome ? '+' : '-';
-                const formattedDate = formatDate(t.date);
-                const formattedValue = formatCurrency(t.amount);
-                const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
-                li.innerHTML = `
-                    <div class="flex items-center gap-3">
-                         <div class="bg-stone-100 p-2 rounded-lg text-lg w-10 h-10 flex items-center justify-center text-stone-600">
-                            ${t.category && t.category.icon ? t.category.icon : '📄'}
-                         </div>
-                        <div>
-                            <p class="text-sm font-bold text-stone-800 truncate max-w-[120px]" title="${t.description}">${t.description}</p>
-                            <p class="text-xs text-stone-500">${formattedDate}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="font-bold text-sm ${isIncome ? 'text-green-600' : 'text-red-600'}">
-                            ${symbol} ${formattedValue}
-                        </span>
-                        <button onclick='openEditModal(${safeTransaction})' class="p-2 text-stone-300 hover:text-blue-600 hover:bg-blue-50 rounded-full transition" title="Editar">
-                            ✎
-                        </button>
-                    </div>
-                `;
-                listContainer.appendChild(li);
-            });
-        }
+        data.slice(0, 5).forEach(t => {
+            const li = document.createElement("li");
+            li.className = "flex items-center gap-3 py-2.5 border-b";
+            li.style.borderColor = "var(--app-soft)";
+            const isIncome = t.type === 'INCOME';
+            const symbol = isIncome ? '+' : '−';
+            const formattedDate = formatDate(t.date);
+            const formattedValue = formatCurrency(t.amount);
+            const icon = isIncome ? '↑' : (t.category && t.category.icon ? t.category.icon : '↓');
+            const iconBg = isIncome ? 'var(--app-success-bg)' : 'var(--app-soft)';
+            const iconColor = isIncome ? 'var(--app-success)' : 'var(--app-primary-dark)';
+            const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
+            li.innerHTML = `
+                <div class="w-[34px] h-[34px] rounded-lg flex items-center justify-center font-bold text-[13px] flex-shrink-0"
+                     style="background:${iconBg};color:${iconColor}">${icon}</div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-semibold truncate" style="color:var(--app-heading)" title="${t.description}">${t.description}</div>
+                    <div class="text-[11px]" style="color:#9daebf">${formattedDate} · ${t.category ? t.category.name : 'Sem categoria'}</div>
+                </div>
+                <span class="font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-danger)'}">
+                    ${symbol} R$ ${formattedValue}
+                </span>
+                <button onclick='openEditModal(${safeTransaction})'
+                    class="p-1.5 rounded-md transition hover:bg-[#edf3f8]" style="color:#9daebf" title="Editar">✎</button>
+            `;
+            listContainer.appendChild(li);
+        });
     } catch (e) {
         console.error("Erro ao carregar transações:", e);
+    }
+}
+
+async function loadCategoryBars() {
+    const container = document.getElementById("category-bars");
+    if (!container) return;
+
+    try {
+        const response = await apiFetch(`/api/dashboard/expenses-by-category?year=${currentYear}&month=${currentMonth}`);
+        const data = await response.json();
+
+        container.innerHTML = "";
+        if (data.length === 0) {
+            container.innerHTML = '<div class="py-6 text-center text-sm italic" style="color:#9daebf">Sem despesas neste período.</div>';
+            return;
+        }
+
+        const palette = ["#27659e", "#3b82c4", "#5d9cd4", "#82b5e0", "#aecdea", "#c9dcf0", "#dde9f6"];
+        const sorted = [...data].sort((a, b) => b.total - a.total);
+        const max = sorted[0].total || 1;
+
+        sorted.forEach((item, i) => {
+            const pct = Math.max(4, Math.round((item.total / max) * 100));
+            const row = document.createElement("div");
+            row.innerHTML = `
+                <div class="flex justify-between mb-1">
+                    <span>${item.category}</span>
+                    <span class="font-semibold">R$ ${formatCurrency(item.total)}</span>
+                </div>
+                <div class="h-[7px] rounded" style="background:var(--app-soft)">
+                    <div class="h-[7px] rounded transition-all" style="width:${pct}%;background:${palette[i % palette.length]}"></div>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+    } catch (e) {
+        console.error("Erro nas categorias:", e);
+    }
+}
+
+async function loadCharts() {
+    const months = lastMonths(6);
+
+    try {
+        const results = await Promise.all(
+            months.map(m => fetchSummary(m.year, m.month).catch(() => null))
+        );
+
+        renderEvolutionChart(months, results);
+        renderBarsChart(months, results);
+    } catch (e) {
+        console.error("Erro nos gráficos:", e);
+    }
+}
+
+function renderEvolutionChart(months, results) {
+    const container = document.getElementById("evolution-chart");
+    const labels = document.getElementById("evolution-labels");
+    if (!container) return;
+
+    const balances = results.map(r => (r && r.balance) || 0);
+    const min = Math.min(...balances, 0);
+    const max = Math.max(...balances, 1);
+    const range = max - min || 1;
+
+    const W = 500, H = 150, PAD = 10;
+    const points = balances.map((b, i) => {
+        const x = (i / (balances.length - 1)) * W;
+        const y = PAD + (1 - (b - min) / range) * (H - PAD * 2);
+        return [Math.round(x), Math.round(y)];
+    });
+
+    const line = points.map(p => p.join(",")).join(" ");
+    const last = points[points.length - 1];
+
+    container.innerHTML = `
+        <svg width="100%" height="150" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+            <defs>
+                <linearGradient id="gd1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#3b82c4" stop-opacity=".25"></stop>
+                    <stop offset="1" stop-color="#3b82c4" stop-opacity="0"></stop>
+                </linearGradient>
+            </defs>
+            <path d="M${line.replace(/ /g, " L")} L${W},${H} L0,${H} Z" fill="url(#gd1)"></path>
+            <polyline points="${line}" fill="none" stroke="#3b82c4" stroke-width="2.5"></polyline>
+            <circle cx="${last[0]}" cy="${last[1]}" r="4" fill="#3b82c4"></circle>
+        </svg>
+    `;
+
+    if (labels) {
+        labels.innerHTML = months.map(m => `<span>${MONTHS_SHORT[m.month - 1]}</span>`).join("");
+    }
+}
+
+function renderBarsChart(months, results) {
+    const container = document.getElementById("bars-chart");
+    const labels = document.getElementById("bars-labels");
+    if (!container) return;
+
+    const maxVal = Math.max(
+        ...results.map(r => Math.max((r && r.totalIncome) || 0, (r && r.totalExpenses) || 0)),
+        1
+    );
+
+    container.innerHTML = results.map(r => {
+        const incomePct = Math.round((((r && r.totalIncome) || 0) / maxVal) * 100);
+        const expensePct = Math.round((((r && r.totalExpenses) || 0) / maxVal) * 100);
+        return `
+            <div class="flex-1 flex gap-1 items-end h-full">
+                <div class="flex-1 rounded-t" style="height:${Math.max(incomePct, 2)}%;background:var(--app-primary)"></div>
+                <div class="flex-1 rounded-t" style="height:${Math.max(expensePct, 2)}%;background:#c3d3e8"></div>
+            </div>
+        `;
+    }).join("");
+
+    if (labels) {
+        labels.innerHTML = months.map(m => `<span>${MONTHS_SHORT[m.month - 1]}</span>`).join("");
     }
 }
 
@@ -342,9 +438,11 @@ function openModal(transaction = null) {
         document.getElementById("amount").value = formatCurrency(transaction.amount);
         document.getElementById("date").value = transaction.date;
         document.getElementById("type").value = transaction.type;
-        
-        filterCategoriesByType(); 
-        document.getElementById("categoryId").value = transaction.category.id;
+
+        filterCategoriesByType();
+        if (transaction.category) {
+            document.getElementById("categoryId").value = transaction.category.id;
+        }
     } else {
         editingTransactionId = null;
         document.getElementById("modal-title").innerText = "Nova Transação";
@@ -371,7 +469,6 @@ function closeCategoryModal() {
 }
 
 async function createCategory() {
-    const token = getToken();
     const name = document.getElementById("catName").value;
     const type = document.getElementById("catType").value;
     const icon = document.getElementById("catIcon").value || "📃";
@@ -386,10 +483,7 @@ async function createCategory() {
     try {
         const response = await apiFetch(`/api/categories`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
 
@@ -407,13 +501,8 @@ async function createCategory() {
 }
 
 async function loadCategories() {
-    const token = getToken();
-
     try {
-        const response = await apiFetch(`/api/categories`, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-
+        const response = await apiFetch(`/api/categories`);
         if (response.ok) {
             allCategories = await response.json();
         }
@@ -448,7 +537,6 @@ function filterCategoriesByType() {
 }
 
 async function createTransaction() {
-    const token = localStorage.getItem("token");
     const description = document.getElementById("description").value;
     const amount = parseCurrencyInput(document.getElementById("amount").value);
     const date = document.getElementById("date").value;
@@ -467,13 +555,13 @@ async function createTransaction() {
         if (editingTransactionId) {
             response = await apiFetch(`/api/transactions/${editingTransactionId}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body)
             });
         } else {
             response = await apiFetch(`/api/transactions`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body)
             });
         }
@@ -481,13 +569,7 @@ async function createTransaction() {
         if (response.ok) {
             showToast(editingTransactionId ? "Transação atualizada!" : "Transação criada!", "success");
             closeModal();
-            
-            if (typeof loadDashboard === "function") loadDashboard();
-            if (typeof loadTransactions === "function") {
-                loadTransactions(); 
-            }
-            if (typeof loadExpensesChart === "function") loadExpensesChart();
-            
+            refreshDashboard();
         } else {
             const err = await response.json();
             showToast("Erro: " + (err.message || "Falha ao salvar."), "error");
@@ -498,122 +580,47 @@ async function createTransaction() {
     }
 }
 
-function applyFilter() {
-    const yearVal = document.getElementById("year").value;
-    const monthVal = document.getElementById("month").value;
-
-    if (yearVal && monthVal) {
-        currentYear = parseInt(yearVal);
-        currentMonth = parseInt(monthVal);
-
-        loadDashboard();
-        loadTransactions();
-        loadExpensesChart();
-    } else {
-        showToast("Por favor selecione ano e mês.", "error");
-    }
-}
-
 function logout() {
     localStorage.removeItem("token");
     window.location.href = "index.html";
-}
-
-async function loadExpensesChart() {
-    const token = getToken();
-    const ctx = document.getElementById("expensesChart").getContext("2d");
-
-    if (expensesChart) {
-        expensesChart.destroy();
-    }
-
-    try {
-        const response = await fetch(
-            `${API_URL}/api/dashboard/expenses-by-category?year=${currentYear}&month=${currentMonth}`,
-            { headers: { "Authorization": `Bearer ${token}` } }
-        );
-
-        const data = await response.json();
-
-        if (data.length === 0) {
-            expensesChart = new Chart(ctx, {
-                type: "doughnut",
-                data: {
-                    labels: ["Sem dados"],
-                    datasets: [{ data: [1], backgroundColor: ['#E5E7EB'] }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-            return;
-        }
-
-        const labels = data.map(item => item.category);
-        const values = data.map(item => item.total);
-
-        expensesChart = new Chart(ctx, {
-            type: "doughnut",
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6', '#a017c6', '#ff7c02', '#9aff02', '#0278ff69'],
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-            }
-        });
-    } catch (e) {
-        console.error("Erro no gráfico", e);
-    }
 }
 
 function loadUserData() {
     const name = localStorage.getItem("userName");
     const photo = localStorage.getItem("userPhoto");
 
-    const nameElement = document.getElementById("user-name-display") || document.querySelector(".user-info");
-    const avatarElement = document.getElementById("user-avatar");
-
+    const nameElement = document.getElementById("user-name-display");
     if (name && nameElement) {
-        const parts = name.trim().split(/\s+/); 
-        let displayName = name; 
-
+        const parts = name.trim().split(/\s+/);
+        let displayName = name;
         if (parts.length > 1) {
             displayName = `${parts[0]} ${parts[parts.length - 1]}`;
         }
-
-        nameElement.textContent = `Olá, ${displayName}`;
+        nameElement.textContent = displayName;
     }
 
-    if (avatarElement) {
-        if (photo) {
-            avatarElement.src = photo;
-        } else if (name) {
-            avatarElement.src = `https://ui-avatars.com/api/?name=${name}&background=755c47&color=fff`;
-        }
+    if (photo) {
+        setAvatarEverywhere(photo);
+    } else if (name) {
+        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82c4&color=fff`);
     }
 }
 
 async function deletePhoto() {
     if (!confirm("Tem certeza que deseja remover sua foto de perfil?")) return;
 
-    const token = localStorage.getItem("token");
     try {
         const response = await apiFetch(`/api/users/photo`, {
-            method: "DELETE",
-            headers: { "Authorization": `Bearer ${token}` }
+            method: "DELETE"
         });
 
         if (response.ok) {
             localStorage.removeItem("userPhoto");
-            
-            const name = localStorage.getItem("userName");
-            const defaultAvatar = `https://ui-avatars.com/api/?name=${name}&background=755c47&color=fff`;
 
-            document.getElementById("user-avatar").src = defaultAvatar;
+            const name = localStorage.getItem("userName");
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=3b82c4&color=fff`;
+
+            setAvatarEverywhere(defaultAvatar);
             document.getElementById("settings-avatar-preview").src = defaultAvatar;
 
             showToast("Foto removida com sucesso!", "success");

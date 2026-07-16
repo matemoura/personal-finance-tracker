@@ -12,15 +12,9 @@ const PAGE_SIZE = 10;
 let currentType = "";
 let currentCategoryFilter = "";
 
-document.addEventListener("DOMContentLoaded", () => {
-    const logoutBtn = document.getElementById("logout-btn");
-    if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("token");
-            window.location.href = "index.html";
-        });
-    }
+const MONTHS_LONG = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
+document.addEventListener("DOMContentLoaded", () => {
     loadUserData();
     setupSettingsEvents();
     loadCategories();
@@ -39,8 +33,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");
-        const avatarBtn = document.getElementById("user-avatar");
-        if (menu && !menu.classList.contains("hidden") && !menu.contains(event.target) && !avatarBtn.contains(event.target)) {
+        if (menu && !menu.classList.contains("hidden") &&
+            !menu.contains(event.target) && !event.target.closest("[data-user-trigger]")) {
             menu.classList.add("hidden");
         }
     });
@@ -75,25 +69,18 @@ function switchTab(tab) {
     const tabPhoto = document.getElementById("tab-photo");
     const tabPass = document.getElementById("tab-password");
 
-    if (tab === 'photo') {
-        photoContent.classList.remove("hidden");
-        passContent.classList.add("hidden");
+    const isPhoto = tab === 'photo';
+    photoContent.classList.toggle("hidden", !isPhoto);
+    passContent.classList.toggle("hidden", isPhoto);
+    tabPhoto.classList.toggle("tab-active", isPhoto);
+    tabPass.classList.toggle("tab-active", !isPhoto);
+}
 
-        tabPhoto.classList.add("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
-        tabPhoto.classList.remove("text-brown-500");
-
-        tabPass.classList.remove("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
-        tabPass.classList.add("text-brown-500");
-    } else {
-        photoContent.classList.add("hidden");
-        passContent.classList.remove("hidden");
-
-        tabPass.classList.add("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
-        tabPass.classList.remove("text-brown-500");
-
-        tabPhoto.classList.remove("border-b-2", "border-brown-800", "bg-brown-50/50", "text-brown-800");
-        tabPhoto.classList.add("text-brown-500");
-    }
+function setAvatarEverywhere(src) {
+    ["user-avatar", "user-avatar-mobile"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.src = src;
+    });
 }
 
 function setupSettingsEvents() {
@@ -105,7 +92,6 @@ function setupSettingsEvents() {
 
             const formData = new FormData();
             formData.append("file", file);
-            const token = localStorage.getItem("token");
 
             try {
                 const preview = document.getElementById("settings-avatar-preview");
@@ -113,7 +99,6 @@ function setupSettingsEvents() {
 
                 const response = await apiFetch(`/api/users/upload-photo`, {
                     method: "POST",
-                    headers: { "Authorization": `Bearer ${token}` },
                     body: formData
                 });
 
@@ -121,7 +106,7 @@ function setupSettingsEvents() {
                     const newPhotoUrl = await response.text();
                     localStorage.setItem("userPhoto", newPhotoUrl);
 
-                    document.getElementById("user-avatar").src = newPhotoUrl;
+                    setAvatarEverywhere(newPhotoUrl);
                     if (preview) preview.src = newPhotoUrl;
 
                     showToast("Foto atualizada!", "success");
@@ -160,14 +145,10 @@ async function saveNewPassword() {
         return;
     }
 
-    const token = localStorage.getItem("token");
     try {
         const response = await apiFetch(`/api/users/change-password`, {
             method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ currentPassword, newPassword })
         });
 
@@ -184,7 +165,7 @@ async function saveNewPassword() {
 }
 
 async function loadTransactions(year, month) {
-    const token = localStorage.getItem("token");
+    const token = getToken();
     if (!token) {
         window.location.href = "index.html";
         return;
@@ -207,7 +188,7 @@ async function loadTransactions(year, month) {
 
     } catch (error) {
         console.error(error);
-        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-red-500">Erro ao carregar dados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-red-600">Erro ao carregar dados.</td></tr>';
         document.getElementById("pagination").classList.add("hidden");
     }
 }
@@ -215,10 +196,15 @@ async function loadTransactions(year, month) {
 function renderTransactionsPage() {
     const tbody = document.getElementById("transactions-body");
     const pagination = document.getElementById("pagination");
+    const countLabel = document.getElementById("count-label");
     tbody.innerHTML = "";
 
+    if (countLabel) {
+        countLabel.textContent = `${allTransactions.length} ${allTransactions.length === 1 ? "transação" : "transações"} em ${MONTHS_LONG[currentMonth - 1]} de ${currentYear}`;
+    }
+
     if (allTransactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-stone-500">Nenhuma transação encontrada neste mês.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center" style="color:#9daebf">Nenhuma transação encontrada neste período.</td></tr>';
         pagination.classList.add("hidden");
         return;
     }
@@ -231,33 +217,29 @@ function renderTransactionsPage() {
 
     pageItems.forEach(t => {
         const tr = document.createElement("tr");
-        tr.className = "border-b border-stone-100 hover:bg-stone-50 transition";
+        tr.className = "table-row transition";
 
         const isIncome = t.type === 'INCOME';
-        const colorClass = isIncome ? 'text-green-700' : 'text-red-700';
         const typeLabel = isIncome ? 'Receita' : 'Despesa';
         const formattedDate = formatDate(t.date);
         const formattedValue = formatCurrency(t.amount);
-        const symbol = isIncome ? '+' : '-';
+        const symbol = isIncome ? '+' : '−';
 
         const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
 
         tr.innerHTML = `
-            <td class="p-4 text-stone-600">${formattedDate}</td>
-            <td class="p-4 font-medium">${t.description}</td>
-            <td class="p-4"><span class="bg-stone-100 px-2 py-1 rounded text-xs text-stone-600">${t.category ? t.category.name : '-'}</span></td>
-            <td class="p-4"><span class="${isIncome ? 'bg-green-100' : 'bg-red-100'} px-2 py-1 rounded text-xs font-bold ${colorClass}">${typeLabel}</span></td>
-
-            <td class="p-4 text-right font-mono font-bold ${colorClass}">
-                ${symbol} ${formattedValue}
+            <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formattedDate}</td>
+            <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${t.description}</td>
+            <td class="px-[18px] py-[13px]"><span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl">${t.category ? t.category.name : '-'}</span></td>
+            <td class="px-[18px] py-[13px]"><span class="${isIncome ? 'pill-income' : 'pill-expense'} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${typeLabel}</span></td>
+            <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-heading)'}">
+                ${symbol} R$ ${formattedValue}
             </td>
-            <td class="p-4 text-center space-x-2">
-                <button onclick='openEditModal(${safeTransaction})' class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase px-2 py-1 hover:bg-blue-50 rounded transition">
-                    Editar
-                </button>
-                <button onclick="deleteTransaction(${t.id})" class="text-red-500 hover:text-red-700 font-bold text-xs uppercase px-2 py-1 hover:bg-red-50 rounded transition">
-                    Excluir
-                </button>
+            <td class="px-[18px] py-[13px] text-center whitespace-nowrap">
+                <button onclick='openEditModal(${safeTransaction})' title="Editar"
+                    class="px-1.5 py-1 text-[13px] transition hover:!text-[#3b82c4]" style="color:#9daebf">✎</button>
+                <button onclick="deleteTransaction(${t.id})" title="Excluir"
+                    class="px-1.5 py-1 text-[13px] transition hover:!text-red-600" style="color:#9daebf">🗑</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -282,11 +264,9 @@ function changePage(delta) {
 async function deleteTransaction(id) {
     if (!confirm("Tem certeza que deseja excluir esta transação?")) return;
 
-    const token = localStorage.getItem("token");
     try {
         const response = await apiFetch(`/api/transactions/${id}`, {
-            method: 'DELETE',
-            headers: { "Authorization": `Bearer ${token}` }
+            method: 'DELETE'
         });
 
         if (response.ok) {
@@ -304,46 +284,38 @@ function loadUserData() {
     const name = localStorage.getItem("userName");
     const photo = localStorage.getItem("userPhoto");
 
-    const nameElement = document.getElementById("user-name-display") || document.querySelector(".user-info");
-    const avatarElement = document.getElementById("user-avatar");
-
+    const nameElement = document.getElementById("user-name-display");
     if (name && nameElement) {
         const parts = name.trim().split(/\s+/);
         let displayName = name;
-
         if (parts.length > 1) {
             displayName = `${parts[0]} ${parts[parts.length - 1]}`;
         }
-
-        nameElement.textContent = `Olá, ${displayName}`;
+        nameElement.textContent = displayName;
     }
 
-    if (avatarElement) {
-        if (photo) {
-            avatarElement.src = photo;
-        } else if (name) {
-            avatarElement.src = `https://ui-avatars.com/api/?name=${name}&background=755c47&color=fff`;
-        }
+    if (photo) {
+        setAvatarEverywhere(photo);
+    } else if (name) {
+        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82c4&color=fff`);
     }
 }
 
 async function deletePhoto() {
     if (!confirm("Tem certeza que deseja remover sua foto de perfil?")) return;
 
-    const token = localStorage.getItem("token");
     try {
         const response = await apiFetch(`/api/users/photo`, {
-            method: "DELETE",
-            headers: { "Authorization": `Bearer ${token}` }
+            method: "DELETE"
         });
 
         if (response.ok) {
             localStorage.removeItem("userPhoto");
 
             const name = localStorage.getItem("userName");
-            const defaultAvatar = `https://ui-avatars.com/api/?name=${name}&background=755c47&color=fff`;
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=3b82c4&color=fff`;
 
-            document.getElementById("user-avatar").src = defaultAvatar;
+            setAvatarEverywhere(defaultAvatar);
             document.getElementById("settings-avatar-preview").src = defaultAvatar;
 
             showToast("Foto removida com sucesso!", "success");
@@ -361,11 +333,8 @@ function openEditModal(transaction) {
 }
 
 async function loadCategories() {
-    const token = localStorage.getItem("token");
     try {
-        const response = await apiFetch(`/api/categories`, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
+        const response = await apiFetch(`/api/categories`);
         if (response.ok) {
             allCategories = await response.json();
             populateCategoryFilter();
@@ -497,7 +466,6 @@ function filterCategoriesByType() {
 }
 
 async function createTransaction() {
-    const token = localStorage.getItem("token");
     const description = document.getElementById("description").value;
     const amount = parseCurrencyInput(document.getElementById("amount").value);
     const date = document.getElementById("date").value;
@@ -516,13 +484,13 @@ async function createTransaction() {
         if (editingTransactionId) {
             response = await apiFetch(`/api/transactions/${editingTransactionId}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body)
             });
         } else {
             response = await apiFetch(`/api/transactions`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body)
             });
         }
@@ -541,3 +509,7 @@ async function createTransaction() {
     }
 }
 
+function logout() {
+    localStorage.removeItem("token");
+    window.location.href = "index.html";
+}

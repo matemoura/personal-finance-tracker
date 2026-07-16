@@ -1,0 +1,74 @@
+:root {
+  --app-bg: #f5f7fa;
+  --app-surface: #ffffff;
+  --app-sidebar: #26384c;
+  --app-primary: #3b82c4;
+  --app-primary-dark: #27659e;
+  --app-text: #334155;
+  --app-muted: #7b8da2;
+  --app-border: #e2e8f0;
+  --app-soft: #edf3f8;
+  --app-heading: #253449;
+  --app-success: #15803d;
+  --app-success-bg: #ecf7ee;
+  --app-danger: #b91c1c;
+  --app-danger-bg: #fdefef;
+}
+
+body { background: var(--app-bg); color: var(--app-text); }
+.app-shell { background: var(--app-bg); }
+
+/* ---------- Sidebar ---------- */
+.app-sidebar { background: var(--app-sidebar); }
+.app-sidebar a { color: #c7d4e2; }
+.app-sidebar a:hover { background: rgba(255,255,255,.08); color: #fff; }
+.app-sidebar .is-active { background: rgba(255,255,255,.13); color: #fff; }
+.app-sidebar .is-active:hover { background: rgba(255,255,255,.13); }
+.sidebar-user { border-top: 1px solid rgba(255,255,255,.1); }
+.sidebar-user:hover { background: rgba(255,255,255,.05); }
+
+/* ---------- Header ---------- */
+.app-header { background: rgba(255,255,255,.96); border-color: var(--app-border); backdrop-filter: blur(6px); }
+
+/* ---------- Superfícies ---------- */
+.app-card { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 14px; box-shadow: 0 1px 2px rgba(15,23,42,.03); }
+.app-card-dark { background: var(--app-sidebar); border-radius: 14px; color: #dfe8f2; }
+
+/* ---------- Botões ---------- */
+.app-button { background: var(--app-primary); color: #fff; box-shadow: 0 2px 6px rgba(59,130,196,.28); }
+.app-button:hover { background: var(--app-primary-dark); }
+.app-button-ghost { background: var(--app-surface); border: 1px solid #dbe4ee; color: var(--app-muted); }
+.app-button-ghost:hover:not(:disabled) { background: var(--app-soft); }
+.app-button-ghost:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ---------- Inputs ---------- */
+.app-input, .app-select { background: #f8fafc; border: 1px solid #dbe4ee; color: var(--app-text); }
+.app-input:focus, .app-select:focus { border-color: var(--app-primary); box-shadow: 0 0 0 3px rgba(59,130,196,.14); outline: none; }
+
+/* ---------- Tabela ---------- */
+.table-head { background: var(--app-soft); color: #718096; }
+.table-row { border-top: 1px solid var(--app-soft); }
+.table-row:hover { background: #f8fafc; }
+.category-pill { background: var(--app-soft); color: #52657a; }
+.pill-income { background: var(--app-success-bg); color: var(--app-success); }
+.pill-expense { background: var(--app-danger-bg); color: var(--app-danger); }
+.badge-up { background: var(--app-success-bg); color: var(--app-success); }
+.badge-down { background: var(--app-danger-bg); color: var(--app-danger); }
+
+/* ---------- Login ---------- */
+.login-screen { background: radial-gradient(circle at top left, #eef6ff 0%, #f5f7fa 45%, #edf2f7 100%); }
+.login-panel { border: 1px solid var(--app-border); box-shadow: 0 20px 45px rgba(30,41,59,.10); }
+
+/* ---------- Abas do modal de configurações ---------- */
+.settings-tab { color: var(--app-muted); border-bottom: 2px solid transparent; }
+.settings-tab:hover { color: var(--app-heading); }
+.settings-tab.tab-active { color: var(--app-primary-dark); border-bottom-color: var(--app-primary); background: #f8fbfe; }
+
+/* ---------- Menu do usuário ---------- */
+.user-menu-pop { background: #fff; border: 1px solid var(--app-border); box-shadow: 0 12px 30px rgba(15,23,42,.14); }
+
+@media (max-width: 767px) {
+  .mobile-nav { background: var(--app-sidebar); }
+  .mobile-nav a { color: #c7d4e2; }
+  .mobile-nav .is-active { background: rgba(255,255,255,.14); color: #fff; }
+}
