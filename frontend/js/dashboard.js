@@ -431,6 +431,12 @@ function openModal(transaction = null) {
     const modal = document.getElementById("modal");
     modal.classList.remove("hidden");
 
+    const toggleRow = document.getElementById("installmentToggleRow");
+    const installmentCheckbox = document.getElementById("isInstallment");
+    installmentCheckbox.checked = false;
+    document.getElementById("installmentFields").classList.add("hidden");
+    document.getElementById("installmentCount").value = 2;
+
     if (transaction) {
         editingTransactionId = transaction.id;
         document.getElementById("modal-title").innerText = "Editar Transação";
@@ -438,6 +444,7 @@ function openModal(transaction = null) {
         document.getElementById("amount").value = formatCurrency(transaction.amount);
         document.getElementById("date").value = transaction.date;
         document.getElementById("type").value = transaction.type;
+        if (toggleRow) toggleRow.classList.add("hidden");
 
         filterCategoriesByType();
         if (transaction.category) {
@@ -450,6 +457,7 @@ function openModal(transaction = null) {
         document.getElementById("amount").value = "";
         document.getElementById("date").valueAsDate = new Date();
         document.getElementById("type").value = "EXPENSE";
+        if (toggleRow) toggleRow.classList.remove("hidden");
         filterCategoriesByType();
     }
 }
@@ -543,31 +551,76 @@ async function createTransaction() {
     const type = document.getElementById("type").value;
     const categoryId = document.getElementById("categoryId").value;
 
+    const installmentCheckbox = document.getElementById("isInstallment");
+    const isInstallment = !editingTransactionId && installmentCheckbox && installmentCheckbox.checked;
+    const installmentCount = isInstallment ? parseInt(document.getElementById("installmentCount").value, 10) : 1;
+
     if (!description || !amount || !date || !categoryId) {
         showToast("Preencha todos os campos!", "error");
         return;
     }
 
-    const body = { description, amount, date, type, categoryId };
+    if (isInstallment && (!installmentCount || installmentCount < 2)) {
+        showToast("Informe pelo menos 2 parcelas.", "error");
+        return;
+    }
+
+    const saveBtn = document.getElementById("saveTransactionBtn");
+    const originalText = saveBtn.innerText;
 
     try {
-        let response;
         if (editingTransactionId) {
-            response = await apiFetch(`/api/transactions/${editingTransactionId}`, {
+            const body = { description, amount, date, type, categoryId };
+            const response = await apiFetch(`/api/transactions/${editingTransactionId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body)
             });
-        } else {
-            response = await apiFetch(`/api/transactions`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body)
-            });
+
+            if (response.ok) {
+                showToast("Transação atualizada!", "success");
+                closeModal();
+                refreshDashboard();
+            } else {
+                const err = await response.json();
+                showToast("Erro: " + (err.message || "Falha ao salvar."), "error");
+            }
+            return;
         }
 
+        if (isInstallment) {
+            saveBtn.disabled = true;
+            let sucesso = 0;
+            for (let i = 0; i < installmentCount; i++) {
+                saveBtn.innerText = `Criando parcela ${i + 1}/${installmentCount}...`;
+                const parcelaData = addMonthsClamped(date, i);
+                const parcelaDescricao = `${description} (${i + 1}/${installmentCount})`;
+                const response = await apiFetch(`/api/transactions`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ description: parcelaDescricao, amount, date: parcelaData, type, categoryId })
+                });
+                if (response.ok) sucesso++;
+            }
+
+            if (sucesso === installmentCount) {
+                showToast(`${installmentCount} parcelas criadas!`, "success");
+            } else {
+                showToast(`Criadas ${sucesso} de ${installmentCount} parcelas — confira a lista de transações.`, "error");
+            }
+            closeModal();
+            refreshDashboard();
+            return;
+        }
+
+        const response = await apiFetch(`/api/transactions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ description, amount, date, type, categoryId })
+        });
+
         if (response.ok) {
-            showToast(editingTransactionId ? "Transação atualizada!" : "Transação criada!", "success");
+            showToast("Transação criada!", "success");
             closeModal();
             refreshDashboard();
         } else {
@@ -577,6 +630,9 @@ async function createTransaction() {
     } catch (error) {
         console.error(error);
         showToast("Erro de conexão.", "error");
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = originalText;
     }
 }
 
