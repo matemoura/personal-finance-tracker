@@ -94,3 +94,22 @@ function setupMoneyInput() {
     }).format(numericValue);
   });
 }
+
+// Soma "monthsToAdd" meses a uma data "YYYY-MM-DD", mantendo o dia
+// (ou o último dia do mês, se o mês de destino for mais curto — ex: dia 31 + 1 mês em abril).
+function addMonthsClamped(dateStr, monthsToAdd) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const totalMonths = (m - 1) + monthsToAdd;
+  const targetYear = y + Math.floor(totalMonths / 12);
+  const targetMonth = ((totalMonths % 12) + 12) % 12;
+  const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+  const day = Math.min(d, lastDayOfTargetMonth);
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function toggleInstallmentFields() {
+  const checkbox = document.getElementById("isInstallment");
+  const fields = document.getElementById("installmentFields");
+  if (!checkbox || !fields) return;
+  fields.classList.toggle("hidden", !checkbox.checked);
+}

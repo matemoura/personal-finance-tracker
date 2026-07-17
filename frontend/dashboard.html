@@ -206,7 +206,22 @@
                                 style="background:var(--app-soft);color:var(--app-primary-dark)">+</button>
                         </div>
                     </div>
-                    <button onclick="createTransaction()"
+                    <div id="installmentToggleRow" class="flex items-center gap-2">
+                        <input type="checkbox" id="isInstallment" onchange="toggleInstallmentFields()"
+                            class="w-4 h-4 rounded cursor-pointer" style="accent-color:var(--app-primary)">
+                        <label for="isInstallment" class="text-sm font-medium cursor-pointer" style="color:var(--app-heading)">
+                            Compra parcelada?
+                        </label>
+                    </div>
+                    <div id="installmentFields" class="hidden">
+                        <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Número de parcelas</label>
+                        <input type="number" id="installmentCount" min="2" max="60" value="2"
+                            class="app-input w-full px-3 py-2.5 rounded-lg text-sm">
+                        <p class="text-xs mt-1.5" style="color:var(--app-muted)">
+                            O valor informado acima é de <strong>cada parcela</strong>. Vamos criar uma transação por mês, a partir da data selecionada.
+                        </p>
+                    </div>
+                    <button id="saveTransactionBtn" onclick="createTransaction()"
                         class="app-button w-full font-bold text-sm py-3 rounded-lg transition mt-1">Salvar Transação</button>
                 </div>
             </div>
