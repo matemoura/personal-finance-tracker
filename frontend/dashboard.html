@@ -95,7 +95,7 @@
 
         <div class="p-4 md:px-7 md:py-6 flex flex-col gap-[22px]">
 
-            <section class="grid grid-cols-1 md:grid-cols-3 gap-[18px]">
+            <section class="grid grid-cols-1 md:grid-cols-4 gap-[18px]">
                 <div class="app-card px-5 py-[18px]">
                     <div class="flex justify-between items-center">
                         <span class="text-xs font-semibold" style="color:var(--app-muted)">Receitas</span>
@@ -112,6 +112,14 @@
                     <div id="total-expense" class="text-[26px] font-extrabold tracking-tight mt-1.5" style="color:var(--app-heading)">R$ 0,00</div>
                     <div id="expense-vs" class="text-[11.5px] mt-0.5" style="color:#9daebf">&nbsp;</div>
                 </div>
+                <a href="loans.html" class="app-card px-5 py-[18px] block transition hover:shadow-md">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-semibold" style="color:var(--app-muted)">A receber</span>
+                        <span id="receivable-badge" class="hidden text-[11px] font-bold px-2 py-[3px] rounded-full" style="background:#fef3e2;color:#b45309"></span>
+                    </div>
+                    <div id="total-receivable" class="text-[26px] font-extrabold tracking-tight mt-1.5" style="color:var(--app-heading)">R$ 0,00</div>
+                    <div id="receivable-note" class="text-[11.5px] mt-0.5" style="color:#9daebf">&nbsp;</div>
+                </a>
                 <div class="app-card-dark px-5 py-[18px]">
                     <div class="flex justify-between items-center">
                         <span class="text-xs font-semibold" style="color:#9db1c7">Saldo do mês</span>
