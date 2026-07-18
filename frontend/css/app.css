@@ -67,6 +67,13 @@ body { background: var(--app-bg); color: var(--app-text); }
 /* ---------- Menu do usuário ---------- */
 .user-menu-pop { background: #fff; border: 1px solid var(--app-border); box-shadow: 0 12px 30px rgba(15,23,42,.14); }
 
+/* ---------- Pills de filtro (empréstimos) ---------- */
+.filter-pill { background: var(--app-soft); color: var(--app-muted); }
+.filter-pill:hover { background: #e0e7ef; }
+.filter-pill.filter-active { background: var(--app-primary); color: #fff; }
+.filter-pill.filter-active:hover { background: var(--app-primary-dark); }
+.pill-partial { background: #fef3e2; color: #b45309; }
+
 @media (max-width: 767px) {
   .mobile-nav { background: var(--app-sidebar); }
   .mobile-nav a { color: #c7d4e2; }
