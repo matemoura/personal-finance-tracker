@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadUserData();
         setupSettingsEvents();
         setupMoneyInput();
+        loadReceivable();
     });
 
     document.addEventListener('click', function (event) {
@@ -241,6 +242,33 @@ async function loadDashboard() {
 
     } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
+    }
+}
+
+async function loadReceivable() {
+    const card = document.getElementById("total-receivable");
+    if (!card) return;
+
+    try {
+        const response = await apiFetch(`/api/loans/summary`);
+        if (!response.ok) throw new Error("Falha ao carregar empréstimos");
+
+        const summary = await response.json();
+        const badge = document.getElementById("receivable-badge");
+        const note = document.getElementById("receivable-note");
+
+        card.innerText = `R$ ${formatCurrency(summary.totalPending)}`;
+
+        if (summary.pendingCount > 0) {
+            badge.textContent = `${summary.pendingCount} pendente${summary.pendingCount > 1 ? "s" : ""}`;
+            badge.classList.remove("hidden");
+            note.textContent = "Clique para ver os detalhes";
+        } else {
+            badge.classList.add("hidden");
+            note.textContent = "Nenhum empréstimo pendente";
+        }
+    } catch (error) {
+        console.error("Erro ao carregar empréstimos:", error);
     }
 }
 
