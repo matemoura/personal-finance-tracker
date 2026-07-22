@@ -2,6 +2,7 @@ const now = new Date();
 let currentYear = now.getFullYear();
 let currentMonth = now.getMonth() + 1;
 let allCategories = [];
+let allCards = [];
 let editingTransactionId = null;
 
 const MONTHS_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -29,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setupMoneyInput();
         loadReceivable();
     });
+    loadCards();
 
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");
@@ -323,7 +325,7 @@ async function loadTransactions() {
                      style="background:${iconBg};color:${iconColor}">${icon}</div>
                 <div class="flex-1 min-w-0">
                     <div class="font-semibold truncate" style="color:var(--app-heading)" title="${t.description}">${t.description}</div>
-                    <div class="text-[11px]" style="color:#9daebf">${formattedDate} · ${t.category ? t.category.name : 'Sem categoria'}</div>
+                    <div class="text-[11px]" style="color:#9daebf">${formattedDate} · ${t.category ? t.category.name : 'Sem categoria'}${t.card ? ' · ' + (t.card.icon || '💳') + ' ' + t.card.name : ''}</div>
                 </div>
                 <span class="font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-danger)'}">
                     ${symbol} R$ ${formattedValue}
@@ -478,6 +480,7 @@ function openModal(transaction = null) {
         if (transaction.category) {
             document.getElementById("categoryId").value = transaction.category.id;
         }
+        document.getElementById("cardId").value = transaction.card ? transaction.card.id : "";
     } else {
         editingTransactionId = null;
         document.getElementById("modal-title").innerText = "Nova Transação";
@@ -485,6 +488,7 @@ function openModal(transaction = null) {
         document.getElementById("amount").value = "";
         document.getElementById("date").valueAsDate = new Date();
         document.getElementById("type").value = "EXPENSE";
+        document.getElementById("cardId").value = "";
         if (toggleRow) toggleRow.classList.remove("hidden");
         filterCategoriesByType();
     }
@@ -570,6 +574,74 @@ function filterCategoriesByType() {
         option.text = `${c.icon || '📃'} ${c.name}`;
         select.appendChild(option);
     });
+
+    const cardFieldRow = document.getElementById("cardFieldRow");
+    if (cardFieldRow) cardFieldRow.classList.toggle("hidden", selectedType !== "EXPENSE");
+}
+
+async function loadCards() {
+    try {
+        const response = await apiFetch(`/api/cards`);
+        if (response.ok) {
+            allCards = await response.json();
+            populateCardSelect();
+        }
+    } catch (error) {
+        console.error("Erro ao carregar cartões:", error);
+    }
+}
+
+function populateCardSelect() {
+    const select = document.getElementById("cardId");
+    if (!select) return;
+
+    const selected = select.value;
+    select.innerHTML = '<option value="">Nenhum</option>';
+    allCards.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.text = `${c.icon || '💳'} ${c.name}`;
+        select.appendChild(option);
+    });
+    select.value = selected;
+}
+
+function openCardModal() {
+    document.getElementById("cardModal").classList.remove("hidden");
+    document.getElementById("cardName").value = "";
+    document.getElementById("cardIcon").value = "";
+}
+
+function closeCardModal() {
+    document.getElementById("cardModal").classList.add("hidden");
+}
+
+async function createCard() {
+    const name = document.getElementById("cardName").value;
+    const icon = document.getElementById("cardIcon").value || "💳";
+
+    if (!name) {
+        showToast("Digite um nome para o cartão!", "error");
+        return;
+    }
+
+    try {
+        const response = await apiFetch(`/api/cards`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, icon })
+        });
+
+        if (response.ok) {
+            showToast("Cartão criado com sucesso!", "success");
+            closeCardModal();
+            await loadCards();
+        } else {
+            showToast("Erro ao criar cartão", "error");
+        }
+    } catch (error) {
+        console.error("Erro:", error);
+    }
 }
 
 async function createTransaction() {
@@ -578,6 +650,8 @@ async function createTransaction() {
     const date = document.getElementById("date").value;
     const type = document.getElementById("type").value;
     const categoryId = document.getElementById("categoryId").value;
+    const cardIdValue = document.getElementById("cardId").value;
+    const cardId = cardIdValue ? parseInt(cardIdValue, 10) : null;
 
     const installmentCheckbox = document.getElementById("isInstallment");
     const isInstallment = !editingTransactionId && installmentCheckbox && installmentCheckbox.checked;
@@ -598,7 +672,7 @@ async function createTransaction() {
 
     try {
         if (editingTransactionId) {
-            const body = { description, amount, date, type, categoryId };
+            const body = { description, amount, date, type, categoryId, cardId };
             const response = await apiFetch(`/api/transactions/${editingTransactionId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -626,7 +700,7 @@ async function createTransaction() {
                 const response = await apiFetch(`/api/transactions`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ description: parcelaDescricao, amount, date: parcelaData, type, categoryId })
+                    body: JSON.stringify({ description: parcelaDescricao, amount, date: parcelaData, type, categoryId, cardId })
                 });
                 if (response.ok) sucesso++;
             }
@@ -644,7 +718,7 @@ async function createTransaction() {
         const response = await apiFetch(`/api/transactions`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ description, amount, date, type, categoryId })
+            body: JSON.stringify({ description, amount, date, type, categoryId, cardId })
         });
 
         if (response.ok) {
