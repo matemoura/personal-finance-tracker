@@ -96,4 +96,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     BigDecimal calculateAccumulatedBalance(User user, LocalDate endDate);
 
     List<Transaction> findByUserAndDateBetweenOrderByIdDesc(User user, LocalDate startDate, LocalDate endDate);
+
+    List<Transaction> findByUserAndCardIsNotNull(User user);
 }

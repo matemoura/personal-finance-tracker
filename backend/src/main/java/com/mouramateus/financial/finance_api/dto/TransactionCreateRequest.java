@@ -12,5 +12,6 @@ public record TransactionCreateRequest(
         @NotNull @Positive BigDecimal amount,
         @NotNull LocalDate date,
         @NotNull CategoryType type,
-        @NotNull Long categoryId
+        @NotNull Long categoryId,
+        Long cardId
 ) {}

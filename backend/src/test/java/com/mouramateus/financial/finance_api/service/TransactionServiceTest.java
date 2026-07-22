@@ -5,6 +5,7 @@ import com.mouramateus.financial.finance_api.entity.Category;
 import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.Transaction;
 import com.mouramateus.financial.finance_api.entity.User;
+import com.mouramateus.financial.finance_api.repository.CardRepository;
 import com.mouramateus.financial.finance_api.repository.CategoryRepository;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
 import com.mouramateus.financial.finance_api.repository.UserRepository;
@@ -38,13 +39,16 @@ class TransactionServiceTest {
     @Mock
     private CategoryRepository categoryRepository;
 
+    @Mock
+    private CardRepository cardRepository;
+
     private TransactionService transactionService;
 
     private static final String EMAIL = "owner@test.com";
 
     @BeforeEach
     void setUp() {
-        transactionService = new TransactionService(transactionRepository, userRepository, categoryRepository);
+        transactionService = new TransactionService(transactionRepository, userRepository, categoryRepository, cardRepository);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(EMAIL, null)
         );
@@ -60,7 +64,7 @@ class TransactionServiceTest {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -80,7 +84,7 @@ class TransactionServiceTest {
         User otherUser = User.builder().id(2L).build();
         Category category = Category.builder().id(10L).user(otherUser).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -98,7 +102,7 @@ class TransactionServiceTest {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.INCOME).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -146,7 +150,7 @@ class TransactionServiceTest {
         User otherUser = User.builder().id(2L).build();
         Transaction transaction = Transaction.builder().id(99L).user(otherUser).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -166,7 +170,7 @@ class TransactionServiceTest {
         Transaction transaction = Transaction.builder().id(99L).user(owner).build();
         Category category = Category.builder().id(10L).user(otherUser).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -186,7 +190,7 @@ class TransactionServiceTest {
         Transaction transaction = Transaction.builder().id(99L).user(owner).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));

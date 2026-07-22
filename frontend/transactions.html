@@ -90,6 +90,16 @@
 
         <div class="p-4 md:px-7 md:py-6 flex flex-col gap-5 max-w-[1100px] w-full mx-auto">
 
+            <div class="app-card px-[18px] py-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-[11px] font-bold uppercase tracking-wider" style="color:var(--app-muted)">Cartões</span>
+                    <button onclick="openCardModal()" class="text-[12px] font-semibold" style="color:var(--app-primary-dark)">+ Novo cartão</button>
+                </div>
+                <div id="cards-panel" class="flex flex-wrap gap-2.5">
+                    <span class="text-xs" style="color:var(--app-muted)">Carregando...</span>
+                </div>
+            </div>
+
             <div class="app-card px-[18px] py-4 grid grid-cols-2 md:grid-cols-4 gap-3.5">
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Ano</label>
@@ -196,6 +206,17 @@
                             <option value="" disabled selected>Selecione...</option>
                         </select>
                     </div>
+                    <div id="cardFieldRow">
+                        <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Cartão (opcional)</label>
+                        <div class="flex gap-2">
+                            <select id="cardId" class="app-select flex-1 px-3 py-[9px] rounded-lg text-[13px] bg-white">
+                                <option value="">Nenhum</option>
+                            </select>
+                            <button onclick="openCardModal()"
+                                class="px-3.5 py-[9px] rounded-lg font-bold transition hover:bg-[#e0e7ef]"
+                                style="background:var(--app-soft);color:var(--app-primary-dark)">+</button>
+                        </div>
+                    </div>
                     <div id="installmentToggleRow" class="flex items-center gap-2">
                         <input type="checkbox" id="isInstallment" onchange="toggleInstallmentFields()"
                             class="w-4 h-4 rounded cursor-pointer" style="accent-color:var(--app-primary)">
@@ -213,6 +234,20 @@
                     </div>
                     <button id="saveTransactionBtn" onclick="createTransaction()"
                         class="app-button w-full font-bold text-sm py-3 rounded-lg transition mt-1">Salvar Transação</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="cardModal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
+            style="background:rgba(30,41,59,.55)">
+            <div class="bg-white rounded-xl shadow-2xl w-80 p-5">
+                <h3 class="text-[15.5px] font-bold mb-4" style="color:var(--app-heading)">Novo Cartão</h3>
+                <input type="text" id="cardName" placeholder="Nome (ex: Nubank)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
+                <input type="text" id="cardIcon" placeholder="Ícone (ex: 💳)" class="app-input w-full mb-4 px-3 py-2.5 rounded-lg text-sm">
+                <div class="flex gap-2">
+                    <button onclick="createCard()" class="app-button flex-1 py-2.5 rounded-lg font-bold text-sm transition">Criar</button>
+                    <button onclick="closeCardModal()"
+                        class="app-button-ghost flex-1 py-2.5 rounded-lg font-bold text-sm transition">Cancelar</button>
                 </div>
             </div>
         </div>
