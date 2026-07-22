@@ -1,9 +1,11 @@
 package com.mouramateus.financial.finance_api.service;
 
 import com.mouramateus.financial.finance_api.dto.TransactionCreateRequest;
+import com.mouramateus.financial.finance_api.entity.Card;
 import com.mouramateus.financial.finance_api.entity.Category;
 import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.User;
+import com.mouramateus.financial.finance_api.repository.CardRepository;
 import com.mouramateus.financial.finance_api.repository.CategoryRepository;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
 import com.mouramateus.financial.finance_api.repository.UserRepository;
@@ -23,6 +25,22 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+    private final CardRepository cardRepository;
+
+    private Card resolveCard(Long cardId, User user) {
+        if (cardId == null) {
+            return null;
+        }
+
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new RuntimeException("Cartão não encontrado"));
+
+        if (!card.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Card does not belong to user");
+        }
+
+        return card;
+    }
 
     public Transaction createTransaction(TransactionCreateRequest dto) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -44,6 +62,8 @@ public class TransactionService {
             );
         }
 
+        Card card = resolveCard(dto.cardId(), user);
+
         Transaction transaction = Transaction.builder()
                 .description(dto.description())
                 .amount(dto.amount())
@@ -51,6 +71,7 @@ public class TransactionService {
                 .type(dto.type())
                 .user(user)
                 .category(category)
+                .card(card)
                 .build();
 
         return transactionRepository.save(transaction);
@@ -149,6 +170,7 @@ public class TransactionService {
         transaction.setDate(request.date());
         transaction.setType(request.type());
         transaction.setCategory(category);
+        transaction.setCard(resolveCard(request.cardId(), user));
 
         return transactionRepository.save(transaction);
     }

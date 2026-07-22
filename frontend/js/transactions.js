@@ -1,4 +1,5 @@
 let allCategories = [];
+let allCards = [];
 let editingTransactionId = null;
 
 const now = new Date();
@@ -18,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadUserData();
     setupSettingsEvents();
     loadCategories();
+    loadCards();
     setupMoneyInput();
 
     const prevBtn = document.getElementById("prev-page");
@@ -230,7 +232,10 @@ function renderTransactionsPage() {
         tr.innerHTML = `
             <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formattedDate}</td>
             <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${t.description}</td>
-            <td class="px-[18px] py-[13px]"><span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl">${t.category ? t.category.name : '-'}</span></td>
+            <td class="px-[18px] py-[13px]">
+                <span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl">${t.category ? t.category.name : '-'}</span>
+                ${t.card ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1">${t.card.icon || '💳'} ${t.card.name}</span>` : ''}
+            </td>
             <td class="px-[18px] py-[13px]"><span class="${isIncome ? 'pill-income' : 'pill-expense'} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${typeLabel}</span></td>
             <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-heading)'}">
                 ${symbol} R$ ${formattedValue}
@@ -357,6 +362,115 @@ function populateCategoryFilter() {
     });
 }
 
+async function loadCards() {
+    try {
+        const response = await apiFetch(`/api/cards`);
+        if (response.ok) {
+            allCards = await response.json();
+            populateCardSelect();
+            renderCardsPanel();
+        }
+    } catch (error) {
+        console.error("Erro ao carregar cartões:", error);
+    }
+}
+
+function populateCardSelect() {
+    const select = document.getElementById("cardId");
+    if (!select) return;
+
+    const selected = select.value;
+    select.innerHTML = '<option value="">Nenhum</option>';
+    allCards.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.text = `${c.icon || '💳'} ${c.name}`;
+        select.appendChild(option);
+    });
+    select.value = selected;
+}
+
+function renderCardsPanel() {
+    const panel = document.getElementById("cards-panel");
+    if (!panel) return;
+
+    if (allCards.length === 0) {
+        panel.innerHTML = '<span class="text-xs" style="color:var(--app-muted)">Nenhum cartão cadastrado ainda.</span>';
+        return;
+    }
+
+    panel.innerHTML = "";
+    allCards.forEach(c => {
+        const chip = document.createElement("div");
+        chip.className = "flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg";
+        chip.style.background = "var(--app-soft)";
+        chip.innerHTML = `
+            <span class="text-base">${c.icon || '💳'}</span>
+            <div class="leading-tight">
+                <div class="text-[12px] font-semibold" style="color:var(--app-heading)">${c.name}</div>
+                <div class="text-[11px]" style="color:var(--app-muted)">R$ ${formatCurrency(c.totalSpent)}</div>
+            </div>
+            <button onclick="deleteCard(${c.id})" title="Excluir cartão" class="ml-1 text-[11px] transition hover:!text-red-600" style="color:#c3ccd6">✕</button>
+        `;
+        panel.appendChild(chip);
+    });
+}
+
+function openCardModal() {
+    document.getElementById("cardModal").classList.remove("hidden");
+    document.getElementById("cardName").value = "";
+    document.getElementById("cardIcon").value = "";
+}
+
+function closeCardModal() {
+    document.getElementById("cardModal").classList.add("hidden");
+}
+
+async function createCard() {
+    const name = document.getElementById("cardName").value;
+    const icon = document.getElementById("cardIcon").value || "💳";
+
+    if (!name) {
+        showToast("Digite um nome para o cartão!", "error");
+        return;
+    }
+
+    try {
+        const response = await apiFetch(`/api/cards`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, icon })
+        });
+
+        if (response.ok) {
+            showToast("Cartão criado com sucesso!", "success");
+            closeCardModal();
+            await loadCards();
+        } else {
+            showToast("Erro ao criar cartão", "error");
+        }
+    } catch (error) {
+        console.error("Erro:", error);
+    }
+}
+
+async function deleteCard(id) {
+    if (!confirm("Tem certeza que deseja excluir este cartão? As transações vinculadas continuarão existindo, apenas sem cartão associado.")) return;
+
+    try {
+        const response = await apiFetch(`/api/cards/${id}`, { method: "DELETE" });
+        if (response.ok) {
+            showToast("Cartão excluído!", "success");
+            await loadCards();
+            loadTransactions(currentYear, currentMonth);
+        } else {
+            showToast("Erro ao excluir cartão.", "error");
+        }
+    } catch (error) {
+        console.error(error);
+    }
+}
+
 async function loadAvailableYears() {
     const yearSelect = document.getElementById("filter-year");
     if (!yearSelect) return;
@@ -431,6 +545,7 @@ function openModal(transaction = null) {
             if (transaction.category) {
                 document.getElementById("categoryId").value = transaction.category.id;
             }
+            document.getElementById("cardId").value = transaction.card ? transaction.card.id : "";
         }, 50);
 
     } else {
@@ -440,6 +555,7 @@ function openModal(transaction = null) {
         document.getElementById("amount").value = "";
         document.getElementById("date").valueAsDate = new Date();
         document.getElementById("type").value = "EXPENSE";
+        document.getElementById("cardId").value = "";
         if (toggleRow) toggleRow.classList.remove("hidden");
         filterCategoriesByType();
     }
@@ -471,6 +587,9 @@ function filterCategoriesByType() {
         option.text = `${c.icon || '📃'} ${c.name}`;
         select.appendChild(option);
     });
+
+    const cardFieldRow = document.getElementById("cardFieldRow");
+    if (cardFieldRow) cardFieldRow.classList.toggle("hidden", selectedType !== "EXPENSE");
 }
 
 async function createTransaction() {
@@ -479,6 +598,8 @@ async function createTransaction() {
     const date = document.getElementById("date").value;
     const type = document.getElementById("type").value;
     const categoryId = document.getElementById("categoryId").value;
+    const cardIdValue = document.getElementById("cardId").value;
+    const cardId = cardIdValue ? parseInt(cardIdValue, 10) : null;
 
     const installmentCheckbox = document.getElementById("isInstallment");
     const isInstallment = !editingTransactionId && installmentCheckbox && installmentCheckbox.checked;
@@ -499,7 +620,7 @@ async function createTransaction() {
 
     try {
         if (editingTransactionId) {
-            const body = { description, amount, date, type, categoryId };
+            const body = { description, amount, date, type, categoryId, cardId };
             const response = await apiFetch(`/api/transactions/${editingTransactionId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -510,6 +631,7 @@ async function createTransaction() {
                 showToast("Transação atualizada!", "success");
                 closeModal();
                 loadTransactions(currentYear, currentMonth);
+                loadCards();
             } else {
                 const err = await response.json();
                 showToast("Erro: " + (err.message || "Falha ao salvar."), "error");
@@ -527,7 +649,7 @@ async function createTransaction() {
                 const response = await apiFetch(`/api/transactions`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ description: parcelaDescricao, amount, date: parcelaData, type, categoryId })
+                    body: JSON.stringify({ description: parcelaDescricao, amount, date: parcelaData, type, categoryId, cardId })
                 });
                 if (response.ok) sucesso++;
             }
@@ -539,19 +661,21 @@ async function createTransaction() {
             }
             closeModal();
             loadTransactions(currentYear, currentMonth);
+            loadCards();
             return;
         }
 
         const response = await apiFetch(`/api/transactions`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ description, amount, date, type, categoryId })
+            body: JSON.stringify({ description, amount, date, type, categoryId, cardId })
         });
 
         if (response.ok) {
             showToast("Transação criada!", "success");
             closeModal();
             loadTransactions(currentYear, currentMonth);
+            loadCards();
         } else {
             const err = await response.json();
             showToast("Erro: " + (err.message || "Falha ao salvar."), "error");
