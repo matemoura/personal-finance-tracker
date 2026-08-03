@@ -1,6 +1,7 @@
 let allCategories = [];
 let allCards = [];
 let editingTransactionId = null;
+let editingCardId = null;
 
 const now = new Date();
 let currentYear = now.getFullYear();
@@ -402,33 +403,53 @@ function renderCardsPanel() {
     panel.innerHTML = "";
     allCards.forEach(c => {
         const chip = document.createElement("div");
-        chip.className = "flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg";
+        chip.className = "flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg cursor-pointer transition hover:bg-[#e0e7ef]";
         chip.style.background = "var(--app-soft)";
+        chip.title = "Clique para editar";
+        chip.onclick = () => openCardModal(c);
         chip.innerHTML = `
             <span class="text-base">${c.icon || '💳'}</span>
             <div class="leading-tight">
                 <div class="text-[12px] font-semibold" style="color:var(--app-heading)">${c.name}</div>
-                <div class="text-[11px]" style="color:var(--app-muted)">R$ ${formatCurrency(c.totalSpent)}</div>
+                <div class="text-[11px]" style="color:var(--app-muted)">R$ ${formatCurrency(c.totalSpent)}${c.closingDay ? ` · fecha dia ${c.closingDay}` : ''}</div>
             </div>
-            <button onclick="deleteCard(${c.id})" title="Excluir cartão" class="ml-1 text-[11px] transition hover:!text-red-600" style="color:#c3ccd6">✕</button>
+            <button title="Excluir cartão" class="ml-1 text-[11px] transition hover:!text-red-600" style="color:#c3ccd6">✕</button>
         `;
+        chip.querySelector("button").onclick = (event) => {
+            event.stopPropagation();
+            deleteCard(c.id);
+        };
         panel.appendChild(chip);
     });
 }
 
-function openCardModal() {
+function openCardModal(card = null) {
     document.getElementById("cardModal").classList.remove("hidden");
-    document.getElementById("cardName").value = "";
-    document.getElementById("cardIcon").value = "";
+
+    if (card) {
+        editingCardId = card.id;
+        document.getElementById("cardModalTitle").innerText = "Editar Cartão";
+        document.getElementById("cardName").value = card.name;
+        document.getElementById("cardIcon").value = card.icon || "";
+        document.getElementById("cardClosingDay").value = card.closingDay || "";
+    } else {
+        editingCardId = null;
+        document.getElementById("cardModalTitle").innerText = "Novo Cartão";
+        document.getElementById("cardName").value = "";
+        document.getElementById("cardIcon").value = "";
+        document.getElementById("cardClosingDay").value = "";
+    }
 }
 
 function closeCardModal() {
     document.getElementById("cardModal").classList.add("hidden");
 }
 
-async function createCard() {
+async function saveCard() {
     const name = document.getElementById("cardName").value;
     const icon = document.getElementById("cardIcon").value || "💳";
+    const closingDayValue = document.getElementById("cardClosingDay").value;
+    const closingDay = closingDayValue ? parseInt(closingDayValue, 10) : null;
 
     if (!name) {
         showToast("Digite um nome para o cartão!", "error");
@@ -436,18 +457,24 @@ async function createCard() {
     }
 
     try {
-        const response = await apiFetch(`/api/cards`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, icon })
-        });
+        const response = editingCardId
+            ? await apiFetch(`/api/cards/${editingCardId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, icon, closingDay })
+            })
+            : await apiFetch(`/api/cards`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, icon, closingDay })
+            });
 
         if (response.ok) {
-            showToast("Cartão criado com sucesso!", "success");
+            showToast(editingCardId ? "Cartão atualizado com sucesso!" : "Cartão criado com sucesso!", "success");
             closeCardModal();
             await loadCards();
         } else {
-            showToast("Erro ao criar cartão", "error");
+            showToast("Erro ao salvar cartão", "error");
         }
     } catch (error) {
         console.error("Erro:", error);
@@ -546,6 +573,7 @@ function openModal(transaction = null) {
                 document.getElementById("categoryId").value = transaction.category.id;
             }
             document.getElementById("cardId").value = transaction.card ? transaction.card.id : "";
+            updateInvoicePreview();
         }, 50);
 
     } else {
@@ -590,6 +618,35 @@ function filterCategoriesByType() {
 
     const cardFieldRow = document.getElementById("cardFieldRow");
     if (cardFieldRow) cardFieldRow.classList.toggle("hidden", selectedType !== "EXPENSE");
+    updateInvoicePreview();
+}
+
+function updateInvoicePreview() {
+    const hint = document.getElementById("cardInvoiceHint");
+    if (!hint) return;
+
+    const cardId = document.getElementById("cardId").value;
+    const dateStr = document.getElementById("date").value;
+
+    if (!cardId || !dateStr) {
+        hint.innerHTML = "&nbsp;";
+        return;
+    }
+
+    const card = allCards.find(c => String(c.id) === String(cardId));
+    if (!card || !card.closingDay) {
+        hint.innerHTML = "&nbsp;";
+        return;
+    }
+
+    const [y, m, d] = dateStr.split("-").map(Number);
+    let targetYear = y, targetMonth = m;
+    if (d > card.closingDay) {
+        targetMonth += 1;
+        if (targetMonth > 12) { targetMonth = 1; targetYear += 1; }
+    }
+
+    hint.textContent = `📅 Cai na fatura de ${MONTHS_LONG[targetMonth - 1]} de ${targetYear}`;
 }
 
 async function createTransaction() {

@@ -481,6 +481,7 @@ function openModal(transaction = null) {
             document.getElementById("categoryId").value = transaction.category.id;
         }
         document.getElementById("cardId").value = transaction.card ? transaction.card.id : "";
+        updateInvoicePreview();
     } else {
         editingTransactionId = null;
         document.getElementById("modal-title").innerText = "Nova Transação";
@@ -577,6 +578,7 @@ function filterCategoriesByType() {
 
     const cardFieldRow = document.getElementById("cardFieldRow");
     if (cardFieldRow) cardFieldRow.classList.toggle("hidden", selectedType !== "EXPENSE");
+    updateInvoicePreview();
 }
 
 async function loadCards() {
@@ -608,17 +610,21 @@ function populateCardSelect() {
 
 function openCardModal() {
     document.getElementById("cardModal").classList.remove("hidden");
+    document.getElementById("cardModalTitle").innerText = "Novo Cartão";
     document.getElementById("cardName").value = "";
     document.getElementById("cardIcon").value = "";
+    document.getElementById("cardClosingDay").value = "";
 }
 
 function closeCardModal() {
     document.getElementById("cardModal").classList.add("hidden");
 }
 
-async function createCard() {
+async function saveCard() {
     const name = document.getElementById("cardName").value;
     const icon = document.getElementById("cardIcon").value || "💳";
+    const closingDayValue = document.getElementById("cardClosingDay").value;
+    const closingDay = closingDayValue ? parseInt(closingDayValue, 10) : null;
 
     if (!name) {
         showToast("Digite um nome para o cartão!", "error");
@@ -629,7 +635,7 @@ async function createCard() {
         const response = await apiFetch(`/api/cards`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, icon })
+            body: JSON.stringify({ name, icon, closingDay })
         });
 
         if (response.ok) {
@@ -642,6 +648,34 @@ async function createCard() {
     } catch (error) {
         console.error("Erro:", error);
     }
+}
+
+function updateInvoicePreview() {
+    const hint = document.getElementById("cardInvoiceHint");
+    if (!hint) return;
+
+    const cardId = document.getElementById("cardId").value;
+    const dateStr = document.getElementById("date").value;
+
+    if (!cardId || !dateStr) {
+        hint.innerHTML = "&nbsp;";
+        return;
+    }
+
+    const card = allCards.find(c => String(c.id) === String(cardId));
+    if (!card || !card.closingDay) {
+        hint.innerHTML = "&nbsp;";
+        return;
+    }
+
+    const [y, m, d] = dateStr.split("-").map(Number);
+    let targetYear = y, targetMonth = m;
+    if (d > card.closingDay) {
+        targetMonth += 1;
+        if (targetMonth > 12) { targetMonth = 1; targetYear += 1; }
+    }
+
+    hint.textContent = `📅 Cai na fatura de ${MONTHS_LONG[targetMonth - 1]} de ${targetYear}`;
 }
 
 async function createTransaction() {

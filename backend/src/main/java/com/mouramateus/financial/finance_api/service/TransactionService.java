@@ -42,6 +42,18 @@ public class TransactionService {
         return card;
     }
 
+    private LocalDate applyCardBillingCycle(LocalDate date, Card card) {
+        if (card == null || card.getClosingDay() == null) {
+            return date;
+        }
+
+        if (date.getDayOfMonth() > card.getClosingDay()) {
+            return date.plusMonths(1);
+        }
+
+        return date;
+    }
+
     public Transaction createTransaction(TransactionCreateRequest dto) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
@@ -67,7 +79,7 @@ public class TransactionService {
         Transaction transaction = Transaction.builder()
                 .description(dto.description())
                 .amount(dto.amount())
-                .date(dto.date())
+                .date(applyCardBillingCycle(dto.date(), card))
                 .type(dto.type())
                 .user(user)
                 .category(category)
@@ -165,12 +177,14 @@ public class TransactionService {
             throw new RuntimeException("O tipo da categoria não corresponde ao tipo da transação");
         }
 
+        Card card = resolveCard(request.cardId(), user);
+
         transaction.setDescription(request.description());
         transaction.setAmount(request.amount());
-        transaction.setDate(request.date());
+        transaction.setDate(applyCardBillingCycle(request.date(), card));
         transaction.setType(request.type());
         transaction.setCategory(category);
-        transaction.setCard(resolveCard(request.cardId(), user));
+        transaction.setCard(card);
 
         return transactionRepository.save(transaction);
     }

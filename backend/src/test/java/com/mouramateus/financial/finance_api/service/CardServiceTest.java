@@ -2,6 +2,7 @@ package com.mouramateus.financial.finance_api.service;
 
 import com.mouramateus.financial.finance_api.dto.CardCreateRequest;
 import com.mouramateus.financial.finance_api.dto.CardResponse;
+import com.mouramateus.financial.finance_api.dto.CardUpdateRequest;
 import com.mouramateus.financial.finance_api.entity.Card;
 import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.Transaction;
@@ -60,7 +61,7 @@ class CardServiceTest {
     @Test
     void create_withBlankIcon_usesDefaultIcon() {
         User owner = User.builder().id(1L).email(EMAIL).build();
-        CardCreateRequest request = new CardCreateRequest("Nubank", "  ");
+        CardCreateRequest request = new CardCreateRequest("Nubank", "  ", null);
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
         when(cardRepository.save(any(Card.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -95,6 +96,40 @@ class CardServiceTest {
         assertThat(result.get(0).totalSpent()).isEqualByComparingTo("150.00");
         assertThat(result.get(1).id()).isEqualTo(20L);
         assertThat(result.get(1).totalSpent()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void update_ownedByAnotherUser_throwsAccessDenied() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        User otherUser = User.builder().id(2L).build();
+        Card card = Card.builder().id(10L).user(otherUser).build();
+        CardUpdateRequest request = new CardUpdateRequest("Novo Nome", null, 10);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findById(10L)).thenReturn(Optional.of(card));
+
+        assertThatThrownBy(() -> cardService.update(10L, request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Acesso negado");
+
+        verify(cardRepository, never()).save(any());
+    }
+
+    @Test
+    void update_ownedByCurrentUser_updatesNameAndClosingDay() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(10L).name("Nubank").icon("💜").user(owner).build();
+        CardUpdateRequest request = new CardUpdateRequest("Nubank Ultravioleta", null, 10);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findById(10L)).thenReturn(Optional.of(card));
+        when(cardRepository.save(any(Card.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Card result = cardService.update(10L, request);
+
+        assertThat(result.getName()).isEqualTo("Nubank Ultravioleta");
+        assertThat(result.getClosingDay()).isEqualTo(10);
+        assertThat(result.getIcon()).isEqualTo("💜");
     }
 
     @Test

@@ -6,5 +6,6 @@ public record CardResponse(
         Long id,
         String name,
         String icon,
+        Integer closingDay,
         BigDecimal totalSpent
 ) {}

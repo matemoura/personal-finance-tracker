@@ -2,6 +2,7 @@ package com.mouramateus.financial.finance_api.controller;
 
 import com.mouramateus.financial.finance_api.dto.CardCreateRequest;
 import com.mouramateus.financial.finance_api.dto.CardResponse;
+import com.mouramateus.financial.finance_api.dto.CardUpdateRequest;
 import com.mouramateus.financial.finance_api.entity.Card;
 import com.mouramateus.financial.finance_api.service.CardService;
 import jakarta.validation.Valid;
@@ -27,6 +28,14 @@ public class CardController {
     @GetMapping
     public List<CardResponse> list() {
         return cardService.listMine();
+    }
+
+    @PutMapping("/{id}")
+    public Card update(
+            @PathVariable Long id,
+            @RequestBody @Valid CardUpdateRequest request
+    ) {
+        return cardService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

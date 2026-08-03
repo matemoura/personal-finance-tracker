@@ -2,6 +2,7 @@ package com.mouramateus.financial.finance_api.service;
 
 import com.mouramateus.financial.finance_api.dto.CardCreateRequest;
 import com.mouramateus.financial.finance_api.dto.CardResponse;
+import com.mouramateus.financial.finance_api.dto.CardUpdateRequest;
 import com.mouramateus.financial.finance_api.entity.Card;
 import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.Transaction;
@@ -39,8 +40,29 @@ public class CardService {
         Card card = Card.builder()
                 .name(dto.name())
                 .icon(icon)
+                .closingDay(dto.closingDay())
                 .user(user)
                 .build();
+
+        return cardRepository.save(card);
+    }
+
+    public Card update(Long id, CardUpdateRequest dto) {
+        User user = currentUser();
+
+        Card card = cardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cartão não encontrado"));
+
+        if (!card.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Acesso negado: Você não pode editar este cartão.");
+        }
+
+        card.setName(dto.name());
+        card.setClosingDay(dto.closingDay());
+
+        if (dto.icon() != null && !dto.icon().isBlank()) {
+            card.setIcon(dto.icon());
+        }
 
         return cardRepository.save(card);
     }
@@ -62,6 +84,7 @@ public class CardService {
                         c.getId(),
                         c.getName(),
                         c.getIcon(),
+                        c.getClosingDay(),
                         totalsByCard.getOrDefault(c.getId(), BigDecimal.ZERO)
                 ))
                 .toList();
