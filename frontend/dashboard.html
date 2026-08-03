@@ -193,7 +193,7 @@
                             <option value="EXPENSE">Despesa</option>
                             <option value="INCOME">Receita</option>
                         </select>
-                        <input type="date" id="date" class="app-input w-full px-3 py-2 rounded-lg text-[13px]">
+                        <input type="date" id="date" oninput="updateInvoicePreview()" class="app-input w-full px-3 py-2 rounded-lg text-[13px]">
                     </div>
                     <div>
                         <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Valor</label>
@@ -222,13 +222,14 @@
                     <div id="cardFieldRow">
                         <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Cartão (opcional)</label>
                         <div class="flex gap-2">
-                            <select id="cardId" class="app-select flex-1 px-3 py-[9px] rounded-lg text-[13px] bg-white">
+                            <select id="cardId" onchange="updateInvoicePreview()" class="app-select flex-1 px-3 py-[9px] rounded-lg text-[13px] bg-white">
                                 <option value="">Nenhum</option>
                             </select>
                             <button onclick="openCardModal()"
                                 class="px-3.5 py-[9px] rounded-lg font-bold transition hover:bg-[#e0e7ef]"
                                 style="background:var(--app-soft);color:var(--app-primary-dark)">+</button>
                         </div>
+                        <div id="cardInvoiceHint" class="text-[11px] mt-1.5" style="color:var(--app-muted)">&nbsp;</div>
                     </div>
                     <div id="installmentToggleRow" class="flex items-center gap-2">
                         <input type="checkbox" id="isInstallment" onchange="toggleInstallmentFields()"
@@ -272,11 +273,17 @@
         <div id="cardModal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
             style="background:rgba(30,41,59,.55)">
             <div class="bg-white rounded-xl shadow-2xl w-80 p-5">
-                <h3 class="text-[15.5px] font-bold mb-4" style="color:var(--app-heading)">Novo Cartão</h3>
+                <h3 id="cardModalTitle" class="text-[15.5px] font-bold mb-4" style="color:var(--app-heading)">Novo Cartão</h3>
                 <input type="text" id="cardName" placeholder="Nome (ex: Nubank)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
-                <input type="text" id="cardIcon" placeholder="Ícone (ex: 💳)" class="app-input w-full mb-4 px-3 py-2.5 rounded-lg text-sm">
+                <input type="text" id="cardIcon" placeholder="Ícone (ex: 💳)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
+                <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Dia de fechamento da fatura (opcional)</label>
+                <input type="number" id="cardClosingDay" min="1" max="31" placeholder="Ex: 10"
+                    class="app-input w-full mb-1.5 px-3 py-2.5 rounded-lg text-sm">
+                <p class="text-xs mb-4" style="color:var(--app-muted)">
+                    Compras feitas depois desse dia entram automaticamente na fatura do mês seguinte.
+                </p>
                 <div class="flex gap-2">
-                    <button onclick="createCard()" class="app-button flex-1 py-2.5 rounded-lg font-bold text-sm transition">Criar</button>
+                    <button onclick="saveCard()" class="app-button flex-1 py-2.5 rounded-lg font-bold text-sm transition">Salvar</button>
                     <button onclick="closeCardModal()"
                         class="app-button-ghost flex-1 py-2.5 rounded-lg font-bold text-sm transition">Cancelar</button>
                 </div>
