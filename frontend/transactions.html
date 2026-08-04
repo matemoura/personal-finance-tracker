@@ -22,6 +22,7 @@
         <a href="#" class="is-active text-sm font-semibold px-3 py-1.5 rounded-lg">Transações</a>
         <a href="reports.html" class="text-sm font-medium px-3 py-1.5 rounded-lg">Relatórios</a>
         <a href="loans.html" class="text-sm font-medium px-3 py-1.5 rounded-lg">Empréstimos</a>
+        <a href="bills.html" class="text-sm font-medium px-3 py-1.5 rounded-lg">Contas</a>
         <button onclick="toggleUserMenu()" data-user-trigger class="focus:outline-none">
             <img id="user-avatar-mobile" src="https://ui-avatars.com/api/?name=U&background=3b82c4&color=fff"
                 class="h-8 w-8 rounded-full border-2 border-white/30 object-cover" alt="Foto de Perfil">
@@ -49,6 +50,10 @@
             <a href="loans.html" class="flex items-center gap-3 px-3 py-[11px] rounded-lg font-medium no-underline">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 5h9M8 2l3 3-3 3"></path><path d="M14 11H5M8 14l-3-3 3-3"></path></svg>
                 Empréstimos
+            </a>
+            <a href="bills.html" class="flex items-center gap-3 px-3 py-[11px] rounded-lg font-medium no-underline">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="12" height="12" rx="1.5"></rect><path d="M5 6h6M5 8.5h6M5 11h3.5"></path></svg>
+                Contas a Pagar
             </a>
         </nav>
         <div onclick="toggleUserMenu()" data-user-trigger
@@ -245,11 +250,20 @@
                 <h3 id="cardModalTitle" class="text-[15.5px] font-bold mb-4" style="color:var(--app-heading)">Novo Cartão</h3>
                 <input type="text" id="cardName" placeholder="Nome (ex: Nubank)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
                 <input type="text" id="cardIcon" placeholder="Ícone (ex: 💳)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
-                <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Dia de fechamento da fatura (opcional)</label>
-                <input type="number" id="cardClosingDay" min="1" max="31" placeholder="Ex: 10"
-                    class="app-input w-full mb-1.5 px-3 py-2.5 rounded-lg text-sm">
+                <div class="grid grid-cols-2 gap-2.5 mb-1.5">
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Fecha dia (opcional)</label>
+                        <input type="number" id="cardClosingDay" min="1" max="31" placeholder="Ex: 10"
+                            class="app-input w-full px-3 py-2.5 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Vence dia (opcional)</label>
+                        <input type="number" id="cardDueDay" min="1" max="31" placeholder="Ex: 17"
+                            class="app-input w-full px-3 py-2.5 rounded-lg text-sm">
+                    </div>
+                </div>
                 <p class="text-xs mb-4" style="color:var(--app-muted)">
-                    Compras feitas depois desse dia entram automaticamente na fatura do mês seguinte.
+                    Compras feitas depois do fechamento entram automaticamente na fatura do mês seguinte.
                 </p>
                 <div class="flex gap-2">
                     <button onclick="saveCard()" class="app-button flex-1 py-2.5 rounded-lg font-bold text-sm transition">Salvar</button>

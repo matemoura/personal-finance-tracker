@@ -614,6 +614,7 @@ function openCardModal() {
     document.getElementById("cardName").value = "";
     document.getElementById("cardIcon").value = "";
     document.getElementById("cardClosingDay").value = "";
+    document.getElementById("cardDueDay").value = "";
 }
 
 function closeCardModal() {
@@ -625,6 +626,8 @@ async function saveCard() {
     const icon = document.getElementById("cardIcon").value || "💳";
     const closingDayValue = document.getElementById("cardClosingDay").value;
     const closingDay = closingDayValue ? parseInt(closingDayValue, 10) : null;
+    const dueDayValue = document.getElementById("cardDueDay").value;
+    const dueDay = dueDayValue ? parseInt(dueDayValue, 10) : null;
 
     if (!name) {
         showToast("Digite um nome para o cartão!", "error");
@@ -635,7 +638,7 @@ async function saveCard() {
         const response = await apiFetch(`/api/cards`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, icon, closingDay })
+            body: JSON.stringify({ name, icon, closingDay, dueDay })
         });
 
         if (response.ok) {
