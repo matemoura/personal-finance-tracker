@@ -41,6 +41,7 @@ public class CardService {
                 .name(dto.name())
                 .icon(icon)
                 .closingDay(dto.closingDay())
+                .dueDay(dto.dueDay())
                 .user(user)
                 .build();
 
@@ -59,6 +60,7 @@ public class CardService {
 
         card.setName(dto.name());
         card.setClosingDay(dto.closingDay());
+        card.setDueDay(dto.dueDay());
 
         if (dto.icon() != null && !dto.icon().isBlank()) {
             card.setIcon(dto.icon());
@@ -85,6 +87,7 @@ public class CardService {
                         c.getName(),
                         c.getIcon(),
                         c.getClosingDay(),
+                        c.getDueDay(),
                         totalsByCard.getOrDefault(c.getId(), BigDecimal.ZERO)
                 ))
                 .toList();

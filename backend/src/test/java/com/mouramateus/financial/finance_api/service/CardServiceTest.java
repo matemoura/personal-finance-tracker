@@ -61,7 +61,7 @@ class CardServiceTest {
     @Test
     void create_withBlankIcon_usesDefaultIcon() {
         User owner = User.builder().id(1L).email(EMAIL).build();
-        CardCreateRequest request = new CardCreateRequest("Nubank", "  ", null);
+        CardCreateRequest request = new CardCreateRequest("Nubank", "  ", null, null);
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
         when(cardRepository.save(any(Card.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -103,7 +103,7 @@ class CardServiceTest {
         User owner = User.builder().id(1L).email(EMAIL).build();
         User otherUser = User.builder().id(2L).build();
         Card card = Card.builder().id(10L).user(otherUser).build();
-        CardUpdateRequest request = new CardUpdateRequest("Novo Nome", null, 10);
+        CardUpdateRequest request = new CardUpdateRequest("Novo Nome", null, 10, 17);
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
         when(cardRepository.findById(10L)).thenReturn(Optional.of(card));
@@ -119,7 +119,7 @@ class CardServiceTest {
     void update_ownedByCurrentUser_updatesNameAndClosingDay() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Card card = Card.builder().id(10L).name("Nubank").icon("💜").user(owner).build();
-        CardUpdateRequest request = new CardUpdateRequest("Nubank Ultravioleta", null, 10);
+        CardUpdateRequest request = new CardUpdateRequest("Nubank Ultravioleta", null, 10, 17);
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
         when(cardRepository.findById(10L)).thenReturn(Optional.of(card));
@@ -129,6 +129,7 @@ class CardServiceTest {
 
         assertThat(result.getName()).isEqualTo("Nubank Ultravioleta");
         assertThat(result.getClosingDay()).isEqualTo(10);
+        assertThat(result.getDueDay()).isEqualTo(17);
         assertThat(result.getIcon()).isEqualTo("💜");
     }
 
