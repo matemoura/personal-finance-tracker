@@ -23,6 +23,8 @@ public class Card {
 
     private Integer closingDay;
 
+    private Integer dueDay;
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     @com.fasterxml.jackson.annotation.JsonIgnore

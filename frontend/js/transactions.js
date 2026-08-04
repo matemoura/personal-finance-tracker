@@ -411,7 +411,7 @@ function renderCardsPanel() {
             <span class="text-base">${c.icon || '💳'}</span>
             <div class="leading-tight">
                 <div class="text-[12px] font-semibold" style="color:var(--app-heading)">${c.name}</div>
-                <div class="text-[11px]" style="color:var(--app-muted)">R$ ${formatCurrency(c.totalSpent)}${c.closingDay ? ` · fecha dia ${c.closingDay}` : ''}</div>
+                <div class="text-[11px]" style="color:var(--app-muted)">R$ ${formatCurrency(c.totalSpent)}${c.closingDay ? ` · fecha dia ${c.closingDay}` : ''}${c.dueDay ? ` · vence dia ${c.dueDay}` : ''}</div>
             </div>
             <button title="Excluir cartão" class="ml-1 text-[11px] transition hover:!text-red-600" style="color:#c3ccd6">✕</button>
         `;
@@ -432,12 +432,14 @@ function openCardModal(card = null) {
         document.getElementById("cardName").value = card.name;
         document.getElementById("cardIcon").value = card.icon || "";
         document.getElementById("cardClosingDay").value = card.closingDay || "";
+        document.getElementById("cardDueDay").value = card.dueDay || "";
     } else {
         editingCardId = null;
         document.getElementById("cardModalTitle").innerText = "Novo Cartão";
         document.getElementById("cardName").value = "";
         document.getElementById("cardIcon").value = "";
         document.getElementById("cardClosingDay").value = "";
+        document.getElementById("cardDueDay").value = "";
     }
 }
 
@@ -450,6 +452,8 @@ async function saveCard() {
     const icon = document.getElementById("cardIcon").value || "💳";
     const closingDayValue = document.getElementById("cardClosingDay").value;
     const closingDay = closingDayValue ? parseInt(closingDayValue, 10) : null;
+    const dueDayValue = document.getElementById("cardDueDay").value;
+    const dueDay = dueDayValue ? parseInt(dueDayValue, 10) : null;
 
     if (!name) {
         showToast("Digite um nome para o cartão!", "error");
@@ -461,12 +465,12 @@ async function saveCard() {
             ? await apiFetch(`/api/cards/${editingCardId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, icon, closingDay })
+                body: JSON.stringify({ name, icon, closingDay, dueDay })
             })
             : await apiFetch(`/api/cards`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, icon, closingDay })
+                body: JSON.stringify({ name, icon, closingDay, dueDay })
             });
 
         if (response.ok) {
