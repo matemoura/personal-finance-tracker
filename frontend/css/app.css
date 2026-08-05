@@ -79,3 +79,7 @@ body { background: var(--app-bg); color: var(--app-text); }
   .mobile-nav a { color: #c7d4e2; }
   .mobile-nav .is-active { background: rgba(255,255,255,.14); color: #fff; }
 }
+
+/* ---------- Lista de links rolável no mobile-nav (evita empurrar o avatar pra fora da tela) ---------- */
+.nav-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+.nav-scroll::-webkit-scrollbar { display: none; }
