@@ -478,7 +478,8 @@ async function saveCard() {
             closeCardModal();
             await loadCards();
         } else {
-            showToast("Erro ao salvar cartão", "error");
+            const err = await response.json();
+            showToast("Erro: " + (err.message || "Falha ao salvar cartão."), "error");
         }
     } catch (error) {
         console.error("Erro:", error);
