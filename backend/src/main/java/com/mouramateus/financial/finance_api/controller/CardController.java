@@ -1,6 +1,8 @@
 package com.mouramateus.financial.finance_api.controller;
 
 import com.mouramateus.financial.finance_api.dto.CardCreateRequest;
+import com.mouramateus.financial.finance_api.dto.CardInvoicePayRequest;
+import com.mouramateus.financial.finance_api.dto.CardInvoiceResponse;
 import com.mouramateus.financial.finance_api.dto.CardResponse;
 import com.mouramateus.financial.finance_api.dto.CardUpdateRequest;
 import com.mouramateus.financial.finance_api.entity.Card;
@@ -42,5 +44,16 @@ public class CardController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCard(@PathVariable Long id) {
         cardService.deleteCard(id);
+    }
+
+    @GetMapping("/{id}/invoices")
+    public List<CardInvoiceResponse> pendingInvoices(@PathVariable Long id) {
+        return cardService.listPendingInvoices(id);
+    }
+
+    @PatchMapping("/{id}/invoices/pay")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void payInvoice(@PathVariable Long id, @RequestBody @Valid CardInvoicePayRequest request) {
+        cardService.markInvoicePaid(id, request);
     }
 }

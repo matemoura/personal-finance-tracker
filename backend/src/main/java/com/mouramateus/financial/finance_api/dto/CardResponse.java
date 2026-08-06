@@ -8,5 +8,6 @@ public record CardResponse(
         String icon,
         Integer closingDay,
         Integer dueDay,
-        BigDecimal totalSpent
+        BigDecimal totalSpent,
+        BigDecimal pendingTotal
 ) {}
