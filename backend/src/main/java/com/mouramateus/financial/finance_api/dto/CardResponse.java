@@ -9,5 +9,6 @@ public record CardResponse(
         Integer closingDay,
         Integer dueDay,
         BigDecimal totalSpent,
-        BigDecimal pendingTotal
+        BigDecimal pendingTotal,
+        BigDecimal pendingCurrentMonth
 ) {}

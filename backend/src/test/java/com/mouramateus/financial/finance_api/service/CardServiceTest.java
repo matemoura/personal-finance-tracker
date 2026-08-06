@@ -26,6 +26,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
@@ -104,9 +105,36 @@ class CardServiceTest {
         assertThat(result.get(0).id()).isEqualTo(10L);
         assertThat(result.get(0).totalSpent()).isEqualByComparingTo("150.00");
         assertThat(result.get(0).pendingTotal()).isEqualByComparingTo("150.00");
+        assertThat(result.get(0).pendingCurrentMonth()).isEqualByComparingTo("150.00");
         assertThat(result.get(1).id()).isEqualTo(20L);
         assertThat(result.get(1).totalSpent()).isEqualByComparingTo("0");
         assertThat(result.get(1).pendingTotal()).isEqualByComparingTo("0");
+        assertThat(result.get(1).pendingCurrentMonth()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void listMine_pendingCurrentMonthOnlyIncludesCurrentMonthUnpaidExpenses() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card nubank = Card.builder().id(10L).name("Nubank").user(owner).build();
+
+        YearMonth currentMonth = YearMonth.now();
+        YearMonth lastMonth = currentMonth.minusMonths(1);
+
+        Transaction currentMonthExpense = Transaction.builder()
+                .amount(new BigDecimal("80.00")).type(CategoryType.EXPENSE).card(nubank).date(currentMonth.atDay(10)).build();
+        Transaction lastMonthExpense = Transaction.builder()
+                .amount(new BigDecimal("120.00")).type(CategoryType.EXPENSE).card(nubank).date(lastMonth.atDay(10)).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findByUserOrderByNameAsc(owner)).thenReturn(List.of(nubank));
+        when(transactionRepository.findByUserAndCardIsNotNull(owner))
+                .thenReturn(List.of(currentMonthExpense, lastMonthExpense));
+        when(cardInvoicePaymentRepository.findByCardIn(List.of(nubank))).thenReturn(List.of());
+
+        List<CardResponse> result = cardService.listMine();
+
+        assertThat(result.get(0).pendingTotal()).isEqualByComparingTo("200.00");
+        assertThat(result.get(0).pendingCurrentMonth()).isEqualByComparingTo("80.00");
     }
 
     @Test

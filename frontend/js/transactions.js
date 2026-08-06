@@ -404,23 +404,27 @@ function renderCardsPanel() {
     panel.innerHTML = "";
     allCards.forEach(c => {
         const chip = document.createElement("div");
-        chip.className = "flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg cursor-pointer transition hover:bg-[#e0e7ef]";
+        chip.className = "flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg cursor-pointer transition hover:bg-[#e0e7ef] w-full sm:w-auto";
         chip.style.background = "var(--app-soft)";
         chip.title = "Clique para editar";
         chip.onclick = () => openCardModal(c);
 
-        const hasPending = c.pendingTotal && parseFloat(c.pendingTotal) > 0;
-        const pendingColor = hasPending ? 'var(--app-danger)' : 'var(--app-muted)';
+        const pendingMonth = parseFloat(c.pendingCurrentMonth) || 0;
+        const pendingAll = parseFloat(c.pendingTotal) || 0;
+        const hasPending = pendingAll > 0;
+        const hasOlderPending = pendingAll > pendingMonth + 0.005;
+        const monthColor = pendingMonth > 0 ? 'var(--app-danger)' : 'var(--app-muted)';
 
         chip.innerHTML = `
-            <span class="text-base">${c.icon || '💳'}</span>
-            <div class="leading-tight">
-                <div class="text-[12px] font-semibold" style="color:var(--app-heading)">${c.name}</div>
-                <div class="text-[11px]" style="color:var(--app-muted)">Total: R$ ${formatCurrency(c.totalSpent)}${c.closingDay ? ` · fecha dia ${c.closingDay}` : ''}${c.dueDay ? ` · vence dia ${c.dueDay}` : ''}</div>
-                <div class="text-[11px] font-semibold" style="color:${pendingColor}">Pendente: R$ ${formatCurrency(c.pendingTotal)}</div>
+            <span class="text-base flex-shrink-0">${c.icon || '💳'}</span>
+            <div class="leading-tight min-w-0 flex-1">
+                <div class="text-[12px] font-semibold truncate" style="color:var(--app-heading)">${c.name}</div>
+                <div class="text-[11px] break-words" style="color:var(--app-muted)">Total: R$ ${formatCurrency(c.totalSpent)}${c.closingDay ? ` · fecha dia ${c.closingDay}` : ''}${c.dueDay ? ` · vence dia ${c.dueDay}` : ''}</div>
+                <div class="text-[11px] font-semibold break-words" style="color:${monthColor}">Pendente (mês): R$ ${formatCurrency(c.pendingCurrentMonth)}</div>
+                ${hasOlderPending ? `<div class="text-[11px] font-semibold break-words" style="color:var(--app-danger)">Pendente (total): R$ ${formatCurrency(c.pendingTotal)}</div>` : ''}
             </div>
-            ${hasPending ? `<button title="Pagar fatura" class="pay-invoice-btn ml-1 px-2 py-1 rounded-md text-[11px] font-semibold transition" style="background:var(--app-primary);color:#fff">Pagar</button>` : ''}
-            <button title="Excluir cartão" class="delete-card-btn ml-1 text-[11px] transition hover:!text-red-600" style="color:#c3ccd6">✕</button>
+            ${hasPending ? `<button title="Pagar fatura" class="pay-invoice-btn ml-1 px-2 py-1 rounded-md text-[11px] font-semibold transition flex-shrink-0" style="background:var(--app-primary);color:#fff">Pagar</button>` : ''}
+            <button title="Excluir cartão" class="delete-card-btn ml-1 text-[11px] transition hover:!text-red-600 flex-shrink-0" style="color:#c3ccd6">✕</button>
         `;
 
         const payBtn = chip.querySelector(".pay-invoice-btn");
@@ -550,14 +554,14 @@ async function loadPendingInvoicesList() {
         container.innerHTML = "";
         invoices.forEach(inv => {
             const row = document.createElement("div");
-            row.className = "flex items-center justify-between px-3 py-2.5 rounded-lg";
+            row.className = "flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg";
             row.style.background = "var(--app-soft)";
             row.innerHTML = `
-                <div>
-                    <div class="text-[13px] font-semibold" style="color:var(--app-heading)">${MONTHS_LONG[inv.month - 1]} de ${inv.year}</div>
+                <div class="min-w-0">
+                    <div class="text-[13px] font-semibold truncate" style="color:var(--app-heading)">${MONTHS_LONG[inv.month - 1]} de ${inv.year}</div>
                     <div class="text-[12px]" style="color:var(--app-muted)">R$ ${formatCurrency(inv.total)}</div>
                 </div>
-                <button class="app-button px-3 py-1.5 rounded-lg text-[12px] font-semibold transition">Marcar como paga</button>
+                <button class="app-button px-3 py-1.5 rounded-lg text-[12px] font-semibold transition flex-shrink-0 whitespace-nowrap">Marcar como paga</button>
             `;
             row.querySelector("button").onclick = () => payInvoice(inv.year, inv.month);
             container.appendChild(row);
