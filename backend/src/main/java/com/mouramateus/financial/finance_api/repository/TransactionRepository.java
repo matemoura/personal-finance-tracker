@@ -84,18 +84,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     """)
     List<Integer> findDistinctYearsByUser(User user);
 
-    @Query("""
-        SELECT COALESCE(
-            SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END), 
-            0
-        )
-        FROM Transaction t
-        WHERE t.user = :user
-        AND t.date <= :endDate
-    """)
-    BigDecimal calculateAccumulatedBalance(User user, LocalDate endDate);
-
     List<Transaction> findByUserAndDateBetweenOrderByIdDesc(User user, LocalDate startDate, LocalDate endDate);
 
     List<Transaction> findByUserAndCardIsNotNull(User user);
+
+    List<Transaction> findByUserAndDateLessThanEqual(User user, LocalDate endDate);
 }
