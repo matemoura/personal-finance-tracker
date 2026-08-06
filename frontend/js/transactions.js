@@ -646,7 +646,7 @@ function updateInvoicePreview() {
 
     const [y, m, d] = dateStr.split("-").map(Number);
     let targetYear = y, targetMonth = m;
-    if (d > card.closingDay) {
+    if (d >= card.closingDay) {
         targetMonth += 1;
         if (targetMonth > 12) { targetMonth = 1; targetYear += 1; }
     }

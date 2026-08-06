@@ -47,7 +47,7 @@ public class TransactionService {
             return date;
         }
 
-        if (date.getDayOfMonth() > card.getClosingDay()) {
+        if (date.getDayOfMonth() >= card.getClosingDay()) {
             return date.plusMonths(1);
         }
 

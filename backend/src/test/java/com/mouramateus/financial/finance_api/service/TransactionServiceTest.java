@@ -136,6 +136,25 @@ class TransactionServiceTest {
     }
 
     @Test
+    void createTransaction_withCardAndDateOnClosingDay_shiftsToNextMonth() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
+        Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 10), CategoryType.EXPENSE, 10L, 5L
+        );
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Transaction result = transactionService.createTransaction(request);
+
+        assertThat(result.getDate()).isEqualTo(LocalDate.of(2026, 4, 10));
+    }
+
+    @Test
     void createTransaction_withCardAndDateBeforeClosingDay_keepsSameMonth() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
