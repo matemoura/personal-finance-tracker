@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.DateTimeException;
 import java.util.Map;
@@ -21,6 +22,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleInvalidParams(Exception e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("message", "Parâmetros inválidos: " + e.getMessage()));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleResponseStatusException(ResponseStatusException e) {
+        return ResponseEntity.status(e.getStatusCode())
+                .body(Map.of("message", e.getReason() != null ? e.getReason() : "Erro ao processar a solicitação."));
     }
 
     @ExceptionHandler(RuntimeException.class)
