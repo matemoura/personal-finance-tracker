@@ -45,6 +45,12 @@ async function login(event) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const notice = sessionStorage.getItem("loginNotice");
+  if (notice) {
+    sessionStorage.removeItem("loginNotice");
+    showToast(notice, "error");
+  }
+
   const loginForm = document.getElementById("login-form");
   if (loginForm) {
     loginForm.addEventListener("submit", login);

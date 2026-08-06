@@ -7,6 +7,14 @@ function getToken() {
   return localStorage.getItem("token");
 }
 
+// Desloga e volta pro login. Uma "message" opcional (ex: servidor fora do ar)
+// é mostrada como toast na tela de login, pra não parecer erro de senha.
+function forceLogout(message) {
+  localStorage.removeItem("token");
+  if (message) sessionStorage.setItem("loginNotice", message);
+  window.location.href = "index.html";
+}
+
 // Requisição autenticada: injeta o Bearer token e desloga em 401/403 (sessão expirada)
 async function apiFetch(path, options = {}) {
   const headers = { ...(options.headers || {}) };
@@ -16,12 +24,56 @@ async function apiFetch(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   if (response.status === 401 || response.status === 403) {
-    localStorage.removeItem("token");
-    window.location.href = "index.html";
+    forceLogout();
     throw new Error("Sessão expirada");
   }
 
   return response;
+}
+
+// ---------- Verificação periódica de sessão/conectividade ----------
+// Sem isso, o logoff só acontecia reativamente (na próxima chamada de API que o
+// usuário disparasse). Se o token expirasse ou o Render caísse com a aba aberta
+// e sem nenhuma tela sendo trocada, nada avisava o usuário — a tela ficava
+// parada, sem recarregar para o login por conta própria.
+const SESSION_CHECK_INTERVAL_MS = 30000;
+let sessionCheckFailures = 0;
+
+async function checkSessionAlive() {
+  const token = getToken();
+  if (!token) return;
+
+  try {
+    const response = await fetch(`${API_URL}/api/users/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      forceLogout();
+      return;
+    }
+
+    sessionCheckFailures = 0;
+  } catch (error) {
+    // fetch() só lança aqui quando o servidor está inalcançável (Render
+    // dormindo/caído, sem rede) — exige 2 falhas seguidas antes de deslogar,
+    // pra não reagir a uma instabilidade momentânea de rede.
+    sessionCheckFailures++;
+    if (sessionCheckFailures >= 2) {
+      forceLogout("Não foi possível conectar ao servidor. Faça login novamente para tentar de novo.");
+    }
+  }
+}
+
+function startSessionWatcher() {
+  if (!getToken()) return;
+  setInterval(checkSessionAlive, SESSION_CHECK_INTERVAL_MS);
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startSessionWatcher);
+} else {
+  startSessionWatcher();
 }
 
 function showToast(message, type = "info") {
