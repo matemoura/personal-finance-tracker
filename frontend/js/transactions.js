@@ -2,6 +2,7 @@ let allCategories = [];
 let allCards = [];
 let editingTransactionId = null;
 let editingCardId = null;
+let activeInvoiceCard = null;
 
 const now = new Date();
 let currentYear = now.getFullYear();
@@ -407,15 +408,29 @@ function renderCardsPanel() {
         chip.style.background = "var(--app-soft)";
         chip.title = "Clique para editar";
         chip.onclick = () => openCardModal(c);
+
+        const hasPending = c.pendingTotal && parseFloat(c.pendingTotal) > 0;
+        const pendingColor = hasPending ? 'var(--app-danger)' : 'var(--app-muted)';
+
         chip.innerHTML = `
             <span class="text-base">${c.icon || '💳'}</span>
             <div class="leading-tight">
                 <div class="text-[12px] font-semibold" style="color:var(--app-heading)">${c.name}</div>
-                <div class="text-[11px]" style="color:var(--app-muted)">R$ ${formatCurrency(c.totalSpent)}${c.closingDay ? ` · fecha dia ${c.closingDay}` : ''}${c.dueDay ? ` · vence dia ${c.dueDay}` : ''}</div>
+                <div class="text-[11px]" style="color:var(--app-muted)">Total: R$ ${formatCurrency(c.totalSpent)}${c.closingDay ? ` · fecha dia ${c.closingDay}` : ''}${c.dueDay ? ` · vence dia ${c.dueDay}` : ''}</div>
+                <div class="text-[11px] font-semibold" style="color:${pendingColor}">Pendente: R$ ${formatCurrency(c.pendingTotal)}</div>
             </div>
-            <button title="Excluir cartão" class="ml-1 text-[11px] transition hover:!text-red-600" style="color:#c3ccd6">✕</button>
+            ${hasPending ? `<button title="Pagar fatura" class="pay-invoice-btn ml-1 px-2 py-1 rounded-md text-[11px] font-semibold transition" style="background:var(--app-primary);color:#fff">Pagar</button>` : ''}
+            <button title="Excluir cartão" class="delete-card-btn ml-1 text-[11px] transition hover:!text-red-600" style="color:#c3ccd6">✕</button>
         `;
-        chip.querySelector("button").onclick = (event) => {
+
+        const payBtn = chip.querySelector(".pay-invoice-btn");
+        if (payBtn) {
+            payBtn.onclick = (event) => {
+                event.stopPropagation();
+                openPayInvoiceModal(c);
+            };
+        }
+        chip.querySelector(".delete-card-btn").onclick = (event) => {
             event.stopPropagation();
             deleteCard(c.id);
         };
@@ -500,6 +515,80 @@ async function deleteCard(id) {
         }
     } catch (error) {
         console.error(error);
+    }
+}
+
+async function openPayInvoiceModal(card) {
+    activeInvoiceCard = card;
+    document.getElementById("payInvoiceModalTitle").innerText = `Faturas pendentes — ${card.name}`;
+    document.getElementById("payInvoiceModal").classList.remove("hidden");
+    await loadPendingInvoicesList();
+}
+
+function closePayInvoiceModal() {
+    document.getElementById("payInvoiceModal").classList.add("hidden");
+    activeInvoiceCard = null;
+}
+
+async function loadPendingInvoicesList() {
+    const container = document.getElementById("pending-invoices-list");
+    if (!activeInvoiceCard) return;
+
+    container.innerHTML = '<p class="text-sm text-center" style="color:var(--app-muted)">Carregando...</p>';
+
+    try {
+        const response = await apiFetch(`/api/cards/${activeInvoiceCard.id}/invoices`);
+        if (!response.ok) throw new Error("Falha ao buscar faturas");
+
+        const invoices = await response.json();
+
+        if (invoices.length === 0) {
+            container.innerHTML = '<p class="text-sm text-center" style="color:var(--app-muted)">Nenhuma fatura pendente 🎉</p>';
+            return;
+        }
+
+        container.innerHTML = "";
+        invoices.forEach(inv => {
+            const row = document.createElement("div");
+            row.className = "flex items-center justify-between px-3 py-2.5 rounded-lg";
+            row.style.background = "var(--app-soft)";
+            row.innerHTML = `
+                <div>
+                    <div class="text-[13px] font-semibold" style="color:var(--app-heading)">${MONTHS_LONG[inv.month - 1]} de ${inv.year}</div>
+                    <div class="text-[12px]" style="color:var(--app-muted)">R$ ${formatCurrency(inv.total)}</div>
+                </div>
+                <button class="app-button px-3 py-1.5 rounded-lg text-[12px] font-semibold transition">Marcar como paga</button>
+            `;
+            row.querySelector("button").onclick = () => payInvoice(inv.year, inv.month);
+            container.appendChild(row);
+        });
+    } catch (error) {
+        console.error(error);
+        container.innerHTML = '<p class="text-sm text-center text-red-600">Erro ao carregar faturas.</p>';
+    }
+}
+
+async function payInvoice(year, month) {
+    const paidDate = new Date().toISOString().split("T")[0];
+
+    try {
+        const response = await apiFetch(`/api/cards/${activeInvoiceCard.id}/invoices/pay`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ year, month, paidDate })
+        });
+
+        if (response.ok) {
+            showToast("Fatura marcada como paga!", "success");
+            await loadCards();
+            await loadPendingInvoicesList();
+        } else {
+            const err = await response.json();
+            showToast("Erro: " + (err.message || "Falha ao registrar pagamento."), "error");
+        }
+    } catch (error) {
+        console.error(error);
+        showToast("Erro de conexão.", "error");
     }
 }
 
