@@ -101,11 +101,17 @@ public class CardService {
                 .collect(Collectors.toSet());
 
         Map<Long, BigDecimal> pendingByCard = cardExpenses.stream()
-                .filter(t -> {
-                    YearMonth ym = YearMonth.from(t.getDate());
-                    String key = t.getCard().getId() + "-" + ym.getYear() + "-" + ym.getMonthValue();
-                    return !paidMonthKeys.contains(key);
-                })
+                .filter(t -> !paidMonthKeys.contains(monthKey(t)))
+                .collect(Collectors.groupingBy(
+                        t -> t.getCard().getId(),
+                        Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
+                ));
+
+        YearMonth currentMonth = YearMonth.now();
+
+        Map<Long, BigDecimal> pendingCurrentMonthByCard = cardExpenses.stream()
+                .filter(t -> !paidMonthKeys.contains(monthKey(t)))
+                .filter(t -> YearMonth.from(t.getDate()).equals(currentMonth))
                 .collect(Collectors.groupingBy(
                         t -> t.getCard().getId(),
                         Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
@@ -119,9 +125,15 @@ public class CardService {
                         c.getClosingDay(),
                         c.getDueDay(),
                         totalsByCard.getOrDefault(c.getId(), BigDecimal.ZERO),
-                        pendingByCard.getOrDefault(c.getId(), BigDecimal.ZERO)
+                        pendingByCard.getOrDefault(c.getId(), BigDecimal.ZERO),
+                        pendingCurrentMonthByCard.getOrDefault(c.getId(), BigDecimal.ZERO)
                 ))
                 .toList();
+    }
+
+    private String monthKey(Transaction t) {
+        YearMonth ym = YearMonth.from(t.getDate());
+        return t.getCard().getId() + "-" + ym.getYear() + "-" + ym.getMonthValue();
     }
 
     public List<CardInvoiceResponse> listPendingInvoices(Long cardId) {
