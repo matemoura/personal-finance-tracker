@@ -31,6 +31,15 @@ public class UserController {
     private final JwtService jwtService;
     private final SupabaseStorageService supabaseStorageService;
 
+    // Endpoint leve para o frontend verificar periodicamente se o token ainda é
+    // válido e o servidor está de pé, sem depender de o usuário navegar para
+    // outra tela. Chegar até aqui já prova que o JwtAuthenticationFilter aceitou
+    // o token — não há necessidade de consultar o banco.
+    @GetMapping("/me")
+    public ResponseEntity<Void> me() {
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping
     public ResponseEntity<AuthResponse> create(@RequestBody @Valid RegisterRequest request) {
         User newUser = userService.create(request);
