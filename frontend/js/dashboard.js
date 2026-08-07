@@ -61,6 +61,12 @@ function refreshDashboard() {
     loadCharts();
 }
 
+// Usado pelo botão de ocultar valores (api.js) pra repintar a tela atual sem reload.
+function refreshCurrentView() {
+    refreshDashboard();
+    loadReceivable();
+}
+
 function toggleUserMenu() {
     const menu = document.getElementById("user-menu");
     if (menu) menu.classList.toggle("hidden");
@@ -326,13 +332,13 @@ async function loadTransactions() {
                      style="background:${iconBg};color:${iconColor}">${icon}</div>
                 <div class="flex-1 min-w-0">
                     <div class="font-semibold truncate" style="color:var(--app-heading)" title="${safeDescription}">${safeDescription}</div>
-                    <div class="text-[11px]" style="color:#9daebf">${formattedDate} · ${t.category ? escapeHtml(t.category.name) : 'Sem categoria'}${t.card ? ' · ' + (escapeHtml(t.card.icon) || '💳') + ' ' + escapeHtml(t.card.name) : ''}</div>
+                    <div class="text-[11px] break-words" style="color:#9daebf">${formattedDate} · ${t.category ? escapeHtml(t.category.name) : 'Sem categoria'}${t.card ? ' · ' + (escapeHtml(t.card.icon) || '💳') + ' ' + escapeHtml(t.card.name) : ''}</div>
                 </div>
                 <span class="font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-danger)'}">
                     ${symbol} R$ ${formattedValue}
                 </span>
                 <button onclick='openEditModal(${safeTransaction})'
-                    class="p-1.5 rounded-md transition hover:bg-[#edf3f8]" style="color:#9daebf" title="Editar">✎</button>
+                    class="p-1.5 rounded-md transition hover:bg-[var(--app-soft)]" style="color:#9daebf" title="Editar">✎</button>
             `;
             listContainer.appendChild(li);
         });
@@ -363,9 +369,9 @@ async function loadCategoryBars() {
             const pct = Math.max(4, Math.round((item.total / max) * 100));
             const row = document.createElement("div");
             row.innerHTML = `
-                <div class="flex justify-between mb-1">
-                    <span>${escapeHtml(item.category)}</span>
-                    <span class="font-semibold">R$ ${formatCurrency(item.total)}</span>
+                <div class="flex justify-between gap-2 mb-1">
+                    <span class="truncate min-w-0">${escapeHtml(item.category)}</span>
+                    <span class="font-semibold flex-shrink-0 whitespace-nowrap">R$ ${formatCurrency(item.total)}</span>
                 </div>
                 <div class="h-[7px] rounded" style="background:var(--app-soft)">
                     <div class="h-[7px] rounded transition-all" style="width:${pct}%;background:${palette[i % palette.length]}"></div>

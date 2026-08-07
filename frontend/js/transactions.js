@@ -14,6 +14,7 @@ const PAGE_SIZE = 10;
 
 let currentType = "";
 let currentCategoryFilter = "";
+let currentCardFilter = "";
 
 const MONTHS_LONG = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
@@ -168,6 +169,12 @@ async function saveNewPassword() {
     }
 }
 
+// Usado pelo botão de ocultar valores (api.js) pra repintar a tela atual sem reload.
+function refreshCurrentView() {
+    loadTransactions(currentYear, currentMonth);
+    loadCards();
+}
+
 async function loadTransactions(year, month) {
     const token = getToken();
     if (!token) {
@@ -197,27 +204,37 @@ async function loadTransactions(year, month) {
     }
 }
 
+// O filtro por cartão é aplicado aqui, em cima do que já foi buscado da API
+// (allTransactions) — ano/mês/tipo/categoria continuam vindo por query param,
+// mas cartão não precisa de outra chamada ao servidor.
+function getVisibleTransactions() {
+    if (!currentCardFilter) return allTransactions;
+    return allTransactions.filter(t => t.card && String(t.card.id) === currentCardFilter);
+}
+
 function renderTransactionsPage() {
     const tbody = document.getElementById("transactions-body");
     const pagination = document.getElementById("pagination");
     const countLabel = document.getElementById("count-label");
     tbody.innerHTML = "";
 
+    const visibleTransactions = getVisibleTransactions();
+
     if (countLabel) {
-        countLabel.textContent = `${allTransactions.length} ${allTransactions.length === 1 ? "transação" : "transações"} em ${MONTHS_LONG[currentMonth - 1]} de ${currentYear}`;
+        countLabel.textContent = `${visibleTransactions.length} ${visibleTransactions.length === 1 ? "transação" : "transações"} em ${MONTHS_LONG[currentMonth - 1]} de ${currentYear}`;
     }
 
-    if (allTransactions.length === 0) {
+    if (visibleTransactions.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center" style="color:#9daebf">Nenhuma transação encontrada neste período.</td></tr>';
         pagination.classList.add("hidden");
         return;
     }
 
-    const totalPages = Math.ceil(allTransactions.length / PAGE_SIZE);
+    const totalPages = Math.ceil(visibleTransactions.length / PAGE_SIZE);
     if (currentPage > totalPages) currentPage = totalPages;
 
     const start = (currentPage - 1) * PAGE_SIZE;
-    const pageItems = allTransactions.slice(start, start + PAGE_SIZE);
+    const pageItems = visibleTransactions.slice(start, start + PAGE_SIZE);
 
     pageItems.forEach(t => {
         const tr = document.createElement("tr");
@@ -255,7 +272,7 @@ function renderTransactionsPage() {
     if (totalPages > 1) {
         pagination.classList.remove("hidden");
         document.getElementById("page-info").textContent =
-            `Página ${currentPage} de ${totalPages} (${allTransactions.length} transações)`;
+            `Página ${currentPage} de ${totalPages} (${visibleTransactions.length} transações)`;
         document.getElementById("prev-page").disabled = currentPage === 1;
         document.getElementById("next-page").disabled = currentPage === totalPages;
     } else {
@@ -370,11 +387,27 @@ async function loadCards() {
         if (response.ok) {
             allCards = await response.json();
             populateCardSelect();
+            populateCardFilter();
             renderCardsPanel();
         }
     } catch (error) {
         console.error("Erro ao carregar cartões:", error);
     }
+}
+
+function populateCardFilter() {
+    const select = document.getElementById("filter-card");
+    if (!select) return;
+
+    const selected = select.value;
+    select.innerHTML = '<option value="">Todos</option>';
+    allCards.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.text = `${c.icon || '💳'} ${c.name}`;
+        select.appendChild(option);
+    });
+    select.value = selected;
 }
 
 function populateCardSelect() {
@@ -404,7 +437,7 @@ function renderCardsPanel() {
     panel.innerHTML = "";
     allCards.forEach(c => {
         const chip = document.createElement("div");
-        chip.className = "flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg cursor-pointer transition hover:bg-[#e0e7ef] w-full sm:w-auto";
+        chip.className = "flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg cursor-pointer transition hover:bg-[var(--app-soft-hover)] w-full sm:w-auto";
         chip.style.background = "var(--app-soft)";
         chip.title = "Clique para editar";
         chip.onclick = () => openCardModal(c);
@@ -642,6 +675,7 @@ function applyTransactionFilters() {
     currentMonth = parseInt(document.getElementById("filter-month").value);
     currentType = document.getElementById("filter-type").value;
     currentCategoryFilter = document.getElementById("filter-category").value;
+    currentCardFilter = document.getElementById("filter-card").value;
     loadTransactions(currentYear, currentMonth);
 }
 
