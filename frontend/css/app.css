@@ -13,6 +13,65 @@
   --app-success-bg: #ecf7ee;
   --app-danger: #b91c1c;
   --app-danger-bg: #fdefef;
+  --app-input-bg: #f8fafc;
+  --app-input-border: #dbe4ee;
+  --app-overlay: rgba(30,41,59,.55);
+  --app-header-bg: rgba(255,255,255,.96);
+  --app-soft-hover: #e0e7ef;
+  --app-warning: #b45309;
+  --app-warning-bg: #fef3e2;
+}
+
+/* ---------- Tema escuro: aplica manualmente (data-theme="dark") ou por
+   preferência do sistema quando o usuário nunca escolheu manualmente ---------- */
+:root[data-theme="dark"] {
+  --app-bg: #0f172a;
+  --app-surface: #1b2740;
+  --app-sidebar: #0b1220;
+  --app-primary: #5b9fd8;
+  --app-primary-dark: #7cb4e3;
+  --app-text: #cbd5e1;
+  --app-muted: #8a9bb0;
+  --app-border: #2a3b56;
+  --app-soft: #24334d;
+  --app-heading: #eef2f8;
+  --app-success: #4ade80;
+  --app-success-bg: #16321f;
+  --app-danger: #f87171;
+  --app-danger-bg: #3a1a1c;
+  --app-input-bg: #24334d;
+  --app-input-border: #34456399;
+  --app-overlay: rgba(0,0,0,.65);
+  --app-header-bg: rgba(15,23,42,.9);
+  --app-soft-hover: #2d3f5e;
+  --app-warning: #fbbf6c;
+  --app-warning-bg: #3a2c14;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --app-bg: #0f172a;
+    --app-surface: #1b2740;
+    --app-sidebar: #0b1220;
+    --app-primary: #5b9fd8;
+    --app-primary-dark: #7cb4e3;
+    --app-text: #cbd5e1;
+    --app-muted: #8a9bb0;
+    --app-border: #2a3b56;
+    --app-soft: #24334d;
+    --app-heading: #eef2f8;
+    --app-success: #4ade80;
+    --app-success-bg: #16321f;
+    --app-danger: #f87171;
+    --app-danger-bg: #3a1a1c;
+    --app-input-bg: #24334d;
+    --app-input-border: #34456399;
+    --app-overlay: rgba(0,0,0,.65);
+    --app-header-bg: rgba(15,23,42,.9);
+    --app-soft-hover: #2d3f5e;
+    --app-warning: #fbbf6c;
+    --app-warning-bg: #3a2c14;
+  }
 }
 
 body { background: var(--app-bg); color: var(--app-text); }
@@ -28,51 +87,52 @@ body { background: var(--app-bg); color: var(--app-text); }
 .sidebar-user:hover { background: rgba(255,255,255,.05); }
 
 /* ---------- Header ---------- */
-.app-header { background: rgba(255,255,255,.96); border-color: var(--app-border); backdrop-filter: blur(6px); }
+.app-header { background: var(--app-header-bg); border-color: var(--app-border); backdrop-filter: blur(6px); }
 
 /* ---------- Superfícies ---------- */
 .app-card { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 14px; box-shadow: 0 1px 2px rgba(15,23,42,.03); }
 .app-card-dark { background: var(--app-sidebar); border-radius: 14px; color: #dfe8f2; }
+.app-modal { background: var(--app-surface); }
 
 /* ---------- Botões ---------- */
 .app-button { background: var(--app-primary); color: #fff; box-shadow: 0 2px 6px rgba(59,130,196,.28); }
 .app-button:hover { background: var(--app-primary-dark); }
-.app-button-ghost { background: var(--app-surface); border: 1px solid #dbe4ee; color: var(--app-muted); }
+.app-button-ghost { background: var(--app-surface); border: 1px solid var(--app-input-border); color: var(--app-muted); }
 .app-button-ghost:hover:not(:disabled) { background: var(--app-soft); }
 .app-button-ghost:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ---------- Inputs ---------- */
-.app-input, .app-select { background: #f8fafc; border: 1px solid #dbe4ee; color: var(--app-text); }
+.app-input, .app-select { background: var(--app-input-bg); border: 1px solid var(--app-input-border); color: var(--app-text); }
 .app-input:focus, .app-select:focus { border-color: var(--app-primary); box-shadow: 0 0 0 3px rgba(59,130,196,.14); outline: none; }
 
 /* ---------- Tabela ---------- */
-.table-head { background: var(--app-soft); color: #718096; }
+.table-head { background: var(--app-soft); color: var(--app-muted); }
 .table-row { border-top: 1px solid var(--app-soft); }
-.table-row:hover { background: #f8fafc; }
-.category-pill { background: var(--app-soft); color: #52657a; }
+.table-row:hover { background: var(--app-soft); }
+.category-pill { background: var(--app-soft); color: var(--app-text); }
 .pill-income { background: var(--app-success-bg); color: var(--app-success); }
 .pill-expense { background: var(--app-danger-bg); color: var(--app-danger); }
 .badge-up { background: var(--app-success-bg); color: var(--app-success); }
 .badge-down { background: var(--app-danger-bg); color: var(--app-danger); }
 
 /* ---------- Login ---------- */
-.login-screen { background: radial-gradient(circle at top left, #eef6ff 0%, #f5f7fa 45%, #edf2f7 100%); }
-.login-panel { border: 1px solid var(--app-border); box-shadow: 0 20px 45px rgba(30,41,59,.10); }
+.login-screen { background: radial-gradient(circle at top left, var(--app-soft) 0%, var(--app-bg) 45%, var(--app-border) 100%); }
+.login-panel { background: var(--app-surface); border: 1px solid var(--app-border); box-shadow: 0 20px 45px rgba(30,41,59,.10); }
 
 /* ---------- Abas do modal de configurações ---------- */
 .settings-tab { color: var(--app-muted); border-bottom: 2px solid transparent; }
 .settings-tab:hover { color: var(--app-heading); }
-.settings-tab.tab-active { color: var(--app-primary-dark); border-bottom-color: var(--app-primary); background: #f8fbfe; }
+.settings-tab.tab-active { color: var(--app-primary-dark); border-bottom-color: var(--app-primary); background: var(--app-soft); }
 
 /* ---------- Menu do usuário ---------- */
-.user-menu-pop { background: #fff; border: 1px solid var(--app-border); box-shadow: 0 12px 30px rgba(15,23,42,.14); }
+.user-menu-pop { background: var(--app-surface); border: 1px solid var(--app-border); box-shadow: 0 12px 30px rgba(15,23,42,.14); }
 
 /* ---------- Pills de filtro (empréstimos) ---------- */
 .filter-pill { background: var(--app-soft); color: var(--app-muted); }
-.filter-pill:hover { background: #e0e7ef; }
+.filter-pill:hover { background: var(--app-soft-hover); }
 .filter-pill.filter-active { background: var(--app-primary); color: #fff; }
 .filter-pill.filter-active:hover { background: var(--app-primary-dark); }
-.pill-partial { background: #fef3e2; color: #b45309; }
+.pill-partial { background: var(--app-warning-bg); color: var(--app-warning); }
 
 @media (max-width: 767px) {
   .mobile-nav { background: var(--app-sidebar); }

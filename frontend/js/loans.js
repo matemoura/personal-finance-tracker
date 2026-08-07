@@ -217,6 +217,11 @@ function maskCurrencyInput(input) {
 
 // ---------- Empréstimos ----------
 
+// Usado pelo botão de ocultar valores (api.js) pra repintar a tela atual sem reload.
+function refreshCurrentView() {
+    loadLoans();
+}
+
 async function loadLoans() {
     const tbody = document.getElementById("loans-body");
     try {
