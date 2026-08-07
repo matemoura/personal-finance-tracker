@@ -306,8 +306,8 @@
             style="background:rgba(30,41,59,.55);backdrop-filter:blur(3px)">
             <div class="app-modal rounded-xl shadow-2xl w-full max-w-[400px] max-h-[90vh] flex flex-col overflow-hidden">
                 <div class="px-5 py-4 border-b flex justify-between items-center flex-shrink-0" style="background:var(--app-bg);border-color:var(--app-border)">
-                    <h3 id="payInvoiceModalTitle" class="text-[15.5px] font-bold" style="color:var(--app-heading)">Faturas pendentes</h3>
-                    <button onclick="closePayInvoiceModal()" class="text-base hover:text-red-600 transition" style="color:#9daebf">✕</button>
+                    <h3 id="payInvoiceModalTitle" class="text-[15.5px] font-bold truncate min-w-0" style="color:var(--app-heading)">Faturas pendentes</h3>
+                    <button onclick="closePayInvoiceModal()" class="text-base hover:text-red-600 transition flex-shrink-0" style="color:#9daebf">✕</button>
                 </div>
                 <div class="p-5 flex flex-col gap-2.5 overflow-y-auto">
                     <div id="pending-invoices-list" class="flex flex-col gap-2">
