@@ -128,10 +128,10 @@ function escapeHtml(value) {
 // ---------- Logos de banco nos cartões ----------
 // O campo "icon" do cartão guarda ou um emoji (comportamento antigo, digitado
 // livremente) ou o domínio de um banco conhecido (ex: "nubank.com.br"), usado
-// pra buscar a logo real via um serviço público de logos por domínio. Isso
-// evita reproduzir/embutir artes de marcas registradas no próprio código —
-// a imagem é carregada direto da fonte pública, como qualquer app faria ao
-// exibir a logo de um parceiro.
+// pra buscar a logo real via o serviço de favicons do Google (não depende de
+// chave de API e não embute nenhuma arte de marca registrada no código — a
+// imagem é carregada direto da fonte pública, como o próprio Chrome faz pra
+// mostrar o ícone de um site).
 const KNOWN_BANKS = [
   { domain: "nubank.com.br", name: "Nubank", emoji: "💜" },
   { domain: "c6bank.com.br", name: "C6 Bank", emoji: "🖤" },
@@ -170,7 +170,7 @@ function renderCardIcon(icon, cardName, sizeClass) {
 
   if (bank) {
     const fallback = escapeHtml(bank.emoji);
-    return `<img src="https://logo.clearbit.com/${bank.domain}?size=64" alt="${escapeHtml(bank.name)}"
+    return `<img src="https://www.google.com/s2/favicons?domain=${bank.domain}&sz=64" alt="${escapeHtml(bank.name)}"
                  class="${size} rounded object-contain flex-shrink-0" loading="lazy"
                  onerror="this.outerHTML='<span class=&quot;${size} flex items-center justify-center flex-shrink-0&quot;>${fallback}</span>'">`;
   }
