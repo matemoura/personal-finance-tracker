@@ -441,6 +441,7 @@ async function submitPayBill() {
             showToast("Conta marcada como paga!", "success");
             closePayBillModal();
             loadBills();
+            checkDueReminders();
         } else {
             const err = await response.json();
             showToast("Erro: " + (err.message || "Falha ao registrar."), "error");
