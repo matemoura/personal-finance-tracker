@@ -260,7 +260,7 @@ function populateBillCardSelect() {
     allCards.forEach(c => {
         const option = document.createElement("option");
         option.value = c.id;
-        option.text = `${c.icon || '💳'} ${c.name}`;
+        option.text = `${bankEmojiFor(c.icon)} ${c.name}`;
         select.appendChild(option);
     });
 }
@@ -336,7 +336,7 @@ function renderBills() {
         const statusLabel = STATUS_LABELS[bill.status] || bill.status;
         const statusClass = STATUS_CLASSES[bill.status] || "category-pill";
         const isPaid = bill.status === "PAID";
-        const cardBadge = bill.cardId ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1">${escapeHtml(bill.cardIcon) || '💳'} ${escapeHtml(bill.cardName)}</span>` : '';
+        const cardBadge = bill.cardId ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1 inline-flex items-center gap-1">${renderCardIcon(bill.cardIcon, bill.cardName, "w-3.5 h-3.5")} ${escapeHtml(bill.cardName)}</span>` : '';
 
         tr.innerHTML = `
             <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${escapeHtml(bill.description)}</td>
