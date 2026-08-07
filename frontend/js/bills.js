@@ -267,6 +267,11 @@ function populateBillCardSelect() {
 
 // ---------- Contas a Pagar ----------
 
+// Usado pelo botão de ocultar valores (api.js) pra repintar a tela atual sem reload.
+function refreshCurrentView() {
+    loadBills();
+}
+
 async function loadBills() {
     const tbody = document.getElementById("bills-body");
     try {

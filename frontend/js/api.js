@@ -125,7 +125,90 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// ---------- Tema claro/escuro ----------
+// null armazenado = "segue o sistema" (nunca escolhido manualmente). O script
+// anti-flash no <head> de cada página já aplica isso antes do primeiro paint;
+// aqui só cuidamos do botão e de reagir a mudanças do tema do sistema.
+function getStoredTheme() {
+  return localStorage.getItem("theme");
+}
+
+function getEffectiveTheme() {
+  const stored = getStoredTheme();
+  if (stored) return stored;
+  return (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+}
+
+function updateThemeIcons() {
+  const icon = getEffectiveTheme() === "dark" ? "☀️" : "🌙";
+  ["theme-icon-desktop", "theme-icon-mobile"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = icon;
+  });
+}
+
+function applyStoredTheme() {
+  const stored = getStoredTheme();
+  if (stored) {
+    document.documentElement.setAttribute("data-theme", stored);
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+  updateThemeIcons();
+}
+
+function toggleTheme() {
+  const next = getEffectiveTheme() === "dark" ? "light" : "dark";
+  localStorage.setItem("theme", next);
+  applyStoredTheme();
+}
+
+function initThemeAndPrivacyControls() {
+  applyStoredTheme();
+  updateHideValuesIcon();
+
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      if (!getStoredTheme()) updateThemeIcons();
+    });
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initThemeAndPrivacyControls);
+} else {
+  initThemeAndPrivacyControls();
+}
+
+// ---------- Ocultar valores monetários ----------
+let valuesHidden = localStorage.getItem("hideValues") === "true";
+
+function updateHideValuesIcon() {
+  const icon = valuesHidden ? "🙈" : "👁️";
+  ["hide-values-icon-desktop", "hide-values-icon-mobile"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = icon;
+  });
+}
+
+// Depois de alternar, cada página tenta recarregar só os próprios dados
+// (via refreshCurrentView, se a página definir uma); sem isso, cai para um
+// reload completo — os valores já foram mascarados/desmascarados desde o
+// próximo formatCurrency(), só precisamos repintar o que já está na tela.
+function toggleHideValues() {
+  valuesHidden = !valuesHidden;
+  localStorage.setItem("hideValues", valuesHidden ? "true" : "false");
+  updateHideValuesIcon();
+
+  if (typeof refreshCurrentView === "function") {
+    refreshCurrentView();
+  } else {
+    location.reload();
+  }
+}
+
 function formatCurrency(value) {
+  if (valuesHidden) return "••••";
   return new Intl.NumberFormat("pt-BR", {
     style: "decimal",
     minimumFractionDigits: 2,

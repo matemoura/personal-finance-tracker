@@ -3,6 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function () {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transações - Finance Tracker</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
@@ -25,7 +31,13 @@
             <a href="loans.html" class="flex-shrink-0 whitespace-nowrap text-sm font-medium px-3 py-1.5 rounded-lg">Empréstimos</a>
             <a href="bills.html" class="flex-shrink-0 whitespace-nowrap text-sm font-medium px-3 py-1.5 rounded-lg">Contas</a>
         </div>
-        <button onclick="toggleUserMenu()" data-user-trigger class="focus:outline-none flex-shrink-0 ml-auto">
+        <button onclick="toggleHideValues()" class="focus:outline-none flex-shrink-0 ml-auto" title="Ocultar/mostrar valores">
+            <span id="hide-values-icon-mobile" class="text-lg">👁️</span>
+        </button>
+        <button onclick="toggleTheme()" class="focus:outline-none flex-shrink-0" title="Alternar tema">
+            <span id="theme-icon-mobile" class="text-lg">🌙</span>
+        </button>
+        <button onclick="toggleUserMenu()" data-user-trigger class="focus:outline-none flex-shrink-0">
             <img id="user-avatar-mobile" src="https://ui-avatars.com/api/?name=U&background=3b82c4&color=fff"
                 class="h-8 w-8 rounded-full border-2 border-white/30 object-cover" alt="Foto de Perfil">
         </button>
@@ -35,7 +47,15 @@
         <div class="px-5 py-[22px] flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-extrabold text-base" style="background:var(--app-primary)">M</div>
             <span class="text-[16.5px] font-bold text-white">Minhas Finanças</span>
-        </div>
+            <div class="ml-auto flex items-center gap-1">
+                <button onclick="toggleHideValues()" class="text-white/70 hover:text-white transition p-1" title="Ocultar/mostrar valores">
+                    <span id="hide-values-icon-desktop" class="text-sm">👁️</span>
+                </button>
+                <button onclick="toggleTheme()" class="text-white/70 hover:text-white transition p-1" title="Alternar tema">
+                    <span id="theme-icon-desktop" class="text-sm">🌙</span>
+                </button>
+            </div>
+            </div>
         <nav class="p-3.5 flex flex-col gap-1">
             <a href="dashboard.html" class="flex items-center gap-3 px-3 py-[11px] rounded-lg font-medium no-underline">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1"></rect><rect x="9" y="1.5" width="5.5" height="5.5" rx="1"></rect><rect x="1.5" y="9" width="5.5" height="5.5" rx="1"></rect><rect x="9" y="9" width="5.5" height="5.5" rx="1"></rect></svg>
@@ -72,12 +92,12 @@
     <div id="user-menu" class="user-menu-pop hidden fixed z-50 w-52 rounded-xl py-2
         md:left-4 md:bottom-[76px] max-md:right-3 max-md:top-14">
         <a href="#" onclick="openSettingsModal()"
-            class="block px-4 py-2 text-sm hover:bg-[#edf3f8] transition-colors" style="color:var(--app-text)">
+            class="block px-4 py-2 text-sm hover:bg-[var(--app-soft)] transition-colors" style="color:var(--app-text)">
             ⚙️ Configurações
         </a>
         <div class="border-t my-1" style="border-color:var(--app-border)"></div>
         <button onclick="logout()"
-            class="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors font-medium">
+            class="w-full text-left px-4 py-2 text-sm hover:bg-[var(--app-danger-bg)] transition-colors font-medium">
             🚪 Sair
         </button>
     </div>
@@ -107,7 +127,7 @@
                 </div>
             </div>
 
-            <div class="app-card px-[18px] py-4 grid grid-cols-2 md:grid-cols-4 gap-3.5">
+            <div class="app-card px-[18px] py-4 grid grid-cols-2 md:grid-cols-5 gap-3.5">
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Ano</label>
                     <select id="filter-year" onchange="applyTransactionFilters()"
@@ -147,6 +167,13 @@
                         <option value="">Todas</option>
                     </select>
                 </div>
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Cartão</label>
+                    <select id="filter-card" onchange="applyTransactionFilters()"
+                        class="app-select w-full px-3 py-2 rounded-lg text-[13px] cursor-pointer">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
             </div>
 
             <div class="app-card overflow-hidden mb-6">
@@ -180,7 +207,7 @@
 
         <div id="modal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
             style="background:rgba(30,41,59,.55);backdrop-filter:blur(3px)">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-[430px] max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="app-modal rounded-xl shadow-2xl w-full max-w-[430px] max-h-[90vh] flex flex-col overflow-hidden">
                 <div class="px-5 py-4 border-b flex justify-between items-center flex-shrink-0" style="background:var(--app-bg);border-color:var(--app-border)">
                     <h3 id="modal-title" class="text-[15.5px] font-bold" style="color:var(--app-heading)">Nova Transação</h3>
                     <button onclick="closeModal()" class="text-base hover:text-red-600 transition" style="color:#9daebf">✕</button>
@@ -209,18 +236,18 @@
                     </div>
                     <div>
                         <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Categoria</label>
-                        <select id="categoryId" class="app-select w-full px-3 py-[9px] rounded-lg text-[13px] bg-white">
+                        <select id="categoryId" class="app-select w-full px-3 py-[9px] rounded-lg text-[13px]">
                             <option value="" disabled selected>Selecione...</option>
                         </select>
                     </div>
                     <div id="cardFieldRow">
                         <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Cartão (opcional)</label>
                         <div class="flex gap-2">
-                            <select id="cardId" onchange="updateInvoicePreview()" class="app-select flex-1 px-3 py-[9px] rounded-lg text-[13px] bg-white">
+                            <select id="cardId" onchange="updateInvoicePreview()" class="app-select flex-1 px-3 py-[9px] rounded-lg text-[13px]">
                                 <option value="">Nenhum</option>
                             </select>
                             <button onclick="openCardModal()"
-                                class="px-3.5 py-[9px] rounded-lg font-bold transition hover:bg-[#e0e7ef]"
+                                class="px-3.5 py-[9px] rounded-lg font-bold transition hover:bg-[var(--app-soft-hover)]"
                                 style="background:var(--app-soft);color:var(--app-primary-dark)">+</button>
                         </div>
                         <div id="cardInvoiceHint" class="text-[11px] mt-1.5" style="color:var(--app-muted)">&nbsp;</div>
@@ -248,7 +275,7 @@
 
         <div id="cardModal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
             style="background:rgba(30,41,59,.55)">
-            <div class="bg-white rounded-xl shadow-2xl w-80 max-h-[90vh] overflow-y-auto p-5">
+            <div class="app-modal rounded-xl shadow-2xl w-80 max-h-[90vh] overflow-y-auto p-5">
                 <h3 id="cardModalTitle" class="text-[15.5px] font-bold mb-4" style="color:var(--app-heading)">Novo Cartão</h3>
                 <input type="text" id="cardName" placeholder="Nome (ex: Nubank)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
                 <input type="text" id="cardIcon" placeholder="Ícone (ex: 💳)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
@@ -277,7 +304,7 @@
 
         <div id="payInvoiceModal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
             style="background:rgba(30,41,59,.55);backdrop-filter:blur(3px)">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-[400px] max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="app-modal rounded-xl shadow-2xl w-full max-w-[400px] max-h-[90vh] flex flex-col overflow-hidden">
                 <div class="px-5 py-4 border-b flex justify-between items-center flex-shrink-0" style="background:var(--app-bg);border-color:var(--app-border)">
                     <h3 id="payInvoiceModalTitle" class="text-[15.5px] font-bold" style="color:var(--app-heading)">Faturas pendentes</h3>
                     <button onclick="closePayInvoiceModal()" class="text-base hover:text-red-600 transition" style="color:#9daebf">✕</button>
@@ -292,7 +319,7 @@
 
         <div id="settings-modal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
             style="background:rgba(30,41,59,.55);backdrop-filter:blur(3px)">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="app-modal rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
                 <div class="px-5 py-4 border-b flex justify-between items-center flex-shrink-0" style="background:var(--app-bg);border-color:var(--app-border)">
                     <h3 class="text-[15.5px] font-bold" style="color:var(--app-heading)">Configurações da Conta</h3>
                     <button onclick="closeSettingsModal()" class="text-base font-bold hover:text-red-600 transition" style="color:#9daebf">✕</button>

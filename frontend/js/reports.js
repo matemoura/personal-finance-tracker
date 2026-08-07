@@ -186,6 +186,11 @@ async function loadAvailableYears() {
     }
 }
 
+// Usado pelo botão de ocultar valores (api.js) pra repintar a tela atual sem reload.
+function refreshCurrentView() {
+    previewReport();
+}
+
 async function previewReport() {
     const year = document.getElementById("report-year").value;
     const month = document.getElementById("report-month").value;
