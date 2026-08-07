@@ -42,18 +42,6 @@ public class TransactionService {
         return card;
     }
 
-    private LocalDate applyCardBillingCycle(LocalDate date, Card card) {
-        if (card == null || card.getClosingDay() == null) {
-            return date;
-        }
-
-        if (date.getDayOfMonth() >= card.getClosingDay()) {
-            return date.plusMonths(1);
-        }
-
-        return date;
-    }
-
     public Transaction createTransaction(TransactionCreateRequest dto) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
@@ -79,7 +67,7 @@ public class TransactionService {
         Transaction transaction = Transaction.builder()
                 .description(dto.description())
                 .amount(dto.amount())
-                .date(applyCardBillingCycle(dto.date(), card))
+                .date(dto.date())
                 .type(dto.type())
                 .user(user)
                 .category(category)
@@ -181,7 +169,7 @@ public class TransactionService {
 
         transaction.setDescription(request.description());
         transaction.setAmount(request.amount());
-        transaction.setDate(applyCardBillingCycle(request.date(), card));
+        transaction.setDate(request.date());
         transaction.setType(request.type());
         transaction.setCategory(category);
         transaction.setCard(card);
