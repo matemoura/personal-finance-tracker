@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
@@ -111,7 +112,7 @@ public class CardService {
 
         Map<Long, BigDecimal> pendingCurrentMonthByCard = cardExpenses.stream()
                 .filter(t -> !paidMonthKeys.contains(monthKey(t)))
-                .filter(t -> YearMonth.from(t.getDate()).equals(currentMonth))
+                .filter(t -> invoicePeriod(t).equals(currentMonth))
                 .collect(Collectors.groupingBy(
                         t -> t.getCard().getId(),
                         Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
@@ -131,8 +132,22 @@ public class CardService {
                 .toList();
     }
 
+    // A data da transação é sempre a data real da compra — nunca é alterada.
+    // Em qual fatura ela cai é calculado aqui, na leitura: uma compra feita no
+    // dia de fechamento do cartão ou depois pertence à fatura do mês seguinte.
+    private YearMonth invoicePeriod(Transaction t) {
+        LocalDate date = t.getDate();
+        Integer closingDay = t.getCard().getClosingDay();
+
+        if (closingDay != null && date.getDayOfMonth() >= closingDay) {
+            return YearMonth.from(date).plusMonths(1);
+        }
+
+        return YearMonth.from(date);
+    }
+
     private String monthKey(Transaction t) {
-        YearMonth ym = YearMonth.from(t.getDate());
+        YearMonth ym = invoicePeriod(t);
         return t.getCard().getId() + "-" + ym.getYear() + "-" + ym.getMonthValue();
     }
 
@@ -144,7 +159,7 @@ public class CardService {
                 .filter(t -> t.getCard().getId().equals(card.getId()))
                 .filter(t -> t.getType() == CategoryType.EXPENSE)
                 .collect(Collectors.groupingBy(
-                        t -> YearMonth.from(t.getDate()),
+                        this::invoicePeriod,
                         Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
                 ));
 
