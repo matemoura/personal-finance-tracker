@@ -166,6 +166,7 @@ function toggleTheme() {
 function initThemeAndPrivacyControls() {
   applyStoredTheme();
   updateHideValuesIcon();
+  checkDueReminders();
 
   if (window.matchMedia) {
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
@@ -206,6 +207,103 @@ function toggleHideValues() {
     location.reload();
   }
 }
+
+// ---------- Lembretes de vencimento (contas e faturas de cartão) ----------
+// Fica ativo até a conta/fatura ser marcada como paga — não é uma notificação
+// push, é um sino com contador que reaparece toda vez que o app é aberto,
+// em qualquer página, enquanto o item continuar pendente.
+async function checkDueReminders() {
+  const badgeEl = document.getElementById("due-reminders-badge-desktop");
+  if (!badgeEl || !getToken()) return;
+
+  try {
+    const [billsRes, cardsRes] = await Promise.all([
+      apiFetch("/api/bills"),
+      apiFetch("/api/cards")
+    ]);
+    if (!billsRes.ok || !cardsRes.ok) return;
+
+    const bills = await billsRes.json();
+    const cards = await cardsRes.json();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const items = [];
+
+    bills.forEach(b => {
+      if (b.status === "PAID") return;
+      const due = new Date(b.dueDate + "T00:00:00");
+      if (b.status === "OVERDUE" || due <= today) {
+        items.push({ page: "bills.html", label: b.description, amount: b.amount });
+      }
+    });
+
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+
+    cards.forEach(c => {
+      const hasBacklog = (c.pendingTotal - c.pendingCurrentMonth) > 0.005;
+      let currentInvoiceDue = false;
+
+      if (c.dueDay && c.pendingCurrentMonth > 0) {
+        const lastDayOfMonth = new Date(year, month, 0).getDate();
+        const dueDate = new Date(year, month - 1, Math.min(c.dueDay, lastDayOfMonth));
+        currentInvoiceDue = dueDate <= today;
+      }
+
+      if (hasBacklog || currentInvoiceDue) {
+        items.push({
+          page: "transactions.html",
+          label: c.name,
+          amount: hasBacklog ? c.pendingTotal : c.pendingCurrentMonth
+        });
+      }
+    });
+
+    renderDueReminders(items);
+  } catch (error) {
+    console.error("Erro ao verificar lembretes de vencimento:", error);
+  }
+}
+
+function renderDueReminders(items) {
+  const count = items.length;
+  ["due-reminders-badge-desktop", "due-reminders-badge-mobile"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = count > 9 ? "9+" : String(count);
+    el.classList.toggle("hidden", count === 0);
+  });
+
+  const list = document.getElementById("due-reminders-list");
+  if (!list) return;
+
+  if (items.length === 0) {
+    list.innerHTML = '<p class="text-sm text-center py-4" style="color:var(--app-muted)">Nada vencendo. 🎉</p>';
+    return;
+  }
+
+  list.innerHTML = items.map(i => `
+        <a href="${i.page}" class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-[var(--app-soft)] transition no-underline">
+            <span class="text-sm font-medium truncate min-w-0" style="color:var(--app-heading)">${escapeHtml(i.label)}</span>
+            <span class="text-sm font-bold flex-shrink-0 whitespace-nowrap" style="color:var(--app-danger)">R$ ${formatCurrency(i.amount)}</span>
+        </a>
+    `).join("");
+}
+
+function toggleDueReminders() {
+  const panel = document.getElementById("due-reminders-panel");
+  if (panel) panel.classList.toggle("hidden");
+}
+
+document.addEventListener("click", (event) => {
+  const panel = document.getElementById("due-reminders-panel");
+  if (panel && !panel.classList.contains("hidden") &&
+      !panel.contains(event.target) && !event.target.closest("[data-due-reminders-trigger]")) {
+    panel.classList.add("hidden");
+  }
+});
 
 function formatCurrency(value) {
   if (valuesHidden) return "••••";

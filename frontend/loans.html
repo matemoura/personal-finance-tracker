@@ -31,7 +31,11 @@
             <a href="#" class="is-active flex-shrink-0 whitespace-nowrap text-sm font-semibold px-3 py-1.5 rounded-lg">Empréstimos</a>
             <a href="bills.html" class="flex-shrink-0 whitespace-nowrap text-sm font-medium px-3 py-1.5 rounded-lg">Contas</a>
         </div>
-        <button onclick="toggleHideValues()" class="focus:outline-none flex-shrink-0 ml-auto" title="Ocultar/mostrar valores">
+        <button onclick="toggleDueReminders()" data-due-reminders-trigger class="relative focus:outline-none flex-shrink-0 ml-auto" title="Contas e faturas vencendo">
+            <span class="text-lg">🔔</span>
+            <span id="due-reminders-badge-mobile" class="hidden absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full text-[9px] font-bold flex items-center justify-center" style="background:var(--app-danger);color:#fff">0</span>
+        </button>
+        <button onclick="toggleHideValues()" class="focus:outline-none flex-shrink-0" title="Ocultar/mostrar valores">
             <span id="hide-values-icon-mobile" class="text-lg">👁️</span>
         </button>
         <button onclick="toggleTheme()" class="focus:outline-none flex-shrink-0" title="Alternar tema">
@@ -48,6 +52,10 @@
             <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-extrabold text-base" style="background:var(--app-primary)">M</div>
             <span class="text-[16.5px] font-bold text-white">Minhas Finanças</span>
             <div class="ml-auto flex items-center gap-1">
+                <button onclick="toggleDueReminders()" data-due-reminders-trigger class="relative text-white/70 hover:text-white transition p-1" title="Contas e faturas vencendo">
+                    <span class="text-sm">🔔</span>
+                    <span id="due-reminders-badge-desktop" class="hidden absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full text-[9px] font-bold flex items-center justify-center" style="background:var(--app-danger);color:#fff">0</span>
+                </button>
                 <button onclick="toggleHideValues()" class="text-white/70 hover:text-white transition p-1" title="Ocultar/mostrar valores">
                     <span id="hide-values-icon-desktop" class="text-sm">👁️</span>
                 </button>
@@ -88,6 +96,13 @@
             </div>
         </div>
     </aside>
+
+    <div id="due-reminders-panel" class="due-reminders-pop hidden fixed z-50 w-72 rounded-xl py-2
+        md:left-4 md:top-16 max-md:right-3 max-md:top-14"
+        style="background:var(--app-surface);border:1px solid var(--app-border);box-shadow:0 10px 30px rgba(0,0,0,.25)">
+        <div class="px-4 py-2 text-[11px] font-bold uppercase tracking-wider" style="color:var(--app-muted)">Vencendo</div>
+        <div id="due-reminders-list" class="max-h-72 overflow-y-auto flex flex-col gap-0.5 px-2 pb-2"></div>
+    </div>
 
     <div id="user-menu" class="user-menu-pop hidden fixed z-50 w-52 rounded-xl py-2
         md:left-4 md:bottom-[76px] max-md:right-3 max-md:top-14">

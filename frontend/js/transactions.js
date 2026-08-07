@@ -619,6 +619,7 @@ async function payInvoice(year, month) {
             showToast("Fatura marcada como paga!", "success");
             await loadCards();
             await loadPendingInvoicesList();
+            checkDueReminders();
         } else {
             const err = await response.json();
             showToast("Erro: " + (err.message || "Falha ao registrar pagamento."), "error");
