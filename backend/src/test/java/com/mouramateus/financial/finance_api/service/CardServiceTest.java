@@ -138,6 +138,33 @@ class CardServiceTest {
     }
 
     @Test
+    void listMine_pendingCurrentMonth_treatsPurchaseOnOrAfterClosingDayAsNextMonthsInvoice() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card c6 = Card.builder().id(10L).name("C6").user(owner).closingDay(4).build();
+
+        YearMonth currentMonth = YearMonth.now();
+        YearMonth lastMonth = currentMonth.minusMonths(1);
+
+        // Comprado no mês passado, no dia do fechamento ou depois: a data real
+        // da compra continua sendo do mês passado, mas ela pertence à fatura
+        // do mês atual.
+        Transaction purchaseAfterClosingDay = Transaction.builder()
+                .amount(new BigDecimal("34.99")).type(CategoryType.EXPENSE).card(c6)
+                .date(lastMonth.atDay(Math.min(lastMonth.lengthOfMonth(), 8))).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findByUserOrderByNameAsc(owner)).thenReturn(List.of(c6));
+        when(transactionRepository.findByUserAndCardIsNotNull(owner)).thenReturn(List.of(purchaseAfterClosingDay));
+        when(cardInvoicePaymentRepository.findByCardIn(List.of(c6))).thenReturn(List.of());
+
+        List<CardResponse> result = cardService.listMine();
+
+        assertThat(result.get(0).pendingCurrentMonth()).isEqualByComparingTo("34.99");
+        // A data real da compra (mês passado) não é alterada.
+        assertThat(purchaseAfterClosingDay.getDate().getMonthValue()).isEqualTo(lastMonth.getMonthValue());
+    }
+
+    @Test
     void listMine_excludesPaidMonthsFromPendingTotal() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Card nubank = Card.builder().id(10L).name("Nubank").icon("💜").user(owner).build();
@@ -226,6 +253,37 @@ class CardServiceTest {
         assertThat(result.get(0).total()).isEqualByComparingTo("100.00");
         assertThat(result.get(1).month()).isEqualTo(8);
         assertThat(result.get(1).total()).isEqualByComparingTo("60.00");
+    }
+
+    @Test
+    void listPendingInvoices_groupsByClosingDayInsteadOfCalendarMonth() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card c6 = Card.builder().id(10L).name("C6").user(owner).closingDay(4).build();
+
+        // Comprado em 7 de julho, com fechamento no dia 4: cai na fatura de agosto.
+        Transaction purchaseAfterClosingDay = Transaction.builder()
+                .amount(new BigDecimal("34.99")).type(CategoryType.EXPENSE).card(c6)
+                .date(LocalDate.of(2026, 7, 7)).build();
+        // Comprado em 2 de julho, antes do fechamento: cai na fatura de julho.
+        Transaction purchaseBeforeClosingDay = Transaction.builder()
+                .amount(new BigDecimal("20.00")).type(CategoryType.EXPENSE).card(c6)
+                .date(LocalDate.of(2026, 7, 2)).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findById(10L)).thenReturn(Optional.of(c6));
+        when(transactionRepository.findByUserAndCardIsNotNull(owner))
+                .thenReturn(List.of(purchaseAfterClosingDay, purchaseBeforeClosingDay));
+        when(cardInvoicePaymentRepository.findByCard(c6)).thenReturn(List.of());
+
+        List<CardInvoiceResponse> result = cardService.listPendingInvoices(10L);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).month()).isEqualTo(7);
+        assertThat(result.get(0).total()).isEqualByComparingTo("20.00");
+        assertThat(result.get(1).month()).isEqualTo(8);
+        assertThat(result.get(1).total()).isEqualByComparingTo("34.99");
+        // A data real da compra não é alterada.
+        assertThat(purchaseAfterClosingDay.getDate()).isEqualTo(LocalDate.of(2026, 7, 7));
     }
 
     @Test

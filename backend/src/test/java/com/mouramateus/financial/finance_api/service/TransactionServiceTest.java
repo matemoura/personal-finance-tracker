@@ -117,7 +117,7 @@ class TransactionServiceTest {
     }
 
     @Test
-    void createTransaction_withCardAndDateAfterClosingDay_shiftsToNextMonth() {
+    void createTransaction_withCardAndDateAfterClosingDay_keepsRealPurchaseDate() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
@@ -132,11 +132,13 @@ class TransactionServiceTest {
 
         Transaction result = transactionService.createTransaction(request);
 
-        assertThat(result.getDate()).isEqualTo(LocalDate.of(2026, 4, 20));
+        // A data da transação é sempre a data real da compra; qual fatura ela
+        // cai é calculado à parte em CardService, sem tocar nesse campo.
+        assertThat(result.getDate()).isEqualTo(LocalDate.of(2026, 3, 20));
     }
 
     @Test
-    void createTransaction_withCardAndDateOnClosingDay_shiftsToNextMonth() {
+    void createTransaction_withCardAndDateOnClosingDay_keepsRealPurchaseDate() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
@@ -151,7 +153,7 @@ class TransactionServiceTest {
 
         Transaction result = transactionService.createTransaction(request);
 
-        assertThat(result.getDate()).isEqualTo(LocalDate.of(2026, 4, 10));
+        assertThat(result.getDate()).isEqualTo(LocalDate.of(2026, 3, 10));
     }
 
     @Test
