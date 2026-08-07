@@ -239,8 +239,8 @@ async function previewReport() {
 
             tr.innerHTML = `
                 <td class="px-5 py-3 whitespace-nowrap" style="color:var(--app-muted)">${formattedDate}</td>
-                <td class="px-5 py-3 font-semibold" style="color:var(--app-heading)">${t.description}</td>
-                <td class="px-5 py-3" style="color:#5b6d80">${t.category ? t.category.name : '-'}</td>
+                <td class="px-5 py-3 font-semibold" style="color:var(--app-heading)">${escapeHtml(t.description)}</td>
+                <td class="px-5 py-3" style="color:#5b6d80">${t.category ? escapeHtml(t.category.name) : '-'}</td>
                 <td class="px-5 py-3"><span class="${isIncome ? 'pill-income' : 'pill-expense'} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${typeLabel}</span></td>
                 <td class="px-5 py-3 text-right font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-heading)'}">
                     ${symbol} R$ ${formattedValue}
