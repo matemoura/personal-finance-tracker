@@ -316,16 +316,17 @@ async function loadTransactions() {
             const symbol = isIncome ? '+' : '−';
             const formattedDate = formatDate(t.date);
             const formattedValue = formatCurrency(t.amount);
-            const icon = isIncome ? '↑' : (t.category && t.category.icon ? t.category.icon : '↓');
+            const icon = isIncome ? '↑' : (t.category && t.category.icon ? escapeHtml(t.category.icon) : '↓');
             const iconBg = isIncome ? 'var(--app-success-bg)' : 'var(--app-soft)';
             const iconColor = isIncome ? 'var(--app-success)' : 'var(--app-primary-dark)';
             const safeTransaction = JSON.stringify(t).replace(/'/g, "&#39;");
+            const safeDescription = escapeHtml(t.description);
             li.innerHTML = `
                 <div class="w-[34px] h-[34px] rounded-lg flex items-center justify-center font-bold text-[13px] flex-shrink-0"
                      style="background:${iconBg};color:${iconColor}">${icon}</div>
                 <div class="flex-1 min-w-0">
-                    <div class="font-semibold truncate" style="color:var(--app-heading)" title="${t.description}">${t.description}</div>
-                    <div class="text-[11px]" style="color:#9daebf">${formattedDate} · ${t.category ? t.category.name : 'Sem categoria'}${t.card ? ' · ' + (t.card.icon || '💳') + ' ' + t.card.name : ''}</div>
+                    <div class="font-semibold truncate" style="color:var(--app-heading)" title="${safeDescription}">${safeDescription}</div>
+                    <div class="text-[11px]" style="color:#9daebf">${formattedDate} · ${t.category ? escapeHtml(t.category.name) : 'Sem categoria'}${t.card ? ' · ' + (escapeHtml(t.card.icon) || '💳') + ' ' + escapeHtml(t.card.name) : ''}</div>
                 </div>
                 <span class="font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-danger)'}">
                     ${symbol} R$ ${formattedValue}
@@ -363,7 +364,7 @@ async function loadCategoryBars() {
             const row = document.createElement("div");
             row.innerHTML = `
                 <div class="flex justify-between mb-1">
-                    <span>${item.category}</span>
+                    <span>${escapeHtml(item.category)}</span>
                     <span class="font-semibold">R$ ${formatCurrency(item.total)}</span>
                 </div>
                 <div class="h-[7px] rounded" style="background:var(--app-soft)">

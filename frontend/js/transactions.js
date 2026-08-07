@@ -233,10 +233,10 @@ function renderTransactionsPage() {
 
         tr.innerHTML = `
             <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formattedDate}</td>
-            <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${t.description}</td>
+            <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${escapeHtml(t.description)}</td>
             <td class="px-[18px] py-[13px]">
-                <span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl">${t.category ? t.category.name : '-'}</span>
-                ${t.card ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1">${t.card.icon || '💳'} ${t.card.name}</span>` : ''}
+                <span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl">${t.category ? escapeHtml(t.category.name) : '-'}</span>
+                ${t.card ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1">${escapeHtml(t.card.icon) || '💳'} ${escapeHtml(t.card.name)}</span>` : ''}
             </td>
             <td class="px-[18px] py-[13px]"><span class="${isIncome ? 'pill-income' : 'pill-expense'} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${typeLabel}</span></td>
             <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-heading)'}">
@@ -416,9 +416,9 @@ function renderCardsPanel() {
         const monthColor = pendingMonth > 0 ? 'var(--app-danger)' : 'var(--app-muted)';
 
         chip.innerHTML = `
-            <span class="text-base flex-shrink-0">${c.icon || '💳'}</span>
+            <span class="text-base flex-shrink-0">${escapeHtml(c.icon) || '💳'}</span>
             <div class="leading-tight min-w-0 flex-1">
-                <div class="text-[12px] font-semibold truncate" style="color:var(--app-heading)">${c.name}</div>
+                <div class="text-[12px] font-semibold truncate" style="color:var(--app-heading)">${escapeHtml(c.name)}</div>
                 <div class="text-[11px] break-words" style="color:var(--app-muted)">Total: R$ ${formatCurrency(c.totalSpent)}${c.closingDay ? ` · fecha dia ${c.closingDay}` : ''}${c.dueDay ? ` · vence dia ${c.dueDay}` : ''}</div>
                 <div class="text-[11px] font-semibold break-words" style="color:${monthColor}">Pendente (mês): R$ ${formatCurrency(c.pendingCurrentMonth)}</div>
                 ${hasOlderPending ? `<div class="text-[11px] font-semibold break-words" style="color:var(--app-danger)">Pendente (total): R$ ${formatCurrency(c.pendingTotal)}</div>` : ''}

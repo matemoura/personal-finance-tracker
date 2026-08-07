@@ -331,19 +331,19 @@ function renderBills() {
         const statusLabel = STATUS_LABELS[bill.status] || bill.status;
         const statusClass = STATUS_CLASSES[bill.status] || "category-pill";
         const isPaid = bill.status === "PAID";
-        const cardBadge = bill.cardId ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1">${bill.cardIcon || '💳'} ${bill.cardName}</span>` : '';
+        const cardBadge = bill.cardId ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1">${escapeHtml(bill.cardIcon) || '💳'} ${escapeHtml(bill.cardName)}</span>` : '';
 
         tr.innerHTML = `
-            <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${bill.description}</td>
+            <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${escapeHtml(bill.description)}</td>
             <td class="px-[18px] py-[13px]">
-                <span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl">${bill.categoryIcon || '📃'} ${bill.categoryName}</span>
+                <span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl">${escapeHtml(bill.categoryIcon) || '📃'} ${escapeHtml(bill.categoryName)}</span>
                 ${cardBadge}
             </td>
             <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formatDate(bill.dueDate)}</td>
             <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:var(--app-heading)">R$ ${formatCurrency(bill.amount)}</td>
             <td class="px-[18px] py-[13px]"><span class="${statusClass} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${statusLabel}</span></td>
             <td class="px-[18px] py-[13px] text-center whitespace-nowrap">
-                ${isPaid ? "" : `<button onclick="openPayBillModal(${bill.id}, '${bill.description.replace(/'/g, "&#39;")}', ${bill.amount})"
+                ${isPaid ? "" : `<button onclick="openPayBillModal(${bill.id}, '${escapeHtml(bill.description)}', ${bill.amount})"
                     class="px-1.5 py-1 text-[13px] transition hover:!text-[#3b82c4]" title="Marcar como pago" style="color:#9daebf">✔️</button>`}
                 ${isPaid ? "" : `<button onclick="deleteBill(${bill.id})" title="Excluir"
                     class="px-1.5 py-1 text-[13px] transition hover:!text-red-600" style="color:#9daebf">🗑</button>`}

@@ -275,14 +275,14 @@ function renderLoans() {
         const isPaid = loan.status === "PAID";
 
         tr.innerHTML = `
-            <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${loan.personName}</td>
-            <td class="px-[18px] py-[13px]" style="color:var(--app-muted)">${loan.description || '-'}</td>
+            <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${escapeHtml(loan.personName)}</td>
+            <td class="px-[18px] py-[13px]" style="color:var(--app-muted)">${escapeHtml(loan.description) || '-'}</td>
             <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formatDate(loan.dateLent)}</td>
             <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:var(--app-heading)">R$ ${formatCurrency(loan.amount)}</td>
             <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:${isPaid ? 'var(--app-success)' : 'var(--app-danger)'}">R$ ${formatCurrency(loan.remaining)}</td>
             <td class="px-[18px] py-[13px]"><span class="${statusClass} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${statusLabel}</span></td>
             <td class="px-[18px] py-[13px] text-center whitespace-nowrap">
-                ${isPaid ? "" : `<button onclick="openRepaymentModal(${loan.id}, '${loan.personName.replace(/'/g, "&#39;")}', ${loan.remaining})"
+                ${isPaid ? "" : `<button onclick="openRepaymentModal(${loan.id}, '${escapeHtml(loan.personName)}', ${loan.remaining})"
                     class="px-1.5 py-1 text-[13px] transition hover:!text-[#3b82c4]" title="Registrar recebimento" style="color:#9daebf">💰</button>`}
                 <button onclick="deleteLoan(${loan.id})" title="Excluir"
                     class="px-1.5 py-1 text-[13px] transition hover:!text-red-600" style="color:#9daebf">🗑</button>
