@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadReceivable();
     });
     loadCards();
+    populateCardBankSelect();
 
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");
@@ -332,7 +333,10 @@ async function loadTransactions() {
                      style="background:${iconBg};color:${iconColor}">${icon}</div>
                 <div class="flex-1 min-w-0">
                     <div class="font-semibold truncate" style="color:var(--app-heading)" title="${safeDescription}">${safeDescription}</div>
-                    <div class="text-[11px] break-words" style="color:#9daebf">${formattedDate} · ${t.category ? escapeHtml(t.category.name) : 'Sem categoria'}${t.card ? ' · ' + (escapeHtml(t.card.icon) || '💳') + ' ' + escapeHtml(t.card.name) : ''}</div>
+                    <div class="text-[11px] break-words flex items-center gap-1 flex-wrap" style="color:#9daebf">
+                        <span>${formattedDate} · ${t.category ? escapeHtml(t.category.name) : 'Sem categoria'}</span>
+                        ${t.card ? `<span class="inline-flex items-center gap-1">· ${renderCardIcon(t.card.icon, t.card.name, "w-3.5 h-3.5 inline-block align-middle")} ${escapeHtml(t.card.name)}</span>` : ''}
+                    </div>
                 </div>
                 <span class="font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-danger)'}">
                     ${symbol} R$ ${formattedValue}
@@ -609,17 +613,44 @@ function populateCardSelect() {
     allCards.forEach(c => {
         const option = document.createElement("option");
         option.value = c.id;
-        option.text = `${c.icon || '💳'} ${c.name}`;
+        option.text = `${bankEmojiFor(c.icon)} ${c.name}`;
         select.appendChild(option);
     });
     select.value = selected;
+}
+
+function populateCardBankSelect() {
+    const select = document.getElementById("cardBankSelect");
+    if (!select) return;
+
+    KNOWN_BANKS.forEach(bank => {
+        const option = document.createElement("option");
+        option.value = bank.domain;
+        option.text = bank.name;
+        select.appendChild(option);
+    });
+}
+
+function onCardBankChange() {
+    const bankSelect = document.getElementById("cardBankSelect");
+    const iconInput = document.getElementById("cardIcon");
+
+    if (bankSelect.value) {
+        iconInput.value = bankSelect.value;
+        iconInput.classList.add("hidden");
+    } else {
+        iconInput.value = "";
+        iconInput.classList.remove("hidden");
+    }
 }
 
 function openCardModal() {
     document.getElementById("cardModal").classList.remove("hidden");
     document.getElementById("cardModalTitle").innerText = "Novo Cartão";
     document.getElementById("cardName").value = "";
+    document.getElementById("cardBankSelect").value = "";
     document.getElementById("cardIcon").value = "";
+    document.getElementById("cardIcon").classList.remove("hidden");
     document.getElementById("cardClosingDay").value = "";
     document.getElementById("cardDueDay").value = "";
 }

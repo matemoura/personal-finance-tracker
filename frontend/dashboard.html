@@ -317,6 +317,10 @@
             <div class="app-modal rounded-xl shadow-2xl w-80 max-h-[90vh] overflow-y-auto p-5">
                 <h3 id="cardModalTitle" class="text-[15.5px] font-bold mb-4" style="color:var(--app-heading)">Novo Cartão</h3>
                 <input type="text" id="cardName" placeholder="Nome (ex: Nubank)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
+                <label class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Banco / Logo</label>
+                <select id="cardBankSelect" onchange="onCardBankChange()" class="app-select w-full mb-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer">
+                    <option value="">Personalizado (emoji)</option>
+                </select>
                 <input type="text" id="cardIcon" placeholder="Ícone (ex: 💳)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
                 <div class="grid grid-cols-2 gap-2.5 mb-1.5">
                     <div>

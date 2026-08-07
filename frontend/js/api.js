@@ -125,6 +125,59 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// ---------- Logos de banco nos cartões ----------
+// O campo "icon" do cartão guarda ou um emoji (comportamento antigo, digitado
+// livremente) ou o domínio de um banco conhecido (ex: "nubank.com.br"), usado
+// pra buscar a logo real via um serviço público de logos por domínio. Isso
+// evita reproduzir/embutir artes de marcas registradas no próprio código —
+// a imagem é carregada direto da fonte pública, como qualquer app faria ao
+// exibir a logo de um parceiro.
+const KNOWN_BANKS = [
+  { domain: "nubank.com.br", name: "Nubank", emoji: "💜" },
+  { domain: "c6bank.com.br", name: "C6 Bank", emoji: "🖤" },
+  { domain: "itau.com.br", name: "Itaú", emoji: "🧡" },
+  { domain: "bradesco.com.br", name: "Bradesco", emoji: "❤️" },
+  { domain: "bb.com.br", name: "Banco do Brasil", emoji: "💛" },
+  { domain: "caixa.gov.br", name: "Caixa", emoji: "💙" },
+  { domain: "santander.com.br", name: "Santander", emoji: "❤️" },
+  { domain: "bancointer.com.br", name: "Inter", emoji: "🧡" },
+  { domain: "mercadopago.com.br", name: "Mercado Pago", emoji: "💙" },
+  { domain: "picpay.com", name: "PicPay", emoji: "💚" },
+  { domain: "neon.com.br", name: "Neon", emoji: "🩵" },
+  { domain: "original.com.br", name: "Original", emoji: "💚" },
+  { domain: "willbank.com.br", name: "Will Bank", emoji: "💜" },
+  { domain: "btgpactual.com", name: "BTG Pactual", emoji: "🖤" },
+  { domain: "xpi.com.br", name: "XP", emoji: "💛" }
+];
+
+function findBankByDomain(icon) {
+  return KNOWN_BANKS.find(b => b.domain === icon);
+}
+
+// Usado nos <option> de <select> (não suportam <img>): mostra a logo real nos
+// lugares que aceitam HTML, e cai pro emoji da marca só nesses textos simples.
+function bankEmojiFor(icon) {
+  const bank = findBankByDomain(icon);
+  return bank ? bank.emoji : (icon || "💳");
+}
+
+// Gera o HTML do ícone do cartão: <img> com a logo real para bancos
+// conhecidos (com fallback pro emoji se a imagem falhar ao carregar), ou o
+// emoji/texto digitado livremente para cartões personalizados.
+function renderCardIcon(icon, cardName, sizeClass) {
+  const bank = findBankByDomain(icon);
+  const size = sizeClass || "w-5 h-5";
+
+  if (bank) {
+    const fallback = escapeHtml(bank.emoji);
+    return `<img src="https://logo.clearbit.com/${bank.domain}?size=64" alt="${escapeHtml(bank.name)}"
+                 class="${size} rounded object-contain flex-shrink-0" loading="lazy"
+                 onerror="this.outerHTML='<span class=&quot;${size} flex items-center justify-center flex-shrink-0&quot;>${fallback}</span>'">`;
+  }
+
+  return `<span class="${size} flex items-center justify-center flex-shrink-0">${escapeHtml(icon) || "💳"}</span>`;
+}
+
 // ---------- Tema claro/escuro ----------
 // null armazenado = "segue o sistema" (nunca escolhido manualmente). O script
 // anti-flash no <head> de cada página já aplica isso antes do primeiro paint;

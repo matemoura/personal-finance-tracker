@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadCategories();
     loadCards();
     setupMoneyInput();
+    populateCardBankSelect();
 
     const prevBtn = document.getElementById("prev-page");
     const nextBtn = document.getElementById("next-page");
@@ -253,7 +254,7 @@ function renderTransactionsPage() {
             <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${escapeHtml(t.description)}</td>
             <td class="px-[18px] py-[13px]">
                 <span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl">${t.category ? escapeHtml(t.category.name) : '-'}</span>
-                ${t.card ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1">${escapeHtml(t.card.icon) || '💳'} ${escapeHtml(t.card.name)}</span>` : ''}
+                ${t.card ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1 inline-flex items-center gap-1">${renderCardIcon(t.card.icon, t.card.name, "w-3.5 h-3.5")} ${escapeHtml(t.card.name)}</span>` : ''}
             </td>
             <td class="px-[18px] py-[13px]"><span class="${isIncome ? 'pill-income' : 'pill-expense'} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${typeLabel}</span></td>
             <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-heading)'}">
@@ -404,7 +405,7 @@ function populateCardFilter() {
     allCards.forEach(c => {
         const option = document.createElement("option");
         option.value = c.id;
-        option.text = `${c.icon || '💳'} ${c.name}`;
+        option.text = `${bankEmojiFor(c.icon)} ${c.name}`;
         select.appendChild(option);
     });
     select.value = selected;
@@ -419,7 +420,7 @@ function populateCardSelect() {
     allCards.forEach(c => {
         const option = document.createElement("option");
         option.value = c.id;
-        option.text = `${c.icon || '💳'} ${c.name}`;
+        option.text = `${bankEmojiFor(c.icon)} ${c.name}`;
         select.appendChild(option);
     });
     select.value = selected;
@@ -449,7 +450,7 @@ function renderCardsPanel() {
         const monthColor = pendingMonth > 0 ? 'var(--app-danger)' : 'var(--app-muted)';
 
         chip.innerHTML = `
-            <span class="text-base flex-shrink-0">${escapeHtml(c.icon) || '💳'}</span>
+            ${renderCardIcon(c.icon, c.name, "w-5 h-5 text-base")}
             <div class="leading-tight min-w-0 flex-1">
                 <div class="text-[12px] font-semibold truncate" style="color:var(--app-heading)">${escapeHtml(c.name)}</div>
                 <div class="text-[11px] break-words" style="color:var(--app-muted)">Total: R$ ${formatCurrency(c.totalSpent)}${c.closingDay ? ` · fecha dia ${c.closingDay}` : ''}${c.dueDay ? ` · vence dia ${c.dueDay}` : ''}</div>
@@ -475,21 +476,56 @@ function renderCardsPanel() {
     });
 }
 
+function populateCardBankSelect() {
+    const select = document.getElementById("cardBankSelect");
+    if (!select) return;
+
+    KNOWN_BANKS.forEach(bank => {
+        const option = document.createElement("option");
+        option.value = bank.domain;
+        option.text = bank.name;
+        select.appendChild(option);
+    });
+}
+
+// Quando um banco é escolhido, o ícone salvo passa a ser o domínio dele (usado
+// pra buscar a logo real); "Personalizado" volta a liberar o campo de emoji.
+function onCardBankChange() {
+    const bankSelect = document.getElementById("cardBankSelect");
+    const iconInput = document.getElementById("cardIcon");
+
+    if (bankSelect.value) {
+        iconInput.value = bankSelect.value;
+        iconInput.classList.add("hidden");
+    } else {
+        iconInput.value = "";
+        iconInput.classList.remove("hidden");
+    }
+}
+
 function openCardModal(card = null) {
     document.getElementById("cardModal").classList.remove("hidden");
+    const bankSelect = document.getElementById("cardBankSelect");
+    const iconInput = document.getElementById("cardIcon");
 
     if (card) {
         editingCardId = card.id;
         document.getElementById("cardModalTitle").innerText = "Editar Cartão";
         document.getElementById("cardName").value = card.name;
-        document.getElementById("cardIcon").value = card.icon || "";
         document.getElementById("cardClosingDay").value = card.closingDay || "";
         document.getElementById("cardDueDay").value = card.dueDay || "";
+
+        const bank = findBankByDomain(card.icon);
+        bankSelect.value = bank ? bank.domain : "";
+        iconInput.value = bank ? "" : (card.icon || "");
+        iconInput.classList.toggle("hidden", !!bank);
     } else {
         editingCardId = null;
         document.getElementById("cardModalTitle").innerText = "Novo Cartão";
         document.getElementById("cardName").value = "";
-        document.getElementById("cardIcon").value = "";
+        bankSelect.value = "";
+        iconInput.value = "";
+        iconInput.classList.remove("hidden");
         document.getElementById("cardClosingDay").value = "";
         document.getElementById("cardDueDay").value = "";
     }
