@@ -188,12 +188,12 @@
 
         <div id="modal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
             style="background:rgba(30,41,59,.55);backdrop-filter:blur(3px)">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-[430px] overflow-hidden">
-                <div class="px-5 py-4 border-b flex justify-between items-center" style="background:var(--app-bg);border-color:var(--app-border)">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-[430px] max-h-[90vh] flex flex-col overflow-hidden">
+                <div class="px-5 py-4 border-b flex justify-between items-center flex-shrink-0" style="background:var(--app-bg);border-color:var(--app-border)">
                     <h3 id="modal-title" class="text-[15.5px] font-bold" style="color:var(--app-heading)">Nova Transação</h3>
                     <button onclick="closeModal()" class="text-base hover:text-red-600 transition" style="color:#9daebf">✕</button>
                 </div>
-                <div class="p-5 flex flex-col gap-4">
+                <div class="p-5 flex flex-col gap-4 overflow-y-auto">
                     <div class="grid grid-cols-2 gap-3.5">
                         <select id="type" onchange="filterCategoriesByType()"
                             class="app-select w-full px-3 py-[9px] rounded-lg text-[13px]">
@@ -261,7 +261,7 @@
 
         <div id="categoryModal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
             style="background:rgba(30,41,59,.55)">
-            <div class="bg-white rounded-xl shadow-2xl w-80 p-5">
+            <div class="bg-white rounded-xl shadow-2xl w-80 max-h-[90vh] overflow-y-auto p-5">
                 <h3 class="text-[15.5px] font-bold mb-4" style="color:var(--app-heading)">Nova Categoria</h3>
                 <input type="text" id="catName" placeholder="Nome" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
                 <input type="text" id="catIcon" placeholder="Ícone (ex: 🛒)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
@@ -279,7 +279,7 @@
 
         <div id="cardModal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
             style="background:rgba(30,41,59,.55)">
-            <div class="bg-white rounded-xl shadow-2xl w-80 p-5">
+            <div class="bg-white rounded-xl shadow-2xl w-80 max-h-[90vh] overflow-y-auto p-5">
                 <h3 id="cardModalTitle" class="text-[15.5px] font-bold mb-4" style="color:var(--app-heading)">Novo Cartão</h3>
                 <input type="text" id="cardName" placeholder="Nome (ex: Nubank)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
                 <input type="text" id="cardIcon" placeholder="Ícone (ex: 💳)" class="app-input w-full mb-3 px-3 py-2.5 rounded-lg text-sm">
@@ -308,20 +308,20 @@
 
         <div id="settings-modal" class="fixed inset-0 hidden flex items-center justify-center z-50 p-4"
             style="background:rgba(30,41,59,.55);backdrop-filter:blur(3px)">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-                <div class="px-5 py-4 border-b flex justify-between items-center" style="background:var(--app-bg);border-color:var(--app-border)">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+                <div class="px-5 py-4 border-b flex justify-between items-center flex-shrink-0" style="background:var(--app-bg);border-color:var(--app-border)">
                     <h3 class="text-[15.5px] font-bold" style="color:var(--app-heading)">Configurações da Conta</h3>
                     <button onclick="closeSettingsModal()" class="text-base font-bold hover:text-red-600 transition" style="color:#9daebf">✕</button>
                 </div>
 
-                <div class="flex border-b" style="border-color:var(--app-border)">
+                <div class="flex border-b flex-shrink-0" style="border-color:var(--app-border)">
                     <button onclick="switchTab('photo')" id="tab-photo"
                         class="settings-tab tab-active flex-1 py-3 text-sm font-semibold transition">Foto de Perfil</button>
                     <button onclick="switchTab('password')" id="tab-password"
                         class="settings-tab flex-1 py-3 text-sm font-semibold transition">Alterar Senha</button>
                 </div>
 
-                <div id="content-photo" class="p-8 text-center space-y-6">
+                <div id="content-photo" class="p-8 text-center space-y-6 overflow-y-auto">
                     <div class="relative inline-block group">
                         <img id="settings-avatar-preview" src=""
                             class="h-32 w-32 rounded-full border-4 object-cover shadow-md mx-auto" style="border-color:var(--app-border)">
@@ -338,7 +338,7 @@
                     </button>
                 </div>
 
-                <div id="content-password" class="p-8 space-y-4 hidden">
+                <div id="content-password" class="p-8 space-y-4 hidden overflow-y-auto">
                     <div>
                         <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Senha Atual</label>
                         <input type="password" id="current-password" class="app-input w-full px-3 py-2.5 rounded-lg text-sm">
