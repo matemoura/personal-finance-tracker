@@ -36,7 +36,7 @@ async function apiFetch(path, options = {}) {
 // usuário disparasse). Se o token expirasse ou o Render caísse com a aba aberta
 // e sem nenhuma tela sendo trocada, nada avisava o usuário — a tela ficava
 // parada, sem recarregar para o login por conta própria.
-const SESSION_CHECK_INTERVAL_MS = 30000;
+const SESSION_CHECK_INTERVAL_MS = 120000;
 let sessionCheckFailures = 0;
 
 async function checkSessionAlive() {
@@ -110,6 +110,19 @@ function showToast(message, type = "info") {
     toast.style.transform = "translateY(-8px)";
     setTimeout(() => toast.remove(), 300);
   }, 3500);
+}
+
+// Escapa texto digitado pelo usuário (descrição, nome de categoria/cartão, etc.)
+// antes de inserir em innerHTML, evitando XSS armazenado (ex: uma descrição
+// como "<img src=x onerror=...>" executando como HTML de verdade na tela).
+function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function formatCurrency(value) {
