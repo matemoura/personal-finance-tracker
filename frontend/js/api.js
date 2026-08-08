@@ -384,12 +384,12 @@ async function checkDueReminders() {
 
     const items = [];
 
+    // Toda conta ainda não paga entra no lembrete (pendente ou atrasada) —
+    // não só as que vencem hoje, pra "Contas a Pagar" nunca ficar de fora
+    // do sino mesmo com um vencimento alguns dias à frente.
     bills.forEach(b => {
       if (b.status === "PAID") return;
-      const due = new Date(b.dueDate + "T00:00:00");
-      if (b.status === "OVERDUE" || due <= today) {
-        items.push({ page: "bills.html", label: b.description, amount: b.amount });
-      }
+      items.push({ page: "bills.html", label: b.description, amount: b.amount, date: b.dueDate });
     });
 
     const year = today.getFullYear();
@@ -439,7 +439,10 @@ function renderDueReminders(items) {
 
   list.innerHTML = items.map(i => `
         <a href="${i.page}" class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-[var(--app-soft)] transition no-underline">
-            <span class="text-sm font-medium truncate min-w-0" style="color:var(--app-heading)">${escapeHtml(i.label)}</span>
+            <span class="min-w-0">
+                <span class="block text-sm font-medium truncate" style="color:var(--app-heading)">${escapeHtml(i.label)}</span>
+                ${i.date ? `<span class="block text-[11px]" style="color:var(--app-muted)">vence ${formatDate(i.date)}</span>` : ""}
+            </span>
             <span class="text-sm font-bold flex-shrink-0 whitespace-nowrap" style="color:var(--app-danger)">R$ ${formatCurrency(i.amount)}</span>
         </a>
     `).join("");
