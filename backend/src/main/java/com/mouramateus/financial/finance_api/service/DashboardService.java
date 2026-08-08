@@ -9,6 +9,7 @@ import com.mouramateus.financial.finance_api.entity.User;
 import com.mouramateus.financial.finance_api.repository.CardInvoicePaymentRepository;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
 import com.mouramateus.financial.finance_api.repository.UserRepository;
+import com.mouramateus.financial.finance_api.util.CardBilling;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -44,21 +45,28 @@ public class DashboardService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow();
 
-        YearMonth yearMonth = YearMonth.of(year, month);
-        LocalDate start = yearMonth.atDay(1);
-        LocalDate end = yearMonth.atEndOfMonth();
+        YearMonth target = YearMonth.of(year, month);
+        List<Transaction> periodTransactions = transactionsForPeriod(user, target);
 
-        BigDecimal income = transactionRepository.sumByUserAndTypeAndDateBetween(
-                user, CategoryType.INCOME, start, end
-        );
+        BigDecimal income = sumWhere(periodTransactions, t -> t.getType() == CategoryType.INCOME);
+        BigDecimal expense = sumWhere(periodTransactions, t -> t.getType() == CategoryType.EXPENSE);
 
-        BigDecimal expense = transactionRepository.sumByUserAndTypeAndDateBetween(
-                user, CategoryType.EXPENSE, start, end
-        );
-
-        BigDecimal accumulatedBalance = calculateCashBalance(user, end);
+        BigDecimal accumulatedBalance = calculateCashBalance(user, target.atEndOfMonth());
 
         return new DashboardSummaryResponse(income, expense, accumulatedBalance);
+    }
+
+    // Uma compra no cartão feita no dia do fechamento (ou depois) pertence à
+    // fatura do mês seguinte — então o intervalo de datas real que pode cair
+    // no mês pedido começa até um mês antes dele. A data da transação nunca é
+    // alterada; só o agrupamento por mês usa esse período (CardBilling.periodOf).
+    private List<Transaction> transactionsForPeriod(User user, YearMonth target) {
+        LocalDate rangeStart = target.minusMonths(1).atDay(1);
+        LocalDate rangeEnd = target.atEndOfMonth();
+
+        return transactionRepository.findByUserAndDateBetween(user, rangeStart, rangeEnd).stream()
+                .filter(t -> CardBilling.periodOf(t).equals(target))
+                .toList();
     }
 
     /**
@@ -79,7 +87,7 @@ public class DashboardService {
 
         Map<String, BigDecimal> totalsByCardMonth = cardExpenses.stream()
                 .collect(Collectors.groupingBy(
-                        t -> t.getCard().getId() + "-" + YearMonth.from(t.getDate()),
+                        t -> t.getCard().getId() + "-" + CardBilling.periodOf(t),
                         Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
                 ));
 
@@ -107,10 +115,17 @@ public class DashboardService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow();
 
-        YearMonth yearMonth = YearMonth.of(year, month);
-        LocalDate start = yearMonth.atDay(1);
-        LocalDate end = yearMonth.atEndOfMonth();
+        YearMonth target = YearMonth.of(year, month);
 
-        return transactionRepository.sumExpensesByCategory(user, start, end);
+        Map<String, BigDecimal> totalsByCategory = transactionsForPeriod(user, target).stream()
+                .filter(t -> t.getType() == CategoryType.EXPENSE)
+                .collect(Collectors.groupingBy(
+                        t -> t.getCategory().getName(),
+                        Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
+                ));
+
+        return totalsByCategory.entrySet().stream()
+                .map(e -> new ExpensesByCategoryResponse(e.getKey(), e.getValue()))
+                .toList();
     }
 }
