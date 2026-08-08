@@ -10,12 +10,14 @@ import com.mouramateus.financial.finance_api.repository.CategoryRepository;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
 import com.mouramateus.financial.finance_api.repository.UserRepository;
 import com.mouramateus.financial.finance_api.entity.Transaction;
+import com.mouramateus.financial.finance_api.util.CardBilling;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -88,30 +90,26 @@ public class TransactionService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow();
 
-        YearMonth yearMonth = YearMonth.of(year, month);
+        YearMonth target = YearMonth.of(year, month);
 
-        LocalDate start = yearMonth.atDay(1);
-        LocalDate end = yearMonth.atEndOfMonth();
+        return transactionsForPeriod(user, target).stream()
+                .filter(t -> type == null || t.getType() == type)
+                .filter(t -> categoryId == null || (t.getCategory() != null && categoryId.equals(t.getCategory().getId())))
+                .sorted(Comparator.comparing(Transaction::getId).reversed())
+                .toList();
+    }
 
-        if (type != null && categoryId != null) {
-            return transactionRepository.findByUserAndDateBetweenAndTypeAndCategory_Id(
-                    user, start, end, type, categoryId
-            );
-        }
+    // Uma compra no cartão feita no dia do fechamento (ou depois) pertence à
+    // fatura do mês seguinte — então o intervalo de datas real que pode cair
+    // no mês pedido começa até um mês antes dele. A data da transação nunca é
+    // alterada; só o agrupamento por mês usa esse período (CardBilling.periodOf).
+    private List<Transaction> transactionsForPeriod(User user, YearMonth target) {
+        LocalDate rangeStart = target.minusMonths(1).atDay(1);
+        LocalDate rangeEnd = target.atEndOfMonth();
 
-        if (type != null) {
-            return transactionRepository.findByUserAndDateBetweenAndType(
-                    user, start, end, type
-            );
-        }
-
-        if (categoryId != null) {
-            return transactionRepository.findByUserAndDateBetweenAndCategory_Id(
-                    user, start, end, categoryId
-            );
-        }
-
-        return transactionRepository.findByUserAndDateBetweenOrderByIdDesc(user, start, end);
+        return transactionRepository.findByUserAndDateBetween(user, rangeStart, rangeEnd).stream()
+                .filter(t -> CardBilling.periodOf(t).equals(target))
+                .toList();
     }
 
     public List<Integer> getAvailableYears() {

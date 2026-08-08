@@ -21,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -281,5 +282,72 @@ class TransactionServiceTest {
 
         assertThat(result.getDescription()).isEqualTo("Mercado");
         assertThat(result.getCategory()).isEqualTo(category);
+    }
+
+    @Test
+    void listByMonth_cardPurchaseOnOrAfterClosingDayAppearsInNextMonthsList() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card c6 = Card.builder().id(5L).user(owner).closingDay(4).build();
+
+        // Comprado em 15/07, com fechamento no dia 4: pertence à fatura de
+        // agosto, então precisa aparecer na lista de agosto (mantendo a data
+        // real de julho no próprio registro).
+        Transaction julyPurchase = Transaction.builder()
+                .id(1L).user(owner).card(c6).type(CategoryType.EXPENSE)
+                .amount(new BigDecimal("150.00")).date(LocalDate.of(2026, 7, 15)).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findByUserAndDateBetween(owner, LocalDate.of(2026, 7, 1), LocalDate.of(2026, 8, 31)))
+                .thenReturn(List.of(julyPurchase));
+
+        List<Transaction> august = transactionService.listByMonth(2026, 8, null, null);
+        List<Transaction> july = transactionService.listByMonth(2026, 7, null, null);
+
+        assertThat(august).containsExactly(julyPurchase);
+        assertThat(july).isEmpty();
+        assertThat(julyPurchase.getDate()).isEqualTo(LocalDate.of(2026, 7, 15));
+    }
+
+    @Test
+    void listByMonth_cardPurchaseBeforeClosingDayStaysInSameMonth() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card c6 = Card.builder().id(5L).user(owner).closingDay(20).build();
+
+        Transaction purchase = Transaction.builder()
+                .id(1L).user(owner).card(c6).type(CategoryType.EXPENSE)
+                .amount(new BigDecimal("80.00")).date(LocalDate.of(2026, 7, 10)).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findByUserAndDateBetween(owner, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 7, 31)))
+                .thenReturn(List.of(purchase));
+
+        List<Transaction> july = transactionService.listByMonth(2026, 7, null, null);
+
+        assertThat(july).containsExactly(purchase);
+    }
+
+    @Test
+    void listByMonth_filtersByTypeAndCategoryAfterGroupingByPeriod() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category mercado = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
+        Category outra = Category.builder().id(11L).user(owner).type(CategoryType.EXPENSE).build();
+
+        Transaction wantedExpense = Transaction.builder()
+                .id(1L).user(owner).type(CategoryType.EXPENSE).category(mercado)
+                .amount(new BigDecimal("50.00")).date(LocalDate.of(2026, 7, 5)).build();
+        Transaction otherCategory = Transaction.builder()
+                .id(2L).user(owner).type(CategoryType.EXPENSE).category(outra)
+                .amount(new BigDecimal("30.00")).date(LocalDate.of(2026, 7, 6)).build();
+        Transaction income = Transaction.builder()
+                .id(3L).user(owner).type(CategoryType.INCOME).category(mercado)
+                .amount(new BigDecimal("999.00")).date(LocalDate.of(2026, 7, 7)).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findByUserAndDateBetween(owner, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 7, 31)))
+                .thenReturn(List.of(wantedExpense, otherCategory, income));
+
+        List<Transaction> result = transactionService.listByMonth(2026, 7, CategoryType.EXPENSE, 10L);
+
+        assertThat(result).containsExactly(wantedExpense);
     }
 }
