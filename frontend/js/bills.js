@@ -260,9 +260,11 @@ function populateBillCardSelect() {
     allCards.forEach(c => {
         const option = document.createElement("option");
         option.value = c.id;
-        option.text = `${bankEmojiFor(c.icon)} ${c.name}`;
+        option.text = c.name;
+        option.dataset.icon = c.icon || "";
         select.appendChild(option);
     });
+    initCardPicker("billCardId");
 }
 
 // ---------- Contas a Pagar ----------
@@ -365,6 +367,7 @@ function openBillModal() {
     document.getElementById("billDueDate").valueAsDate = new Date();
     document.getElementById("billCategoryId").value = "";
     document.getElementById("billCardId").value = "";
+    renderCardPickerTrigger("billCardId");
 }
 
 function closeBillModal() {

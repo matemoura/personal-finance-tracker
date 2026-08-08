@@ -178,6 +178,106 @@ function renderCardIcon(icon, cardName, sizeClass) {
   return `<span class="${size} flex items-center justify-center flex-shrink-0">${escapeHtml(icon) || "💳"}</span>`;
 }
 
+// ---------- Seletor visual de cartão (mostra a logo, não só um emoji) ----------
+// <select><option> nativo não aceita <img> dentro da lista — por isso o
+// <select> original fica escondido só como fonte de valor (todo o resto do
+// código continua lendo/gravando .value nele normalmente) e um dropdown
+// próprio é desenhado por cima, mostrando a logo de cada cartão. Cada opção
+// carrega o ícone do cartão em data-icon, preenchido por quem popula o select
+// (populateCardSelect, populateCardFilter, etc.).
+function initCardPicker(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select || select.dataset.pickerInit) {
+    refreshCardPicker(selectId);
+    return;
+  }
+  const originalClasses = select.className;
+  select.dataset.pickerInit = "1";
+  select.classList.add("hidden");
+
+  // "flex-1" cobre o caso de o select estar numa linha flex (ex: ao lado do
+  // botão "+"); "w-full" cobre o caso de estar num grid/bloco (ex: filtro).
+  // Um dos dois sempre se aplica de verdade dependendo do container-pai; o
+  // outro fica sem efeito, então não tem problema declarar os dois juntos.
+  const wrapper = document.createElement("div");
+  wrapper.className = "relative flex-1 min-w-0 w-full";
+
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = (originalClasses.replace("hidden", "").trim() || "app-select px-3 py-2 rounded-lg text-[13px]") +
+      " w-full flex items-center gap-2 text-left cursor-pointer";
+
+  const panel = document.createElement("div");
+  panel.setAttribute("data-card-picker-panel", "");
+  panel.className = "hidden absolute z-30 mt-1 left-0 right-0 max-h-56 overflow-y-auto rounded-lg py-1";
+  panel.style.cssText = "background:var(--app-surface);border:1px solid var(--app-border);box-shadow:0 10px 25px rgba(0,0,0,.2)";
+
+  select.insertAdjacentElement("afterend", wrapper);
+  wrapper.appendChild(trigger);
+  wrapper.appendChild(panel);
+
+  trigger.onclick = () => {
+    document.querySelectorAll("[data-card-picker-panel]").forEach(p => { if (p !== panel) p.classList.add("hidden"); });
+    panel.classList.toggle("hidden");
+  };
+
+  document.addEventListener("click", (event) => {
+    if (!wrapper.contains(event.target)) panel.classList.add("hidden");
+  });
+
+  refreshCardPicker(selectId);
+}
+
+// Redesenha as opções do dropdown a partir do <select> escondido — chame
+// depois de repopular as <option>s (ex: quando a lista de cartões muda).
+function refreshCardPicker(selectId) {
+  const select = document.getElementById(selectId);
+  const wrapper = select && select.nextElementSibling;
+  if (!wrapper || !wrapper.classList.contains("relative")) return;
+
+  const panel = wrapper.querySelector("[data-card-picker-panel]");
+  const options = Array.from(select.options);
+
+  panel.innerHTML = options.map(opt => `
+        <div class="px-3 py-1.5 cursor-pointer hover:bg-[var(--app-soft)] flex items-center gap-2 text-[13px]" data-value="${escapeHtml(opt.value)}" style="color:var(--app-text)">
+            ${opt.dataset.icon ? renderCardIcon(opt.dataset.icon, opt.text, "w-4 h-4") : ""}
+            <span class="truncate">${escapeHtml(opt.text)}</span>
+        </div>
+    `).join("");
+
+  panel.querySelectorAll("[data-value]").forEach(row => {
+    row.onclick = () => {
+      select.value = row.dataset.value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      panel.classList.add("hidden");
+      renderCardPickerTrigger(selectId);
+    };
+  });
+
+  renderCardPickerTrigger(selectId);
+}
+
+// Redesenha só o botão visível (ícone + nome do cartão atualmente
+// selecionado) — chame depois de mudar select.value programaticamente
+// (ex: ao abrir o modal de edição já com um cartão preenchido).
+function renderCardPickerTrigger(selectId) {
+  const select = document.getElementById(selectId);
+  const wrapper = select && select.nextElementSibling;
+  if (!wrapper || !wrapper.classList.contains("relative")) return;
+
+  const trigger = wrapper.querySelector("button");
+  const selected = select.options[select.selectedIndex];
+  if (!selected) {
+    trigger.innerHTML = "";
+    return;
+  }
+
+  trigger.innerHTML = `
+        ${selected.dataset.icon ? renderCardIcon(selected.dataset.icon, selected.text, "w-4 h-4") : ""}
+        <span class="truncate">${escapeHtml(selected.text)}</span>
+    `;
+}
+
 // ---------- Tema claro/escuro ----------
 // null armazenado = "segue o sistema" (nunca escolhido manualmente). O script
 // anti-flash no <head> de cada página já aplica isso antes do primeiro paint;
