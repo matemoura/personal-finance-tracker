@@ -7,6 +7,7 @@ import com.mouramateus.financial.finance_api.entity.Transaction;
 import com.mouramateus.financial.finance_api.entity.User;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
 import com.mouramateus.financial.finance_api.repository.UserRepository;
+import com.mouramateus.financial.finance_api.util.CardBilling;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -29,16 +30,22 @@ public class ReportService {
         this.userRepository = userRepository;
     }
 
+    // Uma compra no cartão feita no dia do fechamento (ou depois) pertence à
+    // fatura do mês seguinte — então o intervalo de datas real que pode cair
+    // no mês pedido começa até um mês antes dele (CardBilling.periodOf decide
+    // o agrupamento final; a data exibida no relatório é sempre a real).
     private List<Transaction> getTransactionsForUser(int year, int month) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
         User user = userRepository.findByEmail(email).orElseThrow();
 
-        YearMonth ym = YearMonth.of(year, month);
-        LocalDate start = ym.atDay(1);
-        LocalDate end = ym.atEndOfMonth();
+        YearMonth target = YearMonth.of(year, month);
+        LocalDate rangeStart = target.minusMonths(1).atDay(1);
+        LocalDate rangeEnd = target.atEndOfMonth();
 
-        return transactionRepository.findByUserAndDateBetween(user, start, end);
+        return transactionRepository.findByUserAndDateBetween(user, rangeStart, rangeEnd).stream()
+                .filter(t -> CardBilling.periodOf(t).equals(target))
+                .toList();
     }
 
     public byte[] generatePdf(int year, int month) {
