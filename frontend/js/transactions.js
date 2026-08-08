@@ -405,10 +405,12 @@ function populateCardFilter() {
     allCards.forEach(c => {
         const option = document.createElement("option");
         option.value = c.id;
-        option.text = `${bankEmojiFor(c.icon)} ${c.name}`;
+        option.text = c.name;
+        option.dataset.icon = c.icon || "";
         select.appendChild(option);
     });
     select.value = selected;
+    initCardPicker("filter-card");
 }
 
 function populateCardSelect() {
@@ -420,10 +422,12 @@ function populateCardSelect() {
     allCards.forEach(c => {
         const option = document.createElement("option");
         option.value = c.id;
-        option.text = `${bankEmojiFor(c.icon)} ${c.name}`;
+        option.text = c.name;
+        option.dataset.icon = c.icon || "";
         select.appendChild(option);
     });
     select.value = selected;
+    initCardPicker("cardId");
 }
 
 function renderCardsPanel() {
@@ -742,6 +746,7 @@ function openModal(transaction = null) {
                 document.getElementById("categoryId").value = transaction.category.id;
             }
             document.getElementById("cardId").value = transaction.card ? transaction.card.id : "";
+            renderCardPickerTrigger("cardId");
             updateInvoicePreview();
         }, 50);
 
@@ -753,6 +758,7 @@ function openModal(transaction = null) {
         document.getElementById("date").valueAsDate = new Date();
         document.getElementById("type").value = "EXPENSE";
         document.getElementById("cardId").value = "";
+        renderCardPickerTrigger("cardId");
         if (toggleRow) toggleRow.classList.remove("hidden");
         filterCategoriesByType();
     }
