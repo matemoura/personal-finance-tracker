@@ -382,14 +382,20 @@ async function checkDueReminders() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const horizon = new Date(today);
+    horizon.setDate(horizon.getDate() + 7);
+
     const items = [];
 
-    // Toda conta ainda não paga entra no lembrete (pendente ou atrasada) —
-    // não só as que vencem hoje, pra "Contas a Pagar" nunca ficar de fora
-    // do sino mesmo com um vencimento alguns dias à frente.
+    // Contas atrasadas (qualquer data no passado) ou que vencem dentro dos
+    // próximos 7 dias — nem tão em cima da hora que só pega o dia exato, nem
+    // tão cedo que lota o sino com coisa que só vence mês que vem.
     bills.forEach(b => {
       if (b.status === "PAID") return;
-      items.push({ page: "bills.html", label: b.description, amount: b.amount, date: b.dueDate });
+      const due = new Date(b.dueDate + "T00:00:00");
+      if (b.status === "OVERDUE" || due <= horizon) {
+        items.push({ page: "bills.html", label: b.description, amount: b.amount, date: b.dueDate });
+      }
     });
 
     const year = today.getFullYear();
@@ -404,7 +410,7 @@ async function checkDueReminders() {
       const lastDayOfMonth = new Date(year, month, 0).getDate();
       const dueDay = Math.min(c.dueDay, lastDayOfMonth);
       const dueDateStr = `${year}-${String(month).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`;
-      const currentInvoiceDue = new Date(year, month - 1, dueDay) <= today;
+      const currentInvoiceDue = new Date(year, month - 1, dueDay) <= horizon;
 
       if (currentInvoiceDue) {
         items.push({
