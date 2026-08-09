@@ -81,6 +81,8 @@ ORDER BY i.card_id, a.anchor_id, i.installment_num;
 --         t.amount,
 --         t.date,
 --         t.description,
+--         t.invoice_year,
+--         t.invoice_month,
 --         regexp_replace(t.description, ' \(\d+/\d+\)$', '')            AS base_description,
 --         (regexp_match(t.description, ' \((\d+)/(\d+)\)$'))[1]::int    AS installment_num,
 --         (regexp_match(t.description, ' \((\d+)/(\d+)\)$'))[2]::int    AS installment_total
