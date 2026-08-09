@@ -15,7 +15,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -30,20 +29,19 @@ public class ReportService {
         this.userRepository = userRepository;
     }
 
-    // Uma compra no cartão feita no dia do fechamento (ou depois) pertence à
-    // fatura do mês seguinte — então o intervalo de datas real que pode cair
-    // no mês pedido começa até um mês antes dele (CardBilling.periodOf decide
-    // o agrupamento final; a data exibida no relatório é sempre a real).
+    // Uma parcela pode ter a mesma data real de qualquer parcela anterior mas
+    // cair numa fatura vários meses à frente (invoice_year/invoice_month),
+    // então não dá pra restringir a busca a uma janela de datas próxima do
+    // mês pedido — precisa checar CardBilling.periodOf em todas as
+    // transações do usuário (a data exibida no relatório é sempre a real).
     private List<Transaction> getTransactionsForUser(int year, int month) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
         User user = userRepository.findByEmail(email).orElseThrow();
 
         YearMonth target = YearMonth.of(year, month);
-        LocalDate rangeStart = target.minusMonths(1).atDay(1);
-        LocalDate rangeEnd = target.atEndOfMonth();
 
-        return transactionRepository.findByUserAndDateBetween(user, rangeStart, rangeEnd).stream()
+        return transactionRepository.findByUser(user).stream()
                 .filter(t -> CardBilling.periodOf(t).equals(target))
                 .toList();
     }

@@ -26,8 +26,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -70,7 +68,7 @@ class DashboardServiceTest {
                 .type(CategoryType.EXPENSE).amount(new BigDecimal("400.00")).date(LocalDate.of(2026, 7, 10)).card(null).build();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
-        when(transactionRepository.findByUserAndDateBetween(eq(owner), any(), eq(end)))
+        when(transactionRepository.findByUser(owner))
                 .thenReturn(List.of(income, cashExpense));
         when(transactionRepository.findByUserAndDateLessThanEqual(owner, end))
                 .thenReturn(List.of(income, cashExpense));
@@ -96,7 +94,7 @@ class DashboardServiceTest {
                 .type(CategoryType.EXPENSE).amount(new BigDecimal("300.00")).date(LocalDate.of(2026, 7, 10)).card(nubank).build();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
-        when(transactionRepository.findByUserAndDateBetween(eq(owner), any(), eq(end)))
+        when(transactionRepository.findByUser(owner))
                 .thenReturn(List.of(income, cardExpense));
         when(transactionRepository.findByUserAndDateLessThanEqual(owner, end))
                 .thenReturn(List.of(income, cardExpense));
@@ -123,7 +121,7 @@ class DashboardServiceTest {
                 .card(nubank).year(2026).month(7).paidDate(LocalDate.of(2026, 8, 10)).build();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
-        when(transactionRepository.findByUserAndDateBetween(eq(owner), any(), eq(end)))
+        when(transactionRepository.findByUser(owner))
                 .thenReturn(List.of());
         when(transactionRepository.findByUserAndDateLessThanEqual(owner, end))
                 .thenReturn(List.of(income, cardExpense));
@@ -148,7 +146,7 @@ class DashboardServiceTest {
                 .type(CategoryType.EXPENSE).amount(new BigDecimal("150.00")).date(LocalDate.of(2026, 7, 15)).card(c6).build();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
-        when(transactionRepository.findByUserAndDateBetween(eq(owner), eq(LocalDate.of(2026, 7, 1)), eq(end)))
+        when(transactionRepository.findByUser(owner))
                 .thenReturn(List.of(julyPurchase));
         when(transactionRepository.findByUserAndDateLessThanEqual(owner, end))
                 .thenReturn(List.of(julyPurchase));
@@ -171,7 +169,7 @@ class DashboardServiceTest {
                 .type(CategoryType.EXPENSE).amount(new BigDecimal("250.00")).date(LocalDate.of(2026, 7, 5)).category(mercado).build();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
-        when(transactionRepository.findByUserAndDateBetween(eq(owner), any(), eq(LocalDate.of(2026, 7, 31))))
+        when(transactionRepository.findByUser(owner))
                 .thenReturn(List.of(expense));
 
         List<ExpensesByCategoryResponse> result = dashboardService.getExpensesByCategory(2026, 7);

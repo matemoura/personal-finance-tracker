@@ -341,7 +341,7 @@ class TransactionServiceTest {
                 .amount(new BigDecimal("150.00")).date(LocalDate.of(2026, 7, 15)).build();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
-        when(transactionRepository.findByUserAndDateBetween(owner, LocalDate.of(2026, 7, 1), LocalDate.of(2026, 8, 31)))
+        when(transactionRepository.findByUser(owner))
                 .thenReturn(List.of(julyPurchase));
 
         List<Transaction> august = transactionService.listByMonth(2026, 8, null, null);
@@ -362,7 +362,7 @@ class TransactionServiceTest {
                 .amount(new BigDecimal("80.00")).date(LocalDate.of(2026, 7, 10)).build();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
-        when(transactionRepository.findByUserAndDateBetween(owner, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 7, 31)))
+        when(transactionRepository.findByUser(owner))
                 .thenReturn(List.of(purchase));
 
         List<Transaction> july = transactionService.listByMonth(2026, 7, null, null);
@@ -387,7 +387,7 @@ class TransactionServiceTest {
                 .amount(new BigDecimal("999.00")).date(LocalDate.of(2026, 7, 7)).build();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
-        when(transactionRepository.findByUserAndDateBetween(owner, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 7, 31)))
+        when(transactionRepository.findByUser(owner))
                 .thenReturn(List.of(wantedExpense, otherCategory, income));
 
         List<Transaction> result = transactionService.listByMonth(2026, 7, CategoryType.EXPENSE, 10L);
