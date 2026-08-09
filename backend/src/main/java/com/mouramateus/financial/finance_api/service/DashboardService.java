@@ -56,15 +56,14 @@ public class DashboardService {
         return new DashboardSummaryResponse(income, expense, accumulatedBalance);
     }
 
-    // Uma compra no cartão feita no dia do fechamento (ou depois) pertence à
-    // fatura do mês seguinte — então o intervalo de datas real que pode cair
-    // no mês pedido começa até um mês antes dele. A data da transação nunca é
-    // alterada; só o agrupamento por mês usa esse período (CardBilling.periodOf).
+    // Uma parcela pode ter a mesma data real de qualquer parcela anterior mas
+    // cair numa fatura vários meses à frente (invoice_year/invoice_month),
+    // então não dá pra restringir a busca a uma janela de datas próxima do
+    // mês pedido — precisa checar CardBilling.periodOf em todas as
+    // transações do usuário. A data da transação nunca é alterada; só o
+    // agrupamento por mês usa esse período.
     private List<Transaction> transactionsForPeriod(User user, YearMonth target) {
-        LocalDate rangeStart = target.minusMonths(1).atDay(1);
-        LocalDate rangeEnd = target.atEndOfMonth();
-
-        return transactionRepository.findByUserAndDateBetween(user, rangeStart, rangeEnd).stream()
+        return transactionRepository.findByUser(user).stream()
                 .filter(t -> CardBilling.periodOf(t).equals(target))
                 .toList();
     }

@@ -17,6 +17,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             LocalDate end
     );
 
+    List<Transaction> findByUser(User user);
+
     boolean existsByCategory(Category category);
 
     @Query("""
