@@ -395,21 +395,23 @@ async function checkDueReminders() {
     const year = today.getFullYear();
     const month = today.getMonth() + 1;
 
+    // Só a fatura do mês corrente entra no lembrete (com sua própria data de
+    // vencimento) — atraso de meses anteriores fica só no painel de Cartões,
+    // pra não misturar um total de vários meses com uma data de um mês só.
     cards.forEach(c => {
-      const hasBacklog = (c.pendingTotal - c.pendingCurrentMonth) > 0.005;
-      let currentInvoiceDue = false;
+      if (!c.dueDay || !(c.pendingCurrentMonth > 0)) return;
 
-      if (c.dueDay && c.pendingCurrentMonth > 0) {
-        const lastDayOfMonth = new Date(year, month, 0).getDate();
-        const dueDate = new Date(year, month - 1, Math.min(c.dueDay, lastDayOfMonth));
-        currentInvoiceDue = dueDate <= today;
-      }
+      const lastDayOfMonth = new Date(year, month, 0).getDate();
+      const dueDay = Math.min(c.dueDay, lastDayOfMonth);
+      const dueDateStr = `${year}-${String(month).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`;
+      const currentInvoiceDue = new Date(year, month - 1, dueDay) <= today;
 
-      if (hasBacklog || currentInvoiceDue) {
+      if (currentInvoiceDue) {
         items.push({
           page: "transactions.html",
           label: c.name,
-          amount: hasBacklog ? c.pendingTotal : c.pendingCurrentMonth
+          amount: c.pendingCurrentMonth,
+          date: dueDateStr
         });
       }
     });
