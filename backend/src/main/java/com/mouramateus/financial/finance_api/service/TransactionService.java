@@ -65,6 +65,7 @@ public class TransactionService {
         }
 
         Card card = resolveCard(dto.cardId(), user);
+        YearMonth invoicePeriod = invoicePeriodFor(dto.date(), card, dto.installmentIndex());
 
         Transaction transaction = Transaction.builder()
                 .description(dto.description())
@@ -74,9 +75,26 @@ public class TransactionService {
                 .user(user)
                 .category(category)
                 .card(card)
+                .invoiceYear(invoicePeriod != null ? invoicePeriod.getYear() : null)
+                .invoiceMonth(invoicePeriod != null ? invoicePeriod.getMonthValue() : null)
                 .build();
 
         return transactionRepository.save(transaction);
+    }
+
+    // Calcula, uma única vez na criação, em qual fatura essa transação cai —
+    // deslocado por "installmentIndex" meses no caso de uma parcela (parcela
+    // 0 usa a fatura correspondente à data real; parcela N usa N meses depois
+    // dessa mesma fatura, mesmo que todas as parcelas compartilhem a mesma
+    // "date"). Sem cartão, não existe fatura: fica nulo.
+    private YearMonth invoicePeriodFor(LocalDate date, Card card, Integer installmentIndex) {
+        if (card == null) {
+            return null;
+        }
+
+        YearMonth base = CardBilling.periodOf(date, card.getClosingDay());
+        int offset = installmentIndex != null ? installmentIndex : 0;
+        return base.plusMonths(offset);
     }
 
     public List<Transaction> listByMonth(
@@ -164,6 +182,7 @@ public class TransactionService {
         }
 
         Card card = resolveCard(request.cardId(), user);
+        YearMonth invoicePeriod = invoicePeriodFor(request.date(), card, request.installmentIndex());
 
         transaction.setDescription(request.description());
         transaction.setAmount(request.amount());
@@ -171,6 +190,8 @@ public class TransactionService {
         transaction.setType(request.type());
         transaction.setCategory(category);
         transaction.setCard(card);
+        transaction.setInvoiceYear(invoicePeriod != null ? invoicePeriod.getYear() : null);
+        transaction.setInvoiceMonth(invoicePeriod != null ? invoicePeriod.getMonthValue() : null);
 
         return transactionRepository.save(transaction);
     }

@@ -876,12 +876,14 @@ async function createTransaction() {
             let sucesso = 0;
             for (let i = 0; i < installmentCount; i++) {
                 saveBtn.innerText = `Criando parcela ${i + 1}/${installmentCount}...`;
-                const parcelaData = addMonthsClamped(date, i);
                 const parcelaDescricao = `${description} (${i + 1}/${installmentCount})`;
+                // A data continua sendo a data real da compra em todas as
+                // parcelas — quem desloca a parcela pra fatura certa é o
+                // installmentIndex, calculado no backend, sem mexer na data.
                 const response = await apiFetch(`/api/transactions`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ description: parcelaDescricao, amount, date: parcelaData, type, categoryId, cardId })
+                    body: JSON.stringify({ description: parcelaDescricao, amount, date, type, categoryId, cardId, installmentIndex: i })
                 });
                 if (response.ok) sucesso++;
             }

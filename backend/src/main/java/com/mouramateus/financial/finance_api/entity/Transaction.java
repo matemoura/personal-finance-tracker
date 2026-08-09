@@ -44,4 +44,14 @@ public class Transaction {
     @ManyToOne
     @JoinColumn(name = "card_id")
     private Card card;
+
+    // Em qual fatura do cartão essa transação cai — independente da data real
+    // da compra (ex: parcela 2/10 tem a mesma "date" da parcela 1, mas cai na
+    // fatura do mês seguinte). Nulo quando não tem cartão, ou em transações
+    // criadas antes desta coluna existir.
+    @Column(name = "invoice_year")
+    private Integer invoiceYear;
+
+    @Column(name = "invoice_month")
+    private Integer invoiceMonth;
 }

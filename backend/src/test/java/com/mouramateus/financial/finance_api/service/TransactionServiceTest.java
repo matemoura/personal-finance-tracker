@@ -66,7 +66,7 @@ class TransactionServiceTest {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -86,7 +86,7 @@ class TransactionServiceTest {
         User otherUser = User.builder().id(2L).build();
         Category category = Category.builder().id(10L).user(otherUser).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -104,7 +104,7 @@ class TransactionServiceTest {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.INCOME).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -123,7 +123,7 @@ class TransactionServiceTest {
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 20), CategoryType.EXPENSE, 10L, 5L
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 20), CategoryType.EXPENSE, 10L, 5L, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -133,9 +133,11 @@ class TransactionServiceTest {
 
         Transaction result = transactionService.createTransaction(request);
 
-        // A data da transação é sempre a data real da compra; qual fatura ela
-        // cai é calculado à parte em CardService, sem tocar nesse campo.
+        // A data da transação é sempre a data real da compra; a fatura
+        // (calculada uma vez, na criação) é que reflete o dia de fechamento.
         assertThat(result.getDate()).isEqualTo(LocalDate.of(2026, 3, 20));
+        assertThat(result.getInvoiceYear()).isEqualTo(2026);
+        assertThat(result.getInvoiceMonth()).isEqualTo(4);
     }
 
     @Test
@@ -144,7 +146,7 @@ class TransactionServiceTest {
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 10), CategoryType.EXPENSE, 10L, 5L
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 10), CategoryType.EXPENSE, 10L, 5L, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -163,7 +165,7 @@ class TransactionServiceTest {
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 5), CategoryType.EXPENSE, 10L, 5L
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 5), CategoryType.EXPENSE, 10L, 5L, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -177,12 +179,54 @@ class TransactionServiceTest {
     }
 
     @Test
+    void createTransaction_installmentIndex_offsetsInvoicePeriodWithoutChangingDate() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
+        Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
+        // Dia 5, antes do fechamento (dia 10) -> fatura base de março. A
+        // parcela 3 (índice 2) deve cair 2 meses depois: maio — mas a data
+        // salva continua sendo a mesma data real de todas as parcelas.
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                "Sofá (3/10)", new BigDecimal("100.00"), LocalDate.of(2026, 3, 5), CategoryType.EXPENSE, 10L, 5L, 2
+        );
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Transaction result = transactionService.createTransaction(request);
+
+        assertThat(result.getDate()).isEqualTo(LocalDate.of(2026, 3, 5));
+        assertThat(result.getInvoiceYear()).isEqualTo(2026);
+        assertThat(result.getInvoiceMonth()).isEqualTo(5);
+    }
+
+    @Test
+    void createTransaction_withoutCard_leavesInvoicePeriodNull() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 5), CategoryType.EXPENSE, 10L, null, null
+        );
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Transaction result = transactionService.createTransaction(request);
+
+        assertThat(result.getInvoiceYear()).isNull();
+        assertThat(result.getInvoiceMonth()).isNull();
+    }
+
+    @Test
     void createTransaction_withCardWithoutClosingDay_keepsOriginalDate() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         Card card = Card.builder().id(5L).user(owner).closingDay(null).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 28), CategoryType.EXPENSE, 10L, 5L
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 28), CategoryType.EXPENSE, 10L, 5L, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -230,7 +274,7 @@ class TransactionServiceTest {
         User otherUser = User.builder().id(2L).build();
         Transaction transaction = Transaction.builder().id(99L).user(otherUser).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -250,7 +294,7 @@ class TransactionServiceTest {
         Transaction transaction = Transaction.builder().id(99L).user(owner).build();
         Category category = Category.builder().id(10L).user(otherUser).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -270,7 +314,7 @@ class TransactionServiceTest {
         Transaction transaction = Transaction.builder().id(99L).user(owner).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
