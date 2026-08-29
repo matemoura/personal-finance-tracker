@@ -136,10 +136,46 @@ body { background: var(--app-bg); color: var(--app-text); }
 
 @media (max-width: 767px) {
   .mobile-nav { background: var(--app-sidebar); }
-  .mobile-nav a { color: #c7d4e2; }
-  .mobile-nav .is-active { background: rgba(255,255,255,.14); color: #fff; }
 }
 
-/* ---------- Lista de links rolável no mobile-nav (evita empurrar o avatar pra fora da tela) ---------- */
-.nav-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-.nav-scroll::-webkit-scrollbar { display: none; }
+/* ---------- Menu de navegação mobile (dropdown do hambúrguer) ----------
+   Substitui a antiga fileira de links com scroll horizontal, que empurrava
+   layout pra fora da tela em telas estreitas. Especificidade por ID (não
+   classe) pra vencer de propósito a cor clara definida acima pra .mobile-nav,
+   já que esse dropdown fica sobre uma superfície clara, não a barra escura. */
+#mobile-nav-menu a { color: var(--app-text); }
+#mobile-nav-menu a:hover { background: var(--app-soft); }
+#mobile-nav-menu a.is-active { background: var(--app-soft); color: var(--app-primary-dark); font-weight: 600; }
+
+/* ---------- Botões de ícone (sino, olho, tema, avatar, editar/excluir...) ----------
+   Área de toque confortável (min. 40px) e anel de foco visível pra quem navega
+   por teclado — sem isso, focus:outline-none deixava esses botões "mudos" pro
+   teclado (nenhuma indicação de qual estava focado). */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 8px;
+}
+.icon-btn:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
+}
+/* Nos cabeçalhos escuros (sidebar/topo mobile) o anel azul-padrão some no fundo
+   escuro — usa um tom claro nesses contextos. */
+.icon-btn-on-dark:focus-visible {
+  outline-color: #fff;
+}
+
+/* ---------- Erros de formulário inline (embaixo do campo, não só em toast) ---------- */
+.field-error {
+  color: var(--app-danger);
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-top: 4px;
+  display: none;
+}
+.field-error.visible { display: block; }
+.field-invalid { border-color: var(--app-danger) !important; }

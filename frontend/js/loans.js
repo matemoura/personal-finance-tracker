@@ -108,21 +108,13 @@ async function saveNewPassword() {
     const newPassword = document.getElementById("new-password").value;
     const confirmPassword = document.getElementById("confirm-password").value;
 
-    if (!currentPassword || !newPassword) {
-        showToast("Preencha todos os campos.", "error");
-        return;
-    }
-
-    if (newPassword !== confirmPassword) {
-        showToast("A nova senha e a confirmação não coincidem.", "error");
-        return;
-    }
-
-    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-    if (!regex.test(newPassword)) {
-        showToast("A nova senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).", "error");
-        return;
-    }
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    const isPasswordFormValid = validateFields([
+        { id: "current-password", valid: !!currentPassword, message: "Digite sua senha atual." },
+        { id: "new-password", valid: passwordRegex.test(newPassword), message: "Mín. 8 caracteres, com letra, número e caractere especial (@$!%*#?&)." },
+        { id: "confirm-password", valid: !!confirmPassword && newPassword === confirmPassword, message: "As senhas não coincidem." }
+    ]);
+    if (!isPasswordFormValid) return;
 
     try {
         const response = await apiFetch(`/api/users/change-password`, {
@@ -288,9 +280,9 @@ function renderLoans() {
             <td class="px-[18px] py-[13px]"><span class="${statusClass} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${statusLabel}</span></td>
             <td class="px-[18px] py-[13px] text-center whitespace-nowrap">
                 ${isPaid ? "" : `<button onclick="openRepaymentModal(${loan.id}, '${escapeHtml(loan.personName)}', ${loan.remaining})"
-                    class="px-1.5 py-1 text-[13px] transition hover:!text-[#3b82c4]" title="Registrar recebimento" style="color:#9daebf">💰</button>`}
-                <button onclick="deleteLoan(${loan.id})" title="Excluir"
-                    class="px-1.5 py-1 text-[13px] transition hover:!text-red-600" style="color:#9daebf">🗑</button>
+                    class="icon-btn px-1.5 py-1 transition hover:!text-[#3b82c4]" title="Registrar recebimento" aria-label="Registrar recebimento" style="color:#9daebf">${ICON_COIN}</button>`}
+                <button onclick="deleteLoan(${loan.id})" title="Excluir" aria-label="Excluir empréstimo"
+                    class="icon-btn px-1.5 py-1 transition hover:!text-red-600" style="color:#9daebf">${ICON_TRASH}</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -299,6 +291,7 @@ function renderLoans() {
 
 function openLoanModal() {
     document.getElementById("loanModal").classList.remove("hidden");
+    clearFieldErrors(["loanPersonName", "loanAmount", "loanDateLent"]);
     document.getElementById("loanPersonName").value = "";
     document.getElementById("loanAmount").value = "";
     document.getElementById("loanDescription").value = "";
@@ -317,10 +310,12 @@ async function createLoan() {
     const expectedReturnDate = document.getElementById("loanExpectedReturn").value || null;
     const description = document.getElementById("loanDescription").value || null;
 
-    if (!personName || !amount || !dateLent) {
-        showToast("Preencha pelo menos a pessoa, o valor e a data!", "error");
-        return;
-    }
+    const isValid = validateFields([
+        { id: "loanPersonName", valid: !!personName, message: "Digite o nome da pessoa." },
+        { id: "loanAmount", valid: amount > 0, message: "Informe um valor válido." },
+        { id: "loanDateLent", valid: !!dateLent, message: "Selecione a data do empréstimo." }
+    ]);
+    if (!isValid) return;
 
     try {
         const response = await apiFetch("/api/loans", {
@@ -345,6 +340,7 @@ async function createLoan() {
 
 function openRepaymentModal(loanId, personName, remaining) {
     activeRepaymentLoanId = loanId;
+    clearFieldErrors(["repaymentAmount", "repaymentDate"]);
     document.getElementById("repaymentContext").innerText =
         `${personName} ainda deve R$ ${formatCurrency(remaining)}.`;
     document.getElementById("repaymentAmount").value = "";
@@ -361,10 +357,11 @@ async function submitRepayment() {
     const amount = parseCurrencyInput(document.getElementById("repaymentAmount").value);
     const date = document.getElementById("repaymentDate").value;
 
-    if (!amount || !date) {
-        showToast("Preencha o valor e a data!", "error");
-        return;
-    }
+    const isValid = validateFields([
+        { id: "repaymentAmount", valid: amount > 0, message: "Informe um valor válido." },
+        { id: "repaymentDate", valid: !!date, message: "Selecione a data." }
+    ]);
+    if (!isValid) return;
 
     const btn = document.getElementById("saveRepaymentBtn");
     const originalText = btn.innerText;

@@ -7,10 +7,10 @@ document.getElementById("register-form").addEventListener("submit", async functi
 
     const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
 
-    if (!regex.test(password)) {
-        showToast("A senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).", "error");
-        return;
-    }
+    const isValid = validateFields([
+        { id: "password", valid: regex.test(password), message: "Mín. 8 caracteres, com letra, número e caractere especial (@$!%*#?&)." }
+    ]);
+    if (!isValid) return;
 
     const userData = {
         name: name,

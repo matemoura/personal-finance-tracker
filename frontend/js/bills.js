@@ -111,21 +111,13 @@ async function saveNewPassword() {
     const newPassword = document.getElementById("new-password").value;
     const confirmPassword = document.getElementById("confirm-password").value;
 
-    if (!currentPassword || !newPassword) {
-        showToast("Preencha todos os campos.", "error");
-        return;
-    }
-
-    if (newPassword !== confirmPassword) {
-        showToast("A nova senha e a confirmação não coincidem.", "error");
-        return;
-    }
-
-    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-    if (!regex.test(newPassword)) {
-        showToast("A nova senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).", "error");
-        return;
-    }
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    const isPasswordFormValid = validateFields([
+        { id: "current-password", valid: !!currentPassword, message: "Digite sua senha atual." },
+        { id: "new-password", valid: passwordRegex.test(newPassword), message: "Mín. 8 caracteres, com letra, número e caractere especial (@$!%*#?&)." },
+        { id: "confirm-password", valid: !!confirmPassword && newPassword === confirmPassword, message: "As senhas não coincidem." }
+    ]);
+    if (!isPasswordFormValid) return;
 
     try {
         const response = await apiFetch(`/api/users/change-password`, {
@@ -351,9 +343,9 @@ function renderBills() {
             <td class="px-[18px] py-[13px]"><span class="${statusClass} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${statusLabel}</span></td>
             <td class="px-[18px] py-[13px] text-center whitespace-nowrap">
                 ${isPaid ? "" : `<button onclick="openPayBillModal(${bill.id}, '${escapeHtml(bill.description)}', ${bill.amount})"
-                    class="px-1.5 py-1 text-[13px] transition hover:!text-[#3b82c4]" title="Marcar como pago" style="color:#9daebf">✔️</button>`}
+                    class="icon-btn px-1.5 py-1 transition hover:!text-[#3b82c4]" title="Marcar como pago" aria-label="Marcar conta como paga" style="color:#9daebf">${ICON_CHECK}</button>`}
                 ${isPaid ? "" : `<button onclick="deleteBill(${bill.id})" title="Excluir"
-                    class="px-1.5 py-1 text-[13px] transition hover:!text-red-600" style="color:#9daebf">🗑</button>`}
+                    class="icon-btn px-1.5 py-1 transition hover:!text-red-600" style="color:#9daebf" aria-label="Excluir conta">${ICON_TRASH}</button>`}
             </td>
         `;
         tbody.appendChild(tr);
@@ -362,6 +354,7 @@ function renderBills() {
 
 function openBillModal() {
     document.getElementById("billModal").classList.remove("hidden");
+    clearFieldErrors(["billDescription", "billAmount", "billDueDate", "billCategoryId"]);
     document.getElementById("billDescription").value = "";
     document.getElementById("billAmount").value = "";
     document.getElementById("billDueDate").valueAsDate = new Date();
@@ -382,10 +375,13 @@ async function createBill() {
     const cardIdValue = document.getElementById("billCardId").value;
     const cardId = cardIdValue ? parseInt(cardIdValue, 10) : null;
 
-    if (!description || !amount || !dueDate || !categoryId) {
-        showToast("Preencha descrição, valor, vencimento e categoria!", "error");
-        return;
-    }
+    const isValid = validateFields([
+        { id: "billDescription", valid: !!description, message: "Digite uma descrição." },
+        { id: "billAmount", valid: amount > 0, message: "Informe um valor válido." },
+        { id: "billDueDate", valid: !!dueDate, message: "Selecione a data de vencimento." },
+        { id: "billCategoryId", valid: !!categoryId, message: "Selecione uma categoria." }
+    ]);
+    if (!isValid) return;
 
     try {
         const response = await apiFetch("/api/bills", {

@@ -157,21 +157,13 @@ async function saveNewPassword() {
     const newPassword = document.getElementById("new-password").value;
     const confirmPassword = document.getElementById("confirm-password").value;
 
-    if (!currentPassword || !newPassword) {
-        showToast("Preencha todos os campos.", "error");
-        return;
-    }
-
-    if (newPassword !== confirmPassword) {
-        showToast("A nova senha e a confirmação não coincidem.", "error");
-        return;
-    }
-
-    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-    if (!regex.test(newPassword)) {
-        showToast("A nova senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).", "error");
-        return;
-    }
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    const isPasswordFormValid = validateFields([
+        { id: "current-password", valid: !!currentPassword, message: "Digite sua senha atual." },
+        { id: "new-password", valid: passwordRegex.test(newPassword), message: "Mín. 8 caracteres, com letra, número e caractere especial (@$!%*#?&)." },
+        { id: "confirm-password", valid: !!confirmPassword && newPassword === confirmPassword, message: "As senhas não coincidem." }
+    ]);
+    if (!isPasswordFormValid) return;
 
     try {
         const response = await apiFetch(`/api/users/change-password`, {
@@ -342,7 +334,7 @@ async function loadTransactions() {
                     ${symbol} R$ ${formattedValue}
                 </span>
                 <button onclick='openEditModal(${safeTransaction})'
-                    class="p-1.5 rounded-md transition hover:bg-[var(--app-soft)]" style="color:#9daebf" title="Editar">✎</button>
+                    class="icon-btn p-1.5 rounded-md transition hover:bg-[var(--app-soft)]" style="color:#9daebf" title="Editar" aria-label="Editar transação">${ICON_EDIT}</button>
             `;
             listContainer.appendChild(li);
         });
@@ -471,6 +463,7 @@ function renderBarsChart(months, results) {
 function openModal(transaction = null) {
     const modal = document.getElementById("modal");
     modal.classList.remove("hidden");
+    clearFieldErrors(["description", "amount", "date", "categoryId", "installmentCount"]);
 
     const toggleRow = document.getElementById("installmentToggleRow");
     const installmentCheckbox = document.getElementById("isInstallment");
@@ -514,6 +507,7 @@ function closeModal() {
 
 function openCategoryModal() {
     document.getElementById("categoryModal").classList.remove("hidden");
+    clearFieldErrors(["catName"]);
     document.getElementById("catName").value = "";
     document.getElementById("catIcon").value = "";
 }
@@ -527,10 +521,7 @@ async function createCategory() {
     const type = document.getElementById("catType").value;
     const icon = document.getElementById("catIcon").value || "📃";
 
-    if (!name) {
-        showToast("Digite um nome para a categoria!", "error");
-        return;
-    }
+    if (!validateFields([{ id: "catName", valid: !!name, message: "Digite um nome para a categoria." }])) return;
 
     const body = { name, type, icon };
 
@@ -650,6 +641,7 @@ function onCardBankChange() {
 
 function openCardModal() {
     document.getElementById("cardModal").classList.remove("hidden");
+    clearFieldErrors(["cardName"]);
     document.getElementById("cardModalTitle").innerText = "Novo Cartão";
     document.getElementById("cardName").value = "";
     document.getElementById("cardBankSelect").value = "";
@@ -671,10 +663,7 @@ async function saveCard() {
     const dueDayValue = document.getElementById("cardDueDay").value;
     const dueDay = dueDayValue ? parseInt(dueDayValue, 10) : null;
 
-    if (!name) {
-        showToast("Digite um nome para o cartão!", "error");
-        return;
-    }
+    if (!validateFields([{ id: "cardName", valid: !!name, message: "Digite um nome para o cartão." }])) return;
 
     try {
         const response = await apiFetch(`/api/cards`, {
@@ -737,15 +726,14 @@ async function createTransaction() {
     const isInstallment = !editingTransactionId && installmentCheckbox && installmentCheckbox.checked;
     const installmentCount = isInstallment ? parseInt(document.getElementById("installmentCount").value, 10) : 1;
 
-    if (!description || !amount || !date || !categoryId) {
-        showToast("Preencha todos os campos!", "error");
-        return;
-    }
-
-    if (isInstallment && (!installmentCount || installmentCount < 2)) {
-        showToast("Informe pelo menos 2 parcelas.", "error");
-        return;
-    }
+    const isValid = validateFields([
+        { id: "description", valid: !!description, message: "Digite uma descrição." },
+        { id: "amount", valid: amount > 0, message: "Informe um valor válido." },
+        { id: "date", valid: !!date, message: "Selecione uma data." },
+        { id: "categoryId", valid: !!categoryId, message: "Selecione uma categoria." },
+        ...(isInstallment ? [{ id: "installmentCount", valid: installmentCount >= 2, message: "Informe pelo menos 2 parcelas." }] : [])
+    ]);
+    if (!isValid) return;
 
     const saveBtn = document.getElementById("saveTransactionBtn");
     const originalText = saveBtn.innerText;

@@ -125,6 +125,65 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// ---------- Erros de formulário inline (embaixo do campo, não só em toast) ----------
+// Cria/atualiza um <p class="field-error"> logo depois do campo e liga os dois
+// via aria-describedby — assim quem usa leitor de tela ouve qual campo falhou
+// e por quê, não só um toast genérico no canto da tela.
+function setFieldError(fieldId, message) {
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+
+  let errorEl = document.getElementById(fieldId + "-error");
+  if (!errorEl) {
+    errorEl = document.createElement("p");
+    errorEl.id = fieldId + "-error";
+    errorEl.className = "field-error";
+    errorEl.setAttribute("role", "alert");
+    field.insertAdjacentElement("afterend", errorEl);
+  }
+
+  errorEl.textContent = message;
+  errorEl.classList.add("visible");
+  field.classList.add("field-invalid");
+  field.setAttribute("aria-describedby", errorEl.id);
+  field.setAttribute("aria-invalid", "true");
+}
+
+function clearFieldError(fieldId) {
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+
+  const errorEl = document.getElementById(fieldId + "-error");
+  if (errorEl) errorEl.classList.remove("visible");
+  field.classList.remove("field-invalid");
+  field.removeAttribute("aria-invalid");
+}
+
+function clearFieldErrors(fieldIds) {
+  fieldIds.forEach(clearFieldError);
+}
+
+// Roda uma lista de checagens { id, valid, message }, mostra erro inline em
+// cada campo inválido e foca o primeiro deles. Retorna true só se tudo passou.
+function validateFields(checks) {
+  let firstInvalidId = null;
+
+  checks.forEach(({ id, valid, message }) => {
+    if (valid) {
+      clearFieldError(id);
+    } else {
+      setFieldError(id, message);
+      if (!firstInvalidId) firstInvalidId = id;
+    }
+  });
+
+  if (firstInvalidId) {
+    document.getElementById(firstInvalidId).focus();
+    return false;
+  }
+  return true;
+}
+
 // ---------- Logos de banco nos cartões ----------
 // O campo "icon" do cartão guarda ou um emoji (comportamento antigo, digitado
 // livremente) ou o domínio de um banco conhecido (ex: "nubank.com.br"), usado
@@ -292,11 +351,31 @@ function getEffectiveTheme() {
   return (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
 }
 
+// SVGs inline (sem emoji) no mesmo estilo outline dos ícones de navegação —
+// evita depender de fonte de emoji do sistema e funciona bem em leitor de tela
+// combinado com o aria-label do botão.
+const ICON_SUN = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3.2"></circle><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.3 3.3l1.1 1.1M11.6 11.6l1.1 1.1M3.3 12.7l1.1-1.1M11.6 4.4l1.1-1.1"></path></svg>';
+const ICON_MOON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 8.5A5.5 5.5 0 1 1 7.5 2.5a4.2 4.2 0 0 0 6 6Z"></path></svg>';
+const ICON_EYE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5Z"></path><circle cx="8" cy="8" r="2"></circle></svg>';
+const ICON_EYE_OFF = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.7a2 2 0 0 0 2.7 2.7M4.3 4.6C2.5 5.7 1 8 1 8s2.5 5 7 5c1.2 0 2.2-.3 3.1-.8M9.9 3.3C9.3 3.1 8.7 3 8 3c-.6 0-1.2.1-1.7.2M13.3 5.3C14.4 6.3 15 8 15 8s-.6 1.7-1.7 2.7"></path></svg>';
+const ICON_BELL = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5c-2 0-3.5 1.6-3.5 3.6v2.4c0 .5-.2 1-.5 1.4l-1 1.3c-.3.4 0 1 .5 1h9c.5 0 .8-.6.5-1l-1-1.3c-.3-.4-.5-.9-.5-1.4V5.1c0-2-1.5-3.6-3.5-3.6Z"></path><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0"></path></svg>';
+const ICON_CLOSE = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"></path></svg>';
+const ICON_EDIT = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2l3 3-8 8-3.5.5.5-3.5 8-8Z"></path></svg>';
+const ICON_TRASH = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h11M6 4V2.5h4V4M4.5 4l.5 9.5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1L11.5 4"></path></svg>';
+const ICON_PLUS = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11"></path></svg>';
+const ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8.5l3.5 3.5 7-8"></path></svg>';
+const ICON_COIN = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="M8 4.5v7M10 6.3c0-.9-.9-1.6-2-1.6s-2 .7-2 1.6c0 2.2 4 1.2 4 3.4 0 .9-.9 1.6-2 1.6s-2-.7-2-1.6"></path></svg>';
+
 function updateThemeIcons() {
-  const icon = getEffectiveTheme() === "dark" ? "☀️" : "🌙";
+  const isDark = getEffectiveTheme() === "dark";
+  const icon = isDark ? ICON_SUN : ICON_MOON;
+  const label = isDark ? "Mudar para tema claro" : "Mudar para tema escuro";
   ["theme-icon-desktop", "theme-icon-mobile"].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.textContent = icon;
+    if (!el) return;
+    el.innerHTML = icon;
+    const btn = el.closest("button");
+    if (btn) btn.setAttribute("aria-label", label);
   });
 }
 
@@ -338,10 +417,14 @@ if (document.readyState === "loading") {
 let valuesHidden = localStorage.getItem("hideValues") === "true";
 
 function updateHideValuesIcon() {
-  const icon = valuesHidden ? "🙈" : "👁️";
+  const icon = valuesHidden ? ICON_EYE_OFF : ICON_EYE;
+  const label = valuesHidden ? "Mostrar valores" : "Ocultar valores";
   ["hide-values-icon-desktop", "hide-values-icon-mobile"].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.textContent = icon;
+    if (!el) return;
+    el.innerHTML = icon;
+    const btn = el.closest("button");
+    if (btn) btn.setAttribute("aria-label", label);
   });
 }
 
@@ -461,11 +544,26 @@ function toggleDueReminders() {
   if (panel) panel.classList.toggle("hidden");
 }
 
+// Menu de navegação mobile (hambúrguer) — o nav de topo tinha os 5 links numa
+// fileira com scroll horizontal; isso empurrava layout pra fora da tela em
+// telas bem estreitas. Agora só o nome da página atual fica visível, e o
+// menu completo abre num dropdown, igual ao sino/menu do usuário.
+function toggleMobileNavMenu() {
+  const menu = document.getElementById("mobile-nav-menu");
+  if (menu) menu.classList.toggle("hidden");
+}
+
 document.addEventListener("click", (event) => {
   const panel = document.getElementById("due-reminders-panel");
   if (panel && !panel.classList.contains("hidden") &&
       !panel.contains(event.target) && !event.target.closest("[data-due-reminders-trigger]")) {
     panel.classList.add("hidden");
+  }
+
+  const navMenu = document.getElementById("mobile-nav-menu");
+  if (navMenu && !navMenu.classList.contains("hidden") &&
+      !navMenu.contains(event.target) && !event.target.closest("[data-mobile-nav-trigger]")) {
+    navMenu.classList.add("hidden");
   }
 });
 

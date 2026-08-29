@@ -9,17 +9,12 @@ async function doReset() {
         return;
     }
 
-    if (!newPassword) {
-        showToast("Digite a nova senha.", "error");
-        return;
-    }
-
     const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-    
-    if (!regex.test(newPassword)) {
-        showToast("A senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial.", "error");
-        return;
-    }
+
+    const isValid = validateFields([
+        { id: "newPass", valid: regex.test(newPassword), message: "Mín. 8 caracteres, com letra, número e caractere especial (@$!%*#?&)." }
+    ]);
+    if (!isValid) return;
 
     const btn = document.querySelector('button');
     const originalText = btn.textContent;

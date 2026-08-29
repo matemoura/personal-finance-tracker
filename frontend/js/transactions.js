@@ -135,21 +135,13 @@ async function saveNewPassword() {
     const newPassword = document.getElementById("new-password").value;
     const confirmPassword = document.getElementById("confirm-password").value;
 
-    if (!currentPassword || !newPassword) {
-        showToast("Preencha todos os campos.", "error");
-        return;
-    }
-
-    if (newPassword !== confirmPassword) {
-        showToast("A nova senha e a confirmação não coincidem.", "error");
-        return;
-    }
-
-    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-    if (!regex.test(newPassword)) {
-        showToast("A nova senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).", "error");
-        return;
-    }
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    const isPasswordFormValid = validateFields([
+        { id: "current-password", valid: !!currentPassword, message: "Digite sua senha atual." },
+        { id: "new-password", valid: passwordRegex.test(newPassword), message: "Mín. 8 caracteres, com letra, número e caractere especial (@$!%*#?&)." },
+        { id: "confirm-password", valid: !!confirmPassword && newPassword === confirmPassword, message: "As senhas não coincidem." }
+    ]);
+    if (!isPasswordFormValid) return;
 
     try {
         const response = await apiFetch(`/api/users/change-password`, {
@@ -261,10 +253,10 @@ function renderTransactionsPage() {
                 ${symbol} R$ ${formattedValue}
             </td>
             <td class="px-[18px] py-[13px] text-center whitespace-nowrap">
-                <button onclick='openEditModal(${safeTransaction})' title="Editar"
-                    class="px-1.5 py-1 text-[13px] transition hover:!text-[#3b82c4]" style="color:#9daebf">✎</button>
-                <button onclick="deleteTransaction(${t.id})" title="Excluir"
-                    class="px-1.5 py-1 text-[13px] transition hover:!text-red-600" style="color:#9daebf">🗑</button>
+                <button onclick='openEditModal(${safeTransaction})' title="Editar" aria-label="Editar transação"
+                    class="icon-btn px-1.5 py-1 transition hover:!text-[#3b82c4]" style="color:#9daebf">${ICON_EDIT}</button>
+                <button onclick="deleteTransaction(${t.id})" title="Excluir" aria-label="Excluir transação"
+                    class="icon-btn px-1.5 py-1 transition hover:!text-red-600" style="color:#9daebf">${ICON_TRASH}</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -462,7 +454,7 @@ function renderCardsPanel() {
                 ${hasOlderPending ? `<div class="text-[11px] font-semibold break-words" style="color:var(--app-danger)">Pendente (total): R$ ${formatCurrency(c.pendingTotal)}</div>` : ''}
             </div>
             ${hasPending ? `<button title="Pagar fatura" class="pay-invoice-btn ml-1 px-2 py-1 rounded-md text-[11px] font-semibold transition flex-shrink-0" style="background:var(--app-primary);color:#fff">Pagar</button>` : ''}
-            <button title="Excluir cartão" class="delete-card-btn ml-1 text-[11px] transition hover:!text-red-600 flex-shrink-0" style="color:#c3ccd6">✕</button>
+            <button title="Excluir cartão" aria-label="Excluir cartão" class="delete-card-btn icon-btn ml-1 transition hover:!text-red-600 flex-shrink-0" style="color:#c3ccd6">${ICON_CLOSE}</button>
         `;
 
         const payBtn = chip.querySelector(".pay-invoice-btn");
@@ -509,6 +501,7 @@ function onCardBankChange() {
 
 function openCardModal(card = null) {
     document.getElementById("cardModal").classList.remove("hidden");
+    clearFieldErrors(["cardName"]);
     const bankSelect = document.getElementById("cardBankSelect");
     const iconInput = document.getElementById("cardIcon");
 
@@ -547,10 +540,7 @@ async function saveCard() {
     const dueDayValue = document.getElementById("cardDueDay").value;
     const dueDay = dueDayValue ? parseInt(dueDayValue, 10) : null;
 
-    if (!name) {
-        showToast("Digite um nome para o cartão!", "error");
-        return;
-    }
+    if (!validateFields([{ id: "cardName", valid: !!name, message: "Digite um nome para o cartão." }])) return;
 
     try {
         const response = editingCardId
@@ -723,6 +713,7 @@ function applyTransactionFilters() {
 function openModal(transaction = null) {
     const modal = document.getElementById("modal");
     modal.classList.remove("hidden");
+    clearFieldErrors(["description", "amount", "date", "categoryId", "installmentCount"]);
 
     const toggleRow = document.getElementById("installmentToggleRow");
     const installmentCheckbox = document.getElementById("isInstallment");
@@ -837,15 +828,14 @@ async function createTransaction() {
     const isInstallment = !editingTransactionId && installmentCheckbox && installmentCheckbox.checked;
     const installmentCount = isInstallment ? parseInt(document.getElementById("installmentCount").value, 10) : 1;
 
-    if (!description || !amount || !date || !categoryId) {
-        showToast("Preencha todos os campos!", "error");
-        return;
-    }
-
-    if (isInstallment && (!installmentCount || installmentCount < 2)) {
-        showToast("Informe pelo menos 2 parcelas.", "error");
-        return;
-    }
+    const isValid = validateFields([
+        { id: "description", valid: !!description, message: "Digite uma descrição." },
+        { id: "amount", valid: amount > 0, message: "Informe um valor válido." },
+        { id: "date", valid: !!date, message: "Selecione uma data." },
+        { id: "categoryId", valid: !!categoryId, message: "Selecione uma categoria." },
+        ...(isInstallment ? [{ id: "installmentCount", valid: installmentCount >= 2, message: "Informe pelo menos 2 parcelas." }] : [])
+    ]);
+    if (!isValid) return;
 
     const saveBtn = document.getElementById("saveTransactionBtn");
     const originalText = saveBtn.innerText;

@@ -2,10 +2,7 @@ async function requestReset() {
     const emailInput = document.getElementById('email');
     const email = emailInput.value;
 
-    if (!email) {
-        showToast("Por favor, digite seu e-mail.", "error");
-        return;
-    }
+    if (!validateFields([{ id: "email", valid: !!email, message: "Digite seu e-mail." }])) return;
 
     const btn = document.querySelector('button');
     const originalText = btn.textContent;

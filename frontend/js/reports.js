@@ -110,21 +110,13 @@ async function saveNewPassword() {
     const newPassword = document.getElementById("new-password").value;
     const confirmPassword = document.getElementById("confirm-password").value;
 
-    if (!currentPassword || !newPassword) {
-        showToast("Preencha todos os campos.", "error");
-        return;
-    }
-
-    if (newPassword !== confirmPassword) {
-        showToast("A nova senha e a confirmação não coincidem.", "error");
-        return;
-    }
-
-    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-    if (!regex.test(newPassword)) {
-        showToast("A nova senha deve ter no mínimo 8 caracteres, contendo letra, número e caractere especial (@$!%*#?&).", "error");
-        return;
-    }
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    const isPasswordFormValid = validateFields([
+        { id: "current-password", valid: !!currentPassword, message: "Digite sua senha atual." },
+        { id: "new-password", valid: passwordRegex.test(newPassword), message: "Mín. 8 caracteres, com letra, número e caractere especial (@$!%*#?&)." },
+        { id: "confirm-password", valid: !!confirmPassword && newPassword === confirmPassword, message: "As senhas não coincidem." }
+    ]);
+    if (!isPasswordFormValid) return;
 
     try {
         const response = await apiFetch(`/api/users/change-password`, {
