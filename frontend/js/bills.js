@@ -4,6 +4,29 @@ let allCards = [];
 let currentFilter = "ALL";
 let activePayBillId = null;
 
+const TOUR_STEPS = [
+    {
+        selector: ".grid.grid-cols-1.md\\:grid-cols-3",
+        title: "Resumo das contas",
+        text: "Veja de relance quanto está pendente, atrasado e já pago no período."
+    },
+    {
+        selector: "#bills-filter-bar",
+        title: "Filtrar por status",
+        text: "Filtre a lista pra ver só as contas pendentes, atrasadas ou já pagas."
+    },
+    {
+        selector: "button[onclick='openBillModal()']",
+        title: "Nova Conta a Pagar",
+        text: "Registre uma despesa futura com data de vencimento. Ela some da lista de \"pendentes\" só quando você marcar como paga — e aí sim vira uma transação de verdade."
+    },
+    {
+        selector: "#bills-body",
+        title: "Suas contas",
+        text: "Marque como paga (o que cria a transação) ou exclua qualquer conta por aqui."
+    }
+];
+
 document.addEventListener("DOMContentLoaded", () => {
     loadUserData();
     setupSettingsEvents();
@@ -12,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadCards();
     loadBills();
     setupMoneyInput_billAmount();
+    initPageTour(TOUR_STEPS, "bills");
 
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");

@@ -567,6 +567,200 @@ document.addEventListener("click", (event) => {
   }
 });
 
+// ---------- Tour guiado (onboarding) ----------
+// Cada página define seus próprios passos (array de {selector, title, text})
+// e chama initPageTour(steps, "chave-da-pagina"). Só mostra sozinho na
+// primeira visita a CADA página (guardado por chave, não é um tour só); o
+// usuário sempre pode revisar de novo pelo menu (ver reiniciar no user-menu).
+let tourSteps = [];
+let tourIndex = 0;
+let tourKey = null;
+
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function hasSeenTour(key) {
+  try {
+    const seen = JSON.parse(localStorage.getItem("toursSeen") || "{}");
+    return !!seen[key];
+  } catch (e) {
+    return false;
+  }
+}
+
+function markTourSeen(key) {
+  if (!key) return;
+  let seen = {};
+  try { seen = JSON.parse(localStorage.getItem("toursSeen") || "{}"); } catch (e) { /* ignora */ }
+  seen[key] = true;
+  localStorage.setItem("toursSeen", JSON.stringify(seen));
+}
+
+// Chame no carregamento de cada página; só abre sozinho se essa página ainda
+// não foi vista (não interrompe quem já usa o app).
+function initPageTour(steps, key) {
+  if (!hasSeenTour(key)) {
+    setTimeout(() => startTour(steps, key), 800);
+  }
+}
+
+// Chame pelo item "Ver tutorial" do menu do usuário — força reabrir mesmo já
+// tendo sido visto antes.
+function restartTour(steps, key) {
+  startTour(steps, key);
+}
+
+function startTour(steps, key) {
+  const validSteps = steps.filter(s => findVisibleTarget(s.selector));
+  if (validSteps.length === 0) return;
+
+  tourSteps = validSteps;
+  tourIndex = 0;
+  tourKey = key;
+
+  const menu = document.getElementById("user-menu");
+  if (menu) menu.classList.add("hidden");
+
+  if (!document.getElementById("tour-backdrop")) {
+    const backdrop = document.createElement("div");
+    backdrop.id = "tour-backdrop";
+    backdrop.className = "tour-backdrop";
+    document.body.appendChild(backdrop);
+  }
+
+  document.addEventListener("keydown", handleTourKeydown);
+  showTourStep();
+}
+
+function handleTourKeydown(event) {
+  if (event.key === "Escape") skipTour();
+}
+
+// Alguns alvos existem em duas cópias (versão mobile e desktop do mesmo botão,
+// escondida uma ou outra por CSS conforme a largura da tela) — pega sempre a
+// que está realmente visível agora, não só a primeira no DOM.
+function findVisibleTarget(selector) {
+  const candidates = document.querySelectorAll(selector);
+  for (const el of candidates) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) return el;
+  }
+  return null;
+}
+
+function showTourStep() {
+  const step = tourSteps[tourIndex];
+  const target = findVisibleTarget(step.selector);
+  if (!target) {
+    nextTourStep();
+    return;
+  }
+
+  target.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
+
+  setTimeout(() => {
+    const rect = target.getBoundingClientRect();
+    positionTourHighlight(rect);
+    renderTourTooltip(step, rect);
+  }, prefersReducedMotion() ? 0 : 300);
+}
+
+function positionTourHighlight(rect) {
+  let hl = document.getElementById("tour-highlight");
+  if (!hl) {
+    hl = document.createElement("div");
+    hl.id = "tour-highlight";
+    hl.className = "tour-highlight";
+    document.body.appendChild(hl);
+  }
+  const pad = 6;
+  hl.style.top = (rect.top - pad) + "px";
+  hl.style.left = (rect.left - pad) + "px";
+  hl.style.width = (rect.width + pad * 2) + "px";
+  hl.style.height = (rect.height + pad * 2) + "px";
+}
+
+function renderTourTooltip(step, rect) {
+  let tip = document.getElementById("tour-tooltip");
+  if (!tip) {
+    tip = document.createElement("div");
+    tip.id = "tour-tooltip";
+    tip.className = "tour-tooltip";
+    tip.setAttribute("role", "dialog");
+    tip.setAttribute("aria-live", "polite");
+    document.body.appendChild(tip);
+  }
+
+  const isFirst = tourIndex === 0;
+  const isLast = tourIndex === tourSteps.length - 1;
+  const tipWidth = Math.min(300, window.innerWidth - 32);
+
+  tip.innerHTML = `
+        <div class="text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Passo ${tourIndex + 1} de ${tourSteps.length}</div>
+        <h3 class="text-[15px] font-bold mb-1.5" style="color:var(--app-heading)">${escapeHtml(step.title)}</h3>
+        <p class="text-[13px] mb-4" style="color:var(--app-text)">${escapeHtml(step.text)}</p>
+        <div class="flex items-center justify-between gap-2">
+            <button onclick="skipTour()" class="text-[12px] font-semibold" style="color:var(--app-muted)">Pular tour</button>
+            <div class="flex gap-2">
+                ${!isFirst ? `<button onclick="prevTourStep()" class="app-button-ghost px-3 py-1.5 rounded-lg text-[12.5px] font-semibold">Voltar</button>` : ""}
+                <button onclick="${isLast ? "finishTour()" : "nextTourStep()"}" class="app-button px-4 py-1.5 rounded-lg text-[12.5px] font-bold">${isLast ? "Concluir" : "Próximo"}</button>
+            </div>
+        </div>
+    `;
+
+  tip.style.width = tipWidth + "px";
+
+  let top = rect.bottom + 14;
+  let left = rect.left;
+  const tipHeight = tip.offsetHeight || 160;
+
+  if (left + tipWidth > window.innerWidth - 16) left = window.innerWidth - tipWidth - 16;
+  if (left < 16) left = 16;
+  if (top + tipHeight > window.innerHeight - 16) top = rect.top - tipHeight - 14;
+  if (top < 16) top = 16;
+
+  tip.style.top = top + "px";
+  tip.style.left = left + "px";
+}
+
+function nextTourStep() {
+  tourIndex++;
+  if (tourIndex >= tourSteps.length) {
+    finishTour();
+    return;
+  }
+  showTourStep();
+}
+
+function prevTourStep() {
+  if (tourIndex > 0) {
+    tourIndex--;
+    showTourStep();
+  }
+}
+
+function skipTour() {
+  markTourSeen(tourKey);
+  endTour();
+}
+
+function finishTour() {
+  markTourSeen(tourKey);
+  endTour();
+}
+
+function endTour() {
+  ["tour-backdrop", "tour-highlight", "tour-tooltip"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+  document.removeEventListener("keydown", handleTourKeydown);
+  tourSteps = [];
+  tourIndex = 0;
+  tourKey = null;
+}
+
 function formatCurrency(value) {
   if (valuesHidden) return "••••";
   return new Intl.NumberFormat("pt-BR", {

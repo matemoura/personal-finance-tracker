@@ -114,6 +114,10 @@
             class="block px-4 py-2 text-sm hover:bg-[var(--app-soft)] transition-colors" style="color:var(--app-text)">
             ⚙️ Configurações
         </a>
+        <a href="#" onclick="restartTour(TOUR_STEPS, 'bills')"
+            class="block px-4 py-2 text-sm hover:bg-[var(--app-soft)] transition-colors" style="color:var(--app-text)">
+            🎓 Ver tutorial
+        </a>
         <div class="border-t my-1" style="border-color:var(--app-border)"></div>
         <button onclick="logout()"
             class="w-full text-left px-4 py-2 text-sm hover:bg-[var(--app-danger-bg)] transition-colors font-medium">
@@ -154,7 +158,7 @@
                 </div>
             </div>
 
-            <div class="app-card px-[18px] py-3.5 flex items-center flex-wrap gap-2">
+            <div id="bills-filter-bar" class="app-card px-[18px] py-3.5 flex items-center flex-wrap gap-2">
                 <span class="text-[11px] font-bold uppercase tracking-wider" style="color:var(--app-muted)">Filtrar:</span>
                 <div class="flex flex-wrap gap-1.5">
                     <button data-filter="ALL" onclick="setStatusFilter('ALL')"

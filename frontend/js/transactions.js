@@ -18,6 +18,29 @@ let currentCardFilter = "";
 
 const MONTHS_LONG = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
+const TOUR_STEPS = [
+    {
+        selector: "#cards-panel",
+        title: "Seus cartões",
+        text: "Veja o total, a fatura pendente do mês e o total pendente de cada cartão cadastrado. Clique num cartão pra editar, ou em \"Pagar\" pra marcar a fatura como paga."
+    },
+    {
+        selector: ".app-card.px-\\[18px\\].py-4.grid",
+        title: "Filtros",
+        text: "Filtre as transações por ano, mês, tipo, categoria ou um cartão específico."
+    },
+    {
+        selector: "button[onclick='openModal()']",
+        title: "Nova Transação",
+        text: "Registre uma receita ou despesa aqui — inclusive compras parceladas no cartão, onde cada parcela cai automaticamente na fatura certa, sem alterar a data real da compra."
+    },
+    {
+        selector: "#transactions-body",
+        title: "Histórico completo",
+        text: "Todas as transações do período aparecem aqui. Use os ícones de ação pra editar ou excluir qualquer uma."
+    }
+];
+
 document.addEventListener("DOMContentLoaded", () => {
     loadUserData();
     setupSettingsEvents();
@@ -25,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadCards();
     setupMoneyInput();
     populateCardBankSelect();
+    initPageTour(TOUR_STEPS, "transactions");
 
     const prevBtn = document.getElementById("prev-page");
     const nextBtn = document.getElementById("next-page");

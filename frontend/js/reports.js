@@ -4,6 +4,24 @@ let currentMonth = now.getMonth() + 1;
 
 const MONTHS_LONG = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
+const TOUR_STEPS = [
+    {
+        selector: ".app-card.px-5.py-5",
+        title: "Escolha o período e exporte",
+        text: "Selecione o ano e mês, clique em \"Visualizar\" pra conferir a prévia, e baixe em PDF ou Excel quando quiser."
+    },
+    {
+        selector: ".grid.grid-cols-1.md\\:grid-cols-3",
+        title: "Resultado do período",
+        text: "O total de receitas, despesas e o resultado (lucro ou prejuízo) do mês escolhido."
+    },
+    {
+        selector: ".app-card.overflow-hidden.mb-6",
+        title: "Prévia do relatório",
+        text: "Confira aqui exatamente o que vai sair no arquivo exportado, transação por transação."
+    }
+];
+
 document.addEventListener("DOMContentLoaded", () => {
     const monthSelect = document.getElementById("report-month");
     if (monthSelect) monthSelect.value = currentMonth;
@@ -11,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadUserData();
     setupSettingsEvents();
     loadAvailableYears().then(() => previewReport());
+    initPageTour(TOUR_STEPS, "reports");
 
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");

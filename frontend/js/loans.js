@@ -2,6 +2,29 @@ let allLoans = [];
 let currentFilter = "ALL";
 let activeRepaymentLoanId = null;
 
+const TOUR_STEPS = [
+    {
+        selector: ".grid.grid-cols-1.md\\:grid-cols-3",
+        title: "Resumo dos empréstimos",
+        text: "Veja quanto você já emprestou no total, quanto já recebeu de volta e quanto ainda está pendente."
+    },
+    {
+        selector: "#loans-filter-bar",
+        title: "Filtrar por status",
+        text: "Filtre a lista pra ver só os empréstimos pendentes, parcialmente recebidos ou já quitados."
+    },
+    {
+        selector: "button[onclick='openLoanModal()']",
+        title: "Novo Empréstimo",
+        text: "Registre um dinheiro que você emprestou pra alguém, com a data e uma previsão de devolução opcional."
+    },
+    {
+        selector: "#loans-body",
+        title: "Seus empréstimos",
+        text: "Registre um recebimento (mesmo que parcial) ou exclua um empréstimo por aqui."
+    }
+];
+
 document.addEventListener("DOMContentLoaded", () => {
     loadUserData();
     setupSettingsEvents();
@@ -9,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadLoans();
     setupMoneyInput_loanAmount();
     setupMoneyInput_repaymentAmount();
+    initPageTour(TOUR_STEPS, "loans");
 
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");

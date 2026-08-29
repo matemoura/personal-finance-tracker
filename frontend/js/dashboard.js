@@ -8,6 +8,49 @@ let editingTransactionId = null;
 const MONTHS_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const MONTHS_LONG = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
+const TOUR_STEPS = [
+    {
+        selector: ".app-sidebar nav, [data-mobile-nav-trigger]",
+        title: "Bem-vindo(a) ao Finance Tracker!",
+        text: "Aqui no menu você navega entre Dashboard, Transações, Relatórios, Empréstimos e Contas a Pagar."
+    },
+    {
+        selector: "#month-label",
+        title: "Navegue pelos meses",
+        text: "Use as setas dos lados pra ver o histórico financeiro de qualquer mês, passado ou futuro."
+    },
+    {
+        selector: "section.grid.grid-cols-1.md\\:grid-cols-4",
+        title: "Resumo do mês",
+        text: "Receitas, despesas, valores a receber de empréstimos e o saldo do mês, sempre atualizados."
+    },
+    {
+        selector: "section.grid.grid-cols-1.lg\\:grid-cols-5",
+        title: "Gráficos",
+        text: "Acompanhe a evolução do seu saldo e a comparação entre receitas e despesas nos últimos meses."
+    },
+    {
+        selector: "button[onclick='openModal()']",
+        title: "Nova Transação",
+        text: "Registre uma receita ou despesa aqui — inclusive compras parceladas no cartão, onde cada parcela cai automaticamente na fatura certa."
+    },
+    {
+        selector: "#recent-transactions-list",
+        title: "Últimas transações",
+        text: "As transações mais recentes aparecem aqui, com um atalho rápido pra editar cada uma."
+    },
+    {
+        selector: "[data-due-reminders-trigger]",
+        title: "Lembretes",
+        text: "O sino avisa sobre contas e faturas de cartão vencendo nos próximos 7 dias."
+    },
+    {
+        selector: "#hide-values-icon-desktop, #hide-values-icon-mobile",
+        title: "Privacidade",
+        text: "Toque no olho pra ocultar todos os valores da tela — útil se alguém estiver por perto."
+    }
+];
+
 document.addEventListener("DOMContentLoaded", () => {
     const todayLabel = document.getElementById("today-label");
     if (todayLabel) {
@@ -32,6 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     loadCards();
     populateCardBankSelect();
+    initPageTour(TOUR_STEPS, "dashboard");
 
     document.addEventListener('click', function (event) {
         const menu = document.getElementById("user-menu");

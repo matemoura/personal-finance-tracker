@@ -179,3 +179,35 @@ body { background: var(--app-bg); color: var(--app-text); }
 }
 .field-error.visible { display: block; }
 .field-invalid { border-color: var(--app-danger) !important; }
+
+/* ---------- Tour guiado (onboarding) ----------
+   O "backdrop" só bloqueia cliques no resto da página (transparente, fica
+   embaixo do destaque/tooltip); o escurecido em volta do elemento destacado
+   vem do box-shadow gigante do próprio .tour-highlight, um truque comum de
+   "spotlight" que evita precisar de um overlay com recorte de verdade. */
+.tour-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: transparent;
+}
+.tour-highlight {
+  position: fixed;
+  z-index: 9999;
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px var(--app-primary), 0 0 0 9999px var(--app-overlay);
+  pointer-events: none;
+  transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease;
+}
+.tour-tooltip {
+  position: fixed;
+  z-index: 10000;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 20px 45px rgba(15,23,42,.3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-highlight { transition: none; }
+}
