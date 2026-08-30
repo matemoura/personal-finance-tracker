@@ -33,7 +33,9 @@ async function login(event) {
       localStorage.removeItem("userPhoto");
     }
 
-    window.location.href = "dashboard.html";
+    stampConfirmation("login-stamp", () => {
+      window.location.href = "dashboard.html";
+    });
 
   } catch (error) {
     console.error("Erro na requisição:", error);
@@ -55,4 +57,45 @@ document.addEventListener("DOMContentLoaded", () => {
   if (loginForm) {
     loginForm.addEventListener("submit", login);
   }
+
+  if (document.getElementById("preview-balance")) {
+    runLoginPreview();
+    setInterval(runLoginPreview, 6000);
+  }
 });
+
+// Preview animado (dados fictícios) do painel esquerdo da tela de login —
+// reaproveita a mesma linguagem de movimento do app real (contagem,
+// lançamento de linha, traço de gráfico) no lugar de foto/vídeo externo.
+const LOGIN_PREVIEW_ROWS = [
+  { desc: "Salário", cat: "Renda", amount: 5200, credit: true },
+  { desc: "Aluguel", cat: "Moradia", amount: -1300 },
+  { desc: "Mercado", cat: "Compras", amount: -412.6 }
+];
+
+function runLoginPreview() {
+  const balanceEl = document.getElementById("preview-balance");
+  const rowsEl = document.getElementById("preview-rows");
+  const spark = document.getElementById("preview-spark");
+  if (!balanceEl || !rowsEl || !spark) return;
+
+  rowsEl.innerHTML = "";
+  spark.classList.remove("draw");
+
+  animateCount(balanceEl, 3487.4);
+
+  const reduced = prefersReducedMotion();
+  LOGIN_PREVIEW_ROWS.forEach((r, i) => {
+    const row = document.createElement("div");
+    row.className = "lp-row";
+    row.innerHTML = `
+      <span class="lp-desc">${escapeHtml(r.desc)}<div class="lp-cat">${escapeHtml(r.cat)}</div></span>
+      <span class="lp-amt ${r.credit ? "credit" : "debit"}">${r.credit ? "+" : "−"} R$ ${new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(r.amount))}</span>
+    `;
+    rowsEl.appendChild(row);
+    row.style.animationDelay = reduced ? "0ms" : `${i * 140}ms`;
+    requestAnimationFrame(() => row.classList.add("show"));
+  });
+
+  requestAnimationFrame(() => spark.classList.add("draw"));
+}

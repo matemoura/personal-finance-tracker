@@ -88,8 +88,8 @@ function showToast(message, type = "info") {
 
   const colors = {
     success: "#15803d",
-    error: "#b91c1c",
-    info: "#755c47"
+    error: "#9c3b2e",
+    info: "#9c7331"
   };
 
   const toast = document.createElement("div");
@@ -534,7 +534,7 @@ function renderDueReminders(items) {
                 <span class="block text-sm font-medium truncate" style="color:var(--app-heading)">${escapeHtml(i.label)}</span>
                 ${i.date ? `<span class="block text-[11px]" style="color:var(--app-muted)">vence ${formatDate(i.date)}</span>` : ""}
             </span>
-            <span class="text-sm font-bold flex-shrink-0 whitespace-nowrap" style="color:var(--app-danger)">R$ ${formatCurrency(i.amount)}</span>
+            <span class="money text-sm font-bold flex-shrink-0 whitespace-nowrap" style="color:var(--app-danger)">R$ ${formatCurrency(i.amount)}</span>
         </a>
     `).join("");
 }
@@ -768,6 +768,74 @@ function formatCurrency(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(value);
+}
+
+// Sobe de zero até o valor real (~700ms) nos números em destaque do painel —
+// como alguém contando notas, não um placeholder que só aparece pronto.
+// Some (mostra "R$ ••••" direto) se os valores estiverem ocultos, e pula
+// pro valor final sem animação se o usuário preferir menos movimento.
+function animateCount(el, value, prefix = "R$ ") {
+  if (!el) return;
+  if (valuesHidden) {
+    el.textContent = `${prefix}••••`;
+    return;
+  }
+  if (prefersReducedMotion()) {
+    el.textContent = `${prefix}${formatCurrency(value)}`;
+    return;
+  }
+
+  const duration = 700;
+  const start = performance.now();
+
+  function tick(now) {
+    const p = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const current = value * eased;
+    el.textContent = `${prefix}${new Intl.NumberFormat("pt-BR", {
+      style: "decimal",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(current)}`;
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// Bate um "carimbo" (PAGO/RECEBIDO) e só roda o callback de conclusão depois
+// — dá um retorno visual real de que a ação foi confirmada, não só um toast
+// que já aparece com a tela mudada.
+function stampConfirmation(markId, onDone) {
+  const mark = document.getElementById(markId);
+  if (!mark || prefersReducedMotion()) {
+    onDone();
+    return;
+  }
+  mark.classList.remove("stamped");
+  void mark.offsetWidth;
+  mark.classList.add("stamped");
+  setTimeout(onDone, 420);
+}
+
+// Lança as linhas de uma lista uma a uma (não tudo de uma vez), como
+// lançamentos sendo postados no livro. Limita o intervalo às primeiras
+// linhas pra não atrasar visualmente listas longas. Em <tr> usa só opacidade
+// (sem translateY) — transform em linha de tabela é inconsistente entre
+// navegadores.
+function staggerRowEntrance(container, rowClass = "ledger-row", maxDelayIndex = 8) {
+  if (!container) return;
+  const rows = container.children;
+  const reduced = prefersReducedMotion();
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    row.classList.add(rowClass);
+    if (reduced) {
+      row.classList.add("entered");
+      continue;
+    }
+    row.style.animationDelay = `${Math.min(i, maxDelayIndex) * 45}ms`;
+    requestAnimationFrame(() => row.classList.add("entered"));
+  }
 }
 
 function formatDate(dateString) {

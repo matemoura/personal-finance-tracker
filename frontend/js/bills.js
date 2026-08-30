@@ -179,7 +179,7 @@ function loadUserData() {
     if (photo) {
         setAvatarEverywhere(photo);
     } else if (name) {
-        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82c4&color=fff`);
+        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1f4d3d&color=fff`);
     }
 }
 
@@ -195,7 +195,7 @@ async function deletePhoto() {
             localStorage.removeItem("userPhoto");
 
             const name = localStorage.getItem("userName");
-            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=3b82c4&color=fff`;
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=1f4d3d&color=fff`;
 
             setAvatarEverywhere(defaultAvatar);
             document.getElementById("settings-avatar-preview").src = defaultAvatar;
@@ -314,9 +314,9 @@ function renderSummary() {
         counts[b.status] = (counts[b.status] || 0) + 1;
     });
 
-    document.getElementById("summary-total-pending").innerText = `R$ ${formatCurrency(totals.PENDING)}`;
-    document.getElementById("summary-total-overdue").innerText = `R$ ${formatCurrency(totals.OVERDUE)}`;
-    document.getElementById("summary-total-paid").innerText = `R$ ${formatCurrency(totals.PAID)}`;
+    animateCount(document.getElementById("summary-total-pending"), totals.PENDING);
+    animateCount(document.getElementById("summary-total-overdue"), totals.OVERDUE);
+    animateCount(document.getElementById("summary-total-paid"), totals.PAID);
 
     document.getElementById("summary-count-pending").textContent = counts.PENDING > 0 ? `${counts.PENDING} conta${counts.PENDING > 1 ? "s" : ""}` : "Nenhuma";
     document.getElementById("summary-count-overdue").textContent = counts.OVERDUE > 0 ? `${counts.OVERDUE} conta${counts.OVERDUE > 1 ? "s" : ""}` : "Nenhuma";
@@ -343,7 +343,7 @@ function renderBills() {
         : allBills.filter(b => b.status === currentFilter);
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center" style="color:#9daebf">Nenhuma conta encontrada.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center" style="color:var(--app-muted)">Nenhuma conta encontrada.</td></tr>';
         return;
     }
 
@@ -363,17 +363,18 @@ function renderBills() {
                 ${cardBadge}
             </td>
             <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formatDate(bill.dueDate)}</td>
-            <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:var(--app-heading)">R$ ${formatCurrency(bill.amount)}</td>
+            <td class="money px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:var(--app-heading)">R$ ${formatCurrency(bill.amount)}</td>
             <td class="px-[18px] py-[13px]"><span class="${statusClass} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${statusLabel}</span></td>
             <td class="px-[18px] py-[13px] text-center whitespace-nowrap">
                 ${isPaid ? "" : `<button onclick="openPayBillModal(${bill.id}, '${escapeHtml(bill.description)}', ${bill.amount})"
-                    class="icon-btn px-1.5 py-1 transition hover:!text-[#3b82c4]" title="Marcar como pago" aria-label="Marcar conta como paga" style="color:#9daebf">${ICON_CHECK}</button>`}
+                    class="icon-btn px-1.5 py-1 transition hover:!text-[var(--app-primary)]" title="Marcar como pago" aria-label="Marcar conta como paga" style="color:var(--app-muted)">${ICON_CHECK}</button>`}
                 ${isPaid ? "" : `<button onclick="deleteBill(${bill.id})" title="Excluir"
-                    class="icon-btn px-1.5 py-1 transition hover:!text-red-600" style="color:#9daebf" aria-label="Excluir conta">${ICON_TRASH}</button>`}
+                    class="icon-btn px-1.5 py-1 transition hover:!text-red-600" style="color:var(--app-muted)" aria-label="Excluir conta">${ICON_TRASH}</button>`}
             </td>
         `;
         tbody.appendChild(tr);
     });
+    staggerRowEntrance(tbody, "ledger-row-table");
 }
 
 function openBillModal() {
@@ -461,10 +462,12 @@ async function submitPayBill() {
         });
 
         if (response.ok) {
-            showToast("Conta marcada como paga!", "success");
-            closePayBillModal();
-            loadBills();
-            checkDueReminders();
+            stampConfirmation("bill-stamp-mark", () => {
+                showToast("Conta marcada como paga!", "success");
+                closePayBillModal();
+                loadBills();
+                checkDueReminders();
+            });
         } else {
             const err = await response.json();
             showToast("Erro: " + (err.message || "Falha ao registrar."), "error");

@@ -176,7 +176,7 @@ function loadUserData() {
     if (photo) {
         setAvatarEverywhere(photo);
     } else if (name) {
-        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82c4&color=fff`);
+        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1f4d3d&color=fff`);
     }
 }
 
@@ -192,7 +192,7 @@ async function deletePhoto() {
             localStorage.removeItem("userPhoto");
 
             const name = localStorage.getItem("userName");
-            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=3b82c4&color=fff`;
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=1f4d3d&color=fff`;
 
             setAvatarEverywhere(defaultAvatar);
             document.getElementById("settings-avatar-preview").src = defaultAvatar;
@@ -253,9 +253,9 @@ async function loadLoans() {
 
         if (summaryResponse.ok) {
             const summary = await summaryResponse.json();
-            document.getElementById("summary-total-lent").innerText = `R$ ${formatCurrency(summary.totalLent)}`;
-            document.getElementById("summary-total-returned").innerText = `R$ ${formatCurrency(summary.totalReturned)}`;
-            document.getElementById("summary-total-pending").innerText = `R$ ${formatCurrency(summary.totalPending)}`;
+            animateCount(document.getElementById("summary-total-lent"), summary.totalLent);
+            animateCount(document.getElementById("summary-total-returned"), summary.totalReturned);
+            animateCount(document.getElementById("summary-total-pending"), summary.totalPending);
         }
     } catch (error) {
         console.error(error);
@@ -283,7 +283,7 @@ function renderLoans() {
         : allLoans.filter(l => l.status === currentFilter);
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center" style="color:#9daebf">Nenhum empréstimo encontrado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center" style="color:var(--app-muted)">Nenhum empréstimo encontrado.</td></tr>';
         return;
     }
 
@@ -299,18 +299,19 @@ function renderLoans() {
             <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${escapeHtml(loan.personName)}</td>
             <td class="px-[18px] py-[13px]" style="color:var(--app-muted)">${escapeHtml(loan.description) || '-'}</td>
             <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formatDate(loan.dateLent)}</td>
-            <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:var(--app-heading)">R$ ${formatCurrency(loan.amount)}</td>
-            <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:${isPaid ? 'var(--app-success)' : 'var(--app-danger)'}">R$ ${formatCurrency(loan.remaining)}</td>
+            <td class="money px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:var(--app-heading)">R$ ${formatCurrency(loan.amount)}</td>
+            <td class="money px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:${isPaid ? 'var(--app-success)' : 'var(--app-danger)'}">R$ ${formatCurrency(loan.remaining)}</td>
             <td class="px-[18px] py-[13px]"><span class="${statusClass} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${statusLabel}</span></td>
             <td class="px-[18px] py-[13px] text-center whitespace-nowrap">
                 ${isPaid ? "" : `<button onclick="openRepaymentModal(${loan.id}, '${escapeHtml(loan.personName)}', ${loan.remaining})"
-                    class="icon-btn px-1.5 py-1 transition hover:!text-[#3b82c4]" title="Registrar recebimento" aria-label="Registrar recebimento" style="color:#9daebf">${ICON_COIN}</button>`}
+                    class="icon-btn px-1.5 py-1 transition hover:!text-[var(--app-primary)]" title="Registrar recebimento" aria-label="Registrar recebimento" style="color:var(--app-muted)">${ICON_COIN}</button>`}
                 <button onclick="deleteLoan(${loan.id})" title="Excluir" aria-label="Excluir empréstimo"
-                    class="icon-btn px-1.5 py-1 transition hover:!text-red-600" style="color:#9daebf">${ICON_TRASH}</button>
+                    class="icon-btn px-1.5 py-1 transition hover:!text-red-600" style="color:var(--app-muted)">${ICON_TRASH}</button>
             </td>
         `;
         tbody.appendChild(tr);
     });
+    staggerRowEntrance(tbody, "ledger-row-table");
 }
 
 function openLoanModal() {
@@ -399,9 +400,11 @@ async function submitRepayment() {
         });
 
         if (response.ok) {
-            showToast("Recebimento registrado!", "success");
-            closeRepaymentModal();
-            loadLoans();
+            stampConfirmation("loan-stamp-mark", () => {
+                showToast("Recebimento registrado!", "success");
+                closeRepaymentModal();
+                loadLoans();
+            });
         } else {
             const err = await response.json();
             showToast("Erro: " + (err.message || "Falha ao registrar."), "error");

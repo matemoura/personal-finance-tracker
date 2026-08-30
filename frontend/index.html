@@ -14,10 +14,10 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
     <meta name="description" content="Finance Tracker — controle suas receitas, despesas e relatórios financeiros pessoais.">
     <link rel="stylesheet" href="css/tailwind.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/app.css">
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; }
+        body { font-family: 'Public Sans', system-ui, sans-serif; }
     </style>
 </head>
 
@@ -27,46 +27,63 @@
         <span id="theme-icon-desktop"></span>
     </button>
 
-    <div class="login-panel w-full max-w-[420px] rounded-2xl px-9 py-10">
-        <div class="text-center mb-8">
-            <div class="w-12 h-12 rounded-xl app-button flex items-center justify-center text-white font-extrabold text-2xl mx-auto mb-4 !shadow-none">M</div>
-            <h1 class="text-2xl font-extrabold tracking-tight" style="color:var(--app-heading)">Bem-vindo</h1>
-            <p class="text-sm mt-1.5" style="color:var(--app-muted)">Faça login para gerenciar suas finanças</p>
+    <div class="login-split w-full max-w-[860px] rounded-2xl overflow-hidden">
+        <div class="login-visual hidden md:flex">
+            <p class="login-tagline">Suas contas, organizadas como um livro-caixa de verdade.</p>
+            <div class="ledger-preview">
+                <p class="lp-label">Saldo do mês</p>
+                <p class="lp-balance money-lg" id="preview-balance">R$ 0,00</p>
+                <div class="lp-rows" id="preview-rows"></div>
+                <svg class="lp-spark" width="100%" height="34" viewBox="0 0 220 34" preserveAspectRatio="none">
+                    <path id="preview-spark" d="M0,26 L30,20 L60,24 L90,14 L120,18 L150,8 L180,12 L220,4" fill="none" stroke="var(--app-primary)" stroke-width="2"></path>
+                </svg>
+            </div>
         </div>
 
-        <form id="login-form" class="space-y-5">
-            <div>
-                <label for="email" class="block text-xs font-semibold mb-1.5" style="color:var(--app-heading)">E-mail</label>
-                <input type="email" id="email" required
-                    class="app-input w-full px-3.5 py-2.5 rounded-lg text-sm transition"
-                    placeholder="seu@email.com">
+        <div class="login-panel px-9 py-10">
+            <div class="text-center mb-8">
+                <div class="w-12 h-12 rounded-xl app-button flex items-center justify-center text-white font-extrabold text-2xl mx-auto mb-4 !shadow-none">M</div>
+                <h1 class="text-2xl font-extrabold tracking-tight" style="color:var(--app-heading)">Bem-vindo</h1>
+                <p class="text-sm mt-1.5" style="color:var(--app-muted)">Faça login para gerenciar suas finanças</p>
             </div>
 
-            <div>
-                <label for="password" class="block text-xs font-semibold mb-1.5" style="color:var(--app-heading)">Senha</label>
-                <input type="password" id="password" required
-                    class="app-input w-full px-3.5 py-2.5 rounded-lg text-sm transition"
-                    placeholder="••••••••">
-                <div class="text-right mt-2">
-                    <a href="forgot-password.html"
-                        class="text-xs font-semibold hover:underline" style="color:var(--app-primary)">
-                        Esqueci minha senha
-                    </a>
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label for="email" class="block text-xs font-semibold mb-1.5" style="color:var(--app-heading)">E-mail</label>
+                    <input type="email" id="email" required
+                        class="app-input w-full px-3.5 py-2.5 rounded-lg text-sm transition"
+                        placeholder="seu@email.com">
                 </div>
-            </div>
 
-            <button type="submit"
-                class="app-button w-full font-bold text-sm py-3 rounded-lg transition">
-                Entrar
-            </button>
-        </form>
+                <div>
+                    <label for="password" class="block text-xs font-semibold mb-1.5" style="color:var(--app-heading)">Senha</label>
+                    <input type="password" id="password" required
+                        class="app-input w-full px-3.5 py-2.5 rounded-lg text-sm transition"
+                        placeholder="••••••••">
+                    <div class="text-right mt-2">
+                        <a href="forgot-password.html"
+                            class="text-xs font-semibold hover:underline" style="color:var(--app-primary)">
+                            Esqueci minha senha
+                        </a>
+                    </div>
+                </div>
 
-        <p class="mt-6 text-center text-sm" style="color:var(--app-muted)">
-            Não tem uma conta?
-            <a href="register.html" class="font-bold hover:underline" style="color:var(--app-primary)">
-                Cadastre-se
-            </a>
-        </p>
+                <div class="submit-wrap">
+                    <button type="submit"
+                        class="app-button w-full font-bold text-sm py-3 rounded-lg transition">
+                        Entrar
+                    </button>
+                    <div class="stamp-mark" id="login-stamp">BEM-VINDO</div>
+                </div>
+            </form>
+
+            <p class="mt-6 text-center text-sm" style="color:var(--app-muted)">
+                Não tem uma conta?
+                <a href="register.html" class="font-bold hover:underline" style="color:var(--app-primary)">
+                    Cadastre-se
+                </a>
+            </p>
+        </div>
     </div>
 
     <script src="js/api.js"></script>

@@ -214,7 +214,7 @@ async function previewReport() {
 
     document.getElementById("preview-date").innerText = `${MONTHS_LONG[month - 1]} de ${year}`;
     const tbody = document.getElementById("report-preview-body");
-    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center" style="color:#9daebf">Carregando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center" style="color:var(--app-muted)">Carregando...</td></tr>';
 
     try {
         const [txResponse, summaryResponse] = await Promise.all([
@@ -228,9 +228,9 @@ async function previewReport() {
             const summary = await summaryResponse.json();
             const income = summary.totalIncome || 0;
             const expense = summary.totalExpenses || 0;
-            document.getElementById("report-income").innerText = `R$ ${formatCurrency(income)}`;
-            document.getElementById("report-expense").innerText = `R$ ${formatCurrency(expense)}`;
-            document.getElementById("report-result").innerText = `R$ ${formatCurrency(income - expense)}`;
+            animateCount(document.getElementById("report-income"), income);
+            animateCount(document.getElementById("report-expense"), expense);
+            animateCount(document.getElementById("report-result"), income - expense);
         }
 
         const data = await txResponse.json();
@@ -238,7 +238,7 @@ async function previewReport() {
         tbody.innerHTML = "";
 
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center" style="color:#9daebf">Nenhuma transação encontrada neste período.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center" style="color:var(--app-muted)">Nenhuma transação encontrada neste período.</td></tr>';
             return;
         }
 
@@ -256,14 +256,15 @@ async function previewReport() {
             tr.innerHTML = `
                 <td class="px-5 py-3 whitespace-nowrap" style="color:var(--app-muted)">${formattedDate}</td>
                 <td class="px-5 py-3 font-semibold" style="color:var(--app-heading)">${escapeHtml(t.description)}</td>
-                <td class="px-5 py-3" style="color:#5b6d80">${t.category ? escapeHtml(t.category.name) : '-'}</td>
+                <td class="px-5 py-3" style="color:var(--app-muted)">${t.category ? escapeHtml(t.category.name) : '-'}</td>
                 <td class="px-5 py-3"><span class="${isIncome ? 'pill-income' : 'pill-expense'} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${typeLabel}</span></td>
-                <td class="px-5 py-3 text-right font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-heading)'}">
+                <td class="money px-5 py-3 text-right font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-heading)'}">
                     ${symbol} R$ ${formattedValue}
                 </td>
             `;
             tbody.appendChild(tr);
         });
+        staggerRowEntrance(tbody, "ledger-row-table");
 
     } catch (error) {
         console.error(error);
@@ -325,7 +326,7 @@ function loadUserData() {
     if (photo) {
         setAvatarEverywhere(photo);
     } else if (name) {
-        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82c4&color=fff`);
+        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1f4d3d&color=fff`);
     }
 }
 
@@ -341,7 +342,7 @@ async function deletePhoto() {
             localStorage.removeItem("userPhoto");
 
             const name = localStorage.getItem("userName");
-            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=3b82c4&color=fff`;
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=1f4d3d&color=fff`;
 
             setAvatarEverywhere(defaultAvatar);
             document.getElementById("settings-avatar-preview").src = defaultAvatar;

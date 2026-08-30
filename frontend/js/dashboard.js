@@ -264,10 +264,10 @@ async function loadDashboard() {
         const balance = data.balance || 0;
         const monthBalance = income - expense;
 
-        document.getElementById("total-income").innerText = `R$ ${formatCurrency(income)}`;
-        document.getElementById("total-expense").innerText = `R$ ${formatCurrency(expense)}`;
-        document.getElementById("month-balance").innerText = `R$ ${formatCurrency(monthBalance)}`;
-        document.getElementById("total-balance").innerText = `R$ ${formatCurrency(balance)}`;
+        animateCount(document.getElementById("total-income"), income);
+        animateCount(document.getElementById("total-expense"), expense);
+        animateCount(document.getElementById("month-balance"), monthBalance);
+        animateCount(document.getElementById("total-balance"), balance);
 
         const prevName = MONTHS_LONG[prev.month - 1];
         renderVariationBadge("income-badge", "income-vs", income, prevData ? prevData.totalIncome : null, prevName, true);
@@ -302,7 +302,7 @@ async function loadReceivable() {
         const badge = document.getElementById("receivable-badge");
         const note = document.getElementById("receivable-note");
 
-        card.innerText = `R$ ${formatCurrency(summary.totalPending)}`;
+        animateCount(card, summary.totalPending);
 
         if (summary.pendingCount > 0) {
             badge.textContent = `${summary.pendingCount} pendente${summary.pendingCount > 1 ? "s" : ""}`;
@@ -347,7 +347,7 @@ async function loadTransactions() {
 
         listContainer.innerHTML = "";
         if (data.length === 0) {
-            listContainer.innerHTML = '<li class="py-6 text-center text-sm italic" style="color:#9daebf">Nenhuma transação neste período.</li>';
+            listContainer.innerHTML = '<li class="py-6 text-center text-sm italic" style="color:var(--app-muted)">Nenhuma transação neste período.</li>';
             return;
         }
 
@@ -369,19 +369,20 @@ async function loadTransactions() {
                      style="background:${iconBg};color:${iconColor}">${icon}</div>
                 <div class="flex-1 min-w-0">
                     <div class="font-semibold truncate" style="color:var(--app-heading)" title="${safeDescription}">${safeDescription}</div>
-                    <div class="text-[11px] break-words flex items-center gap-1 flex-wrap" style="color:#9daebf">
+                    <div class="text-[11px] break-words flex items-center gap-1 flex-wrap" style="color:var(--app-muted)">
                         <span>${formattedDate} · ${t.category ? escapeHtml(t.category.name) : 'Sem categoria'}</span>
                         ${t.card ? `<span class="inline-flex items-center gap-1">· ${renderCardIcon(t.card.icon, t.card.name, "w-3.5 h-3.5 inline-block align-middle")} ${escapeHtml(t.card.name)}</span>` : ''}
                     </div>
                 </div>
-                <span class="font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-danger)'}">
+                <span class="money font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-danger)'}">
                     ${symbol} R$ ${formattedValue}
                 </span>
                 <button onclick='openEditModal(${safeTransaction})'
-                    class="icon-btn p-1.5 rounded-md transition hover:bg-[var(--app-soft)]" style="color:#9daebf" title="Editar" aria-label="Editar transação">${ICON_EDIT}</button>
+                    class="icon-btn p-1.5 rounded-md transition hover:bg-[var(--app-soft)]" style="color:var(--app-muted)" title="Editar" aria-label="Editar transação">${ICON_EDIT}</button>
             `;
             listContainer.appendChild(li);
         });
+        staggerRowEntrance(listContainer);
     } catch (e) {
         console.error("Erro ao carregar transações:", e);
     }
@@ -397,11 +398,11 @@ async function loadCategoryBars() {
 
         container.innerHTML = "";
         if (data.length === 0) {
-            container.innerHTML = '<div class="py-6 text-center text-sm italic" style="color:#9daebf">Sem despesas neste período.</div>';
+            container.innerHTML = '<div class="py-6 text-center text-sm italic" style="color:var(--app-muted)">Sem despesas neste período.</div>';
             return;
         }
 
-        const palette = ["#27659e", "#3b82c4", "#5d9cd4", "#82b5e0", "#aecdea", "#c9dcf0", "#dde9f6"];
+        const palette = ["#163a2d", "#1f4d3d", "#2f6b54", "#4f8d72", "#7fac93", "#a9c6b6", "#d3e2d9"];
         const sorted = [...data].sort((a, b) => b.total - a.total);
         const max = sorted[0].total || 1;
 
@@ -411,7 +412,7 @@ async function loadCategoryBars() {
             row.innerHTML = `
                 <div class="flex justify-between gap-2 mb-1">
                     <span class="truncate min-w-0">${escapeHtml(item.category)}</span>
-                    <span class="font-semibold flex-shrink-0 whitespace-nowrap">R$ ${formatCurrency(item.total)}</span>
+                    <span class="money font-semibold flex-shrink-0 whitespace-nowrap">R$ ${formatCurrency(item.total)}</span>
                 </div>
                 <div class="h-[7px] rounded" style="background:var(--app-soft)">
                     <div class="h-[7px] rounded transition-all" style="width:${pct}%;background:${palette[i % palette.length]}"></div>
@@ -463,13 +464,13 @@ function renderEvolutionChart(months, results) {
         <svg width="100%" height="150" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
             <defs>
                 <linearGradient id="gd1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#3b82c4" stop-opacity=".25"></stop>
-                    <stop offset="1" stop-color="#3b82c4" stop-opacity="0"></stop>
+                    <stop offset="0" stop-color="#1f4d3d" stop-opacity=".25"></stop>
+                    <stop offset="1" stop-color="#1f4d3d" stop-opacity="0"></stop>
                 </linearGradient>
             </defs>
             <path d="M${line.replace(/ /g, " L")} L${W},${H} L0,${H} Z" fill="url(#gd1)"></path>
-            <polyline points="${line}" fill="none" stroke="#3b82c4" stroke-width="2.5"></polyline>
-            <circle cx="${last[0]}" cy="${last[1]}" r="4" fill="#3b82c4"></circle>
+            <polyline points="${line}" fill="none" stroke="#1f4d3d" stroke-width="2.5"></polyline>
+            <circle cx="${last[0]}" cy="${last[1]}" r="4" fill="#1f4d3d"></circle>
         </svg>
     `;
 
@@ -494,7 +495,7 @@ function renderBarsChart(months, results) {
         return `
             <div class="flex-1 flex gap-1 items-end h-full">
                 <div class="flex-1 rounded-t" style="height:${Math.max(incomePct, 2)}%;background:var(--app-primary)"></div>
-                <div class="flex-1 rounded-t" style="height:${Math.max(expensePct, 2)}%;background:#c3d3e8"></div>
+                <div class="flex-1 rounded-t" style="height:${Math.max(expensePct, 2)}%;background:var(--app-danger)"></div>
             </div>
         `;
     }).join("");
@@ -874,7 +875,7 @@ function loadUserData() {
     if (photo) {
         setAvatarEverywhere(photo);
     } else if (name) {
-        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82c4&color=fff`);
+        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1f4d3d&color=fff`);
     }
 }
 
@@ -890,7 +891,7 @@ async function deletePhoto() {
             localStorage.removeItem("userPhoto");
 
             const name = localStorage.getItem("userName");
-            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=3b82c4&color=fff`;
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=1f4d3d&color=fff`;
 
             setAvatarEverywhere(defaultAvatar);
             document.getElementById("settings-avatar-preview").src = defaultAvatar;

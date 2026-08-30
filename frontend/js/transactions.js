@@ -242,7 +242,7 @@ function renderTransactionsPage() {
     }
 
     if (visibleTransactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center" style="color:#9daebf">Nenhuma transação encontrada neste período.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center" style="color:var(--app-muted)">Nenhuma transação encontrada neste período.</td></tr>';
         pagination.classList.add("hidden");
         return;
     }
@@ -273,18 +273,19 @@ function renderTransactionsPage() {
                 ${t.card ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1 inline-flex items-center gap-1">${renderCardIcon(t.card.icon, t.card.name, "w-3.5 h-3.5")} ${escapeHtml(t.card.name)}</span>` : ''}
             </td>
             <td class="px-[18px] py-[13px]"><span class="${isIncome ? 'pill-income' : 'pill-expense'} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${typeLabel}</span></td>
-            <td class="px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-heading)'}">
+            <td class="money px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:${isIncome ? 'var(--app-success)' : 'var(--app-heading)'}">
                 ${symbol} R$ ${formattedValue}
             </td>
             <td class="px-[18px] py-[13px] text-center whitespace-nowrap">
                 <button onclick='openEditModal(${safeTransaction})' title="Editar" aria-label="Editar transação"
-                    class="icon-btn px-1.5 py-1 transition hover:!text-[#3b82c4]" style="color:#9daebf">${ICON_EDIT}</button>
+                    class="icon-btn px-1.5 py-1 transition hover:!text-[var(--app-primary)]" style="color:var(--app-muted)">${ICON_EDIT}</button>
                 <button onclick="deleteTransaction(${t.id})" title="Excluir" aria-label="Excluir transação"
-                    class="icon-btn px-1.5 py-1 transition hover:!text-red-600" style="color:#9daebf">${ICON_TRASH}</button>
+                    class="icon-btn px-1.5 py-1 transition hover:!text-red-600" style="color:var(--app-muted)">${ICON_TRASH}</button>
             </td>
         `;
         tbody.appendChild(tr);
     });
+    staggerRowEntrance(tbody, "ledger-row-table");
 
     if (totalPages > 1) {
         pagination.classList.remove("hidden");
@@ -338,7 +339,7 @@ function loadUserData() {
     if (photo) {
         setAvatarEverywhere(photo);
     } else if (name) {
-        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82c4&color=fff`);
+        setAvatarEverywhere(`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1f4d3d&color=fff`);
     }
 }
 
@@ -354,7 +355,7 @@ async function deletePhoto() {
             localStorage.removeItem("userPhoto");
 
             const name = localStorage.getItem("userName");
-            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=3b82c4&color=fff`;
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=1f4d3d&color=fff`;
 
             setAvatarEverywhere(defaultAvatar);
             document.getElementById("settings-avatar-preview").src = defaultAvatar;
@@ -478,7 +479,7 @@ function renderCardsPanel() {
                 ${hasOlderPending ? `<div class="text-[11px] font-semibold break-words" style="color:var(--app-danger)">Pendente (total): R$ ${formatCurrency(c.pendingTotal)}</div>` : ''}
             </div>
             ${hasPending ? `<button title="Pagar fatura" class="pay-invoice-btn ml-1 px-2 py-1 rounded-md text-[11px] font-semibold transition flex-shrink-0" style="background:var(--app-primary);color:#fff">Pagar</button>` : ''}
-            <button title="Excluir cartão" aria-label="Excluir cartão" class="delete-card-btn icon-btn ml-1 transition hover:!text-red-600 flex-shrink-0" style="color:#c3ccd6">${ICON_CLOSE}</button>
+            <button title="Excluir cartão" aria-label="Excluir cartão" class="delete-card-btn icon-btn ml-1 transition hover:!text-red-600 flex-shrink-0" style="color:var(--app-muted)">${ICON_CLOSE}</button>
         `;
 
         const payBtn = chip.querySelector(".pay-invoice-btn");
@@ -646,7 +647,7 @@ async function loadPendingInvoicesList() {
             row.innerHTML = `
                 <div class="min-w-0">
                     <div class="text-[13px] font-semibold truncate" style="color:var(--app-heading)">${MONTHS_LONG[inv.month - 1]} de ${inv.year}</div>
-                    <div class="text-[12px]" style="color:var(--app-muted)">R$ ${formatCurrency(inv.total)}</div>
+                    <div class="money text-[12px]" style="color:var(--app-muted)">R$ ${formatCurrency(inv.total)}</div>
                 </div>
                 <button class="app-button px-3 py-1.5 rounded-lg text-[12px] font-semibold transition flex-shrink-0 whitespace-nowrap">Marcar como paga</button>
             `;
