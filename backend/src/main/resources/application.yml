@@ -23,6 +23,10 @@ spring:
         format_sql: true
   flyway:
     enabled: true
+    # Soluços de rede passageiros na conexão com o Postgres (pooler do Supabase)
+    # não devem derrubar o boot inteiro — tenta de novo antes de desistir.
+    connect-retries: 10
+    connect-retries-interval: 5
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
