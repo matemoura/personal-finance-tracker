@@ -27,10 +27,16 @@ public class CategoryService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow();
 
+        String name = dto.name().trim();
+
+        if (categoryRepository.existsByUserAndTypeAndNameIgnoreCase(user, dto.type(), name)) {
+            throw new RuntimeException("Você já tem uma categoria chamada \"" + name + "\" desse tipo.");
+        }
+
         String icon = (dto.icon() == null || dto.icon().isBlank()) ? "🧾" : dto.icon();
 
         Category category = Category.builder()
-                .name(dto.name())
+                .name(name)
                 .type(dto.type())
                 .user(user)
                 .icon(icon)
@@ -61,7 +67,13 @@ public class CategoryService {
             throw new RuntimeException("Acess denied");
         }
 
-        category.setName(dto.name());
+        String name = dto.name().trim();
+
+        if (categoryRepository.existsByUserAndTypeAndNameIgnoreCaseAndIdNot(user, dto.type(), name, category.getId())) {
+            throw new RuntimeException("Você já tem uma categoria chamada \"" + name + "\" desse tipo.");
+        }
+
+        category.setName(name);
         category.setType(dto.type());
 
         if (dto.icon() != null && !dto.icon().isBlank()) {

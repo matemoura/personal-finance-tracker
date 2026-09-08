@@ -77,6 +77,8 @@ public class TransactionService {
                 .card(card)
                 .invoiceYear(invoicePeriod != null ? invoicePeriod.getYear() : null)
                 .invoiceMonth(invoicePeriod != null ? invoicePeriod.getMonthValue() : null)
+                .installmentIndex(dto.installmentIndex())
+                .installmentTotal(dto.installmentTotal())
                 .build();
 
         return transactionRepository.save(transaction);
@@ -181,7 +183,12 @@ public class TransactionService {
         }
 
         Card card = resolveCard(request.cardId(), user);
-        YearMonth invoicePeriod = invoicePeriodFor(request.date(), card, request.installmentIndex());
+        // Usa o installmentIndex já gravado NA TRANSAÇÃO (não o do request, que
+        // o formulário de edição nunca preenche) — assim editar qualquer campo
+        // (valor, categoria, cartão...) recalcula a fatura certa mantendo o
+        // deslocamento da parcela, em vez de jogá-la de volta pro mês base.
+        // Para uma transação que não é parcela, installmentIndex já é nulo (= 0).
+        YearMonth invoicePeriod = invoicePeriodFor(request.date(), card, transaction.getInstallmentIndex());
 
         transaction.setDescription(request.description());
         transaction.setAmount(request.amount());

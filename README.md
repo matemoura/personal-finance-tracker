@@ -68,9 +68,24 @@ Depois é só servir os arquivos estáticos (Live Server, `python -m http.server
 
 Ver `backend/.env.example` para a lista completa com comentários. Nenhuma é lida de arquivo em produção — todas ficam cadastradas no painel do host (Render).
 
-## Testes
+## Testes e cobertura
+
+**Backend** — JUnit + Mockito, cobertura via JaCoCo:
 
 ```bash
 cd backend
 ./mvnw test
 ```
+
+O relatório html fica em `backend/target/site/jacoco/index.html` depois do `test` (gerado automaticamente, sem flag extra).
+
+**Frontend** — Jest + jsdom. Os arquivos em `frontend/js/` são scripts clássicos (sem `import`/`export`, pensados pra `<script>` direto no navegador); os testes carregam cada um via `frontend/tests/helpers/loadScript.js`, que injeta o código no ambiente global do jsdom — igual ao navegador faria — em vez de exigir reescrever os arquivos como módulos:
+
+```bash
+cd frontend
+npm install
+npm test               # roda a suíte
+npm run test:coverage  # roda com relatório de cobertura (texto no terminal + html em frontend/coverage/)
+```
+
+Cobertura hoje é forte em `js/api.js` (helpers compartilhados por todas as páginas: validação, formatação de moeda, animações, tour guiado, lembretes de vencimento, sessão/autenticação) — os arquivos JS específicos de cada página (`dashboard.js`, `transactions.js`, etc., em sua maioria controllers de UI fortemente acoplados ao DOM de cada tela) ainda não têm testes; é o próximo passo natural pra ampliar a cobertura.

@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class JwtServiceTest {
 
-    private static final String SECRET = "***REMOVED-JWT-SECRET***=";
+    private static final String SECRET = "YSmVfPKQHZBKboA7VllEq7A5lYMywsDZ7xJfmVYePqo=";
 
     private JwtService jwtService;
 

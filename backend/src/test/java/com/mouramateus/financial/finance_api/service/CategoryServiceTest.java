@@ -68,6 +68,54 @@ class CategoryServiceTest {
     }
 
     @Test
+    void create_withDuplicateNameSameTypeCaseInsensitive_throws() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        CategoryCreateRequest request = new CategoryCreateRequest("mercado", CategoryType.EXPENSE, null);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.existsByUserAndTypeAndNameIgnoreCase(owner, CategoryType.EXPENSE, "mercado"))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> categoryService.create(request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("já tem uma categoria");
+
+        verify(categoryRepository, never()).save(any());
+    }
+
+    @Test
+    void create_withSameNameButDifferentType_isAllowed() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        // "existsBy...AndType..." só checa duplicidade dentro do mesmo tipo —
+        // uma categoria "Outros" de despesa e outra de receita podem coexistir.
+        CategoryCreateRequest request = new CategoryCreateRequest("Outros", CategoryType.INCOME, null);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.existsByUserAndTypeAndNameIgnoreCase(owner, CategoryType.INCOME, "Outros"))
+                .thenReturn(false);
+        when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Category result = categoryService.create(request);
+
+        assertThat(result.getName()).isEqualTo("Outros");
+    }
+
+    @Test
+    void create_trimsNameBeforeCheckingAndSaving() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        CategoryCreateRequest request = new CategoryCreateRequest("  Mercado  ", CategoryType.EXPENSE, null);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.existsByUserAndTypeAndNameIgnoreCase(owner, CategoryType.EXPENSE, "Mercado"))
+                .thenReturn(false);
+        when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Category result = categoryService.create(request);
+
+        assertThat(result.getName()).isEqualTo("Mercado");
+    }
+
+    @Test
     void update_ownedByAnotherUser_throwsAccessDenied() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         User otherUser = User.builder().id(2L).build();
@@ -81,6 +129,44 @@ class CategoryServiceTest {
                 .isInstanceOf(RuntimeException.class);
 
         verify(categoryRepository, never()).save(any());
+    }
+
+    @Test
+    void update_toNameAlreadyUsedByAnotherCategory_throws() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category category = Category.builder().id(10L).user(owner).name("Antigo").type(CategoryType.EXPENSE).build();
+        CategoryUpdateRequest request = new CategoryUpdateRequest("Mercado", CategoryType.EXPENSE, null);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+        when(categoryRepository.existsByUserAndTypeAndNameIgnoreCaseAndIdNot(owner, CategoryType.EXPENSE, "Mercado", 10L))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> categoryService.update(10L, request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("já tem uma categoria");
+
+        verify(categoryRepository, never()).save(any());
+    }
+
+    @Test
+    void update_keepingOwnName_isAllowed() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category category = Category.builder().id(10L).user(owner).name("Mercado").type(CategoryType.EXPENSE).build();
+        // Salvar sem mudar o nome não pode se auto-bloquear como duplicata —
+        // a checagem exclui a própria categoria (AndIdNot).
+        CategoryUpdateRequest request = new CategoryUpdateRequest("Mercado", CategoryType.EXPENSE, "🛒");
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+        when(categoryRepository.existsByUserAndTypeAndNameIgnoreCaseAndIdNot(owner, CategoryType.EXPENSE, "Mercado", 10L))
+                .thenReturn(false);
+        when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Category result = categoryService.update(10L, request);
+
+        assertThat(result.getName()).isEqualTo("Mercado");
+        assertThat(result.getIcon()).isEqualTo("🛒");
     }
 
     @Test

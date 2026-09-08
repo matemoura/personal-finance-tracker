@@ -258,6 +258,9 @@
                         <input type="text" id="description" placeholder="Ex: Mercado..."
                             class="app-input w-full px-3 py-2.5 rounded-lg text-sm">
                     </div>
+                    <div id="installmentBadge" class="hidden text-[12px] font-semibold px-3 py-2 rounded-lg" style="background:var(--app-soft);color:var(--app-primary-dark)">
+                        🔗 Parcela <span id="installmentBadgeText"></span> — editar o valor não desfaz o vínculo com as outras parcelas nem muda o mês da fatura.
+                    </div>
                     <div>
                         <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Categoria</label>
                         <div class="flex gap-2">
@@ -293,7 +296,7 @@
                         <input type="number" id="installmentCount" min="2" max="60" value="2"
                             class="app-input w-full px-3 py-2.5 rounded-lg text-sm">
                         <p class="text-xs mt-1.5" style="color:var(--app-muted)">
-                            O valor informado acima é de <strong>cada parcela</strong>. Vamos criar uma transação por mês, a partir da data selecionada.
+                            O valor informado acima é o <strong>total da compra</strong>. Vamos dividir em parcelas iguais e criar uma transação por mês, a partir da data selecionada.
                         </p>
                     </div>
                     <button id="saveTransactionBtn" onclick="createTransaction()"

@@ -32,7 +32,7 @@ const TOUR_STEPS = [
     {
         selector: "button[onclick='openModal()']",
         title: "Nova Transação",
-        text: "Registre uma receita ou despesa aqui — inclusive compras parceladas no cartão, onde cada parcela cai automaticamente na fatura certa."
+        text: "Registre uma receita ou despesa aqui — inclusive compras parceladas no cartão: informe o valor total e a quantidade de parcelas, que a gente divide e encaixa cada uma na fatura certa automaticamente."
     },
     {
         selector: "#recent-transactions-list",
@@ -516,6 +516,9 @@ function openModal(transaction = null) {
     document.getElementById("installmentFields").classList.add("hidden");
     document.getElementById("installmentCount").value = 2;
 
+    const installmentBadge = document.getElementById("installmentBadge");
+    if (installmentBadge) installmentBadge.classList.add("hidden");
+
     if (transaction) {
         editingTransactionId = transaction.id;
         document.getElementById("modal-title").innerText = "Editar Transação";
@@ -524,6 +527,12 @@ function openModal(transaction = null) {
         document.getElementById("date").value = transaction.date;
         document.getElementById("type").value = transaction.type;
         if (toggleRow) toggleRow.classList.add("hidden");
+
+        if (installmentBadge && transaction.installmentIndex != null && transaction.installmentTotal != null) {
+            document.getElementById("installmentBadgeText").textContent =
+                `${transaction.installmentIndex + 1}/${transaction.installmentTotal}`;
+            installmentBadge.classList.remove("hidden");
+        }
 
         filterCategoriesByType();
         if (transaction.category) {
@@ -562,11 +571,22 @@ function closeCategoryModal() {
 }
 
 async function createCategory() {
-    const name = document.getElementById("catName").value;
+    const name = document.getElementById("catName").value.trim();
     const type = document.getElementById("catType").value;
     const icon = document.getElementById("catIcon").value || "📃";
 
-    if (!validateFields([{ id: "catName", valid: !!name, message: "Digite um nome para a categoria." }])) return;
+    const isDuplicate = !!name && allCategories.some(c =>
+        c.type === type && c.name.trim().toLowerCase() === name.toLowerCase()
+    );
+
+    const isValid = validateFields([
+        {
+            id: "catName",
+            valid: !!name && !isDuplicate,
+            message: !name ? "Digite um nome para a categoria." : "Você já tem uma categoria com esse nome."
+        }
+    ]);
+    if (!isValid) return;
 
     const body = { name, type, icon };
 
@@ -583,7 +603,8 @@ async function createCategory() {
             await loadCategories();
             filterCategoriesByType();
         } else {
-            showToast("Erro ao criar categoria", "error");
+            const err = await response.json();
+            showToast(err.message || "Erro ao criar categoria.", "error");
         }
     } catch (error) {
         console.error("Erro:", error);
@@ -804,6 +825,11 @@ async function createTransaction() {
         }
 
         if (isInstallment) {
+            // O valor informado é o TOTAL da compra — divide em parcelas cujo
+            // valor exato em centavos some de volta ao total (o centavo que
+            // sobra da divisão vai pras últimas parcelas).
+            const installmentAmounts = splitIntoInstallments(amount, installmentCount);
+
             saveBtn.disabled = true;
             let sucesso = 0;
             for (let i = 0; i < installmentCount; i++) {
@@ -815,7 +841,7 @@ async function createTransaction() {
                 const response = await apiFetch(`/api/transactions`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ description: parcelaDescricao, amount, date, type, categoryId, cardId, installmentIndex: i })
+                    body: JSON.stringify({ description: parcelaDescricao, amount: installmentAmounts[i], date, type, categoryId, cardId, installmentIndex: i, installmentTotal: installmentCount })
                 });
                 if (response.ok) sucesso++;
             }

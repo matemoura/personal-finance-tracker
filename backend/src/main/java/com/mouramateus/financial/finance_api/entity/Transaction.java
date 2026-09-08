@@ -54,4 +54,15 @@ public class Transaction {
 
     @Column(name = "invoice_month")
     private Integer invoiceMonth;
+
+    // Posição (a partir de 0) e total de parcelas de uma compra parcelada,
+    // gravados uma única vez na criação. É o que permite recalcular a fatura
+    // certa (invoiceYear/invoiceMonth) em cada edição sem perder o deslocamento
+    // da parcela — sem isso, editar qualquer campo jogava a transação de volta
+    // pro mês base. Nulo para transações que não são parcela.
+    @Column(name = "installment_index")
+    private Integer installmentIndex;
+
+    @Column(name = "installment_total")
+    private Integer installmentTotal;
 }

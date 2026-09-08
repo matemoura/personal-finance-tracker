@@ -66,7 +66,7 @@ class TransactionServiceTest {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -86,7 +86,7 @@ class TransactionServiceTest {
         User otherUser = User.builder().id(2L).build();
         Category category = Category.builder().id(10L).user(otherUser).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -104,7 +104,7 @@ class TransactionServiceTest {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.INCOME).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -123,7 +123,7 @@ class TransactionServiceTest {
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 20), CategoryType.EXPENSE, 10L, 5L, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 20), CategoryType.EXPENSE, 10L, 5L, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -146,7 +146,7 @@ class TransactionServiceTest {
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 10), CategoryType.EXPENSE, 10L, 5L, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 10), CategoryType.EXPENSE, 10L, 5L, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -165,7 +165,7 @@ class TransactionServiceTest {
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 5), CategoryType.EXPENSE, 10L, 5L, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 5), CategoryType.EXPENSE, 10L, 5L, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -187,7 +187,7 @@ class TransactionServiceTest {
         // parcela 3 (índice 2) deve cair 2 meses depois: maio — mas a data
         // salva continua sendo a mesma data real de todas as parcelas.
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Sofá (3/10)", new BigDecimal("100.00"), LocalDate.of(2026, 3, 5), CategoryType.EXPENSE, 10L, 5L, 2
+                "Sofá (3/10)", new BigDecimal("100.00"), LocalDate.of(2026, 3, 5), CategoryType.EXPENSE, 10L, 5L, 2, 10
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -200,6 +200,11 @@ class TransactionServiceTest {
         assertThat(result.getDate()).isEqualTo(LocalDate.of(2026, 3, 5));
         assertThat(result.getInvoiceYear()).isEqualTo(2026);
         assertThat(result.getInvoiceMonth()).isEqualTo(5);
+        // O índice/total da parcela precisam ficar salvos na própria transação
+        // (não só usados de passagem pro cálculo acima) — é o que permite
+        // reconstruir a fatura certa numa edição futura sem esse dado do request.
+        assertThat(result.getInstallmentIndex()).isEqualTo(2);
+        assertThat(result.getInstallmentTotal()).isEqualTo(10);
     }
 
     @Test
@@ -207,7 +212,7 @@ class TransactionServiceTest {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 5), CategoryType.EXPENSE, 10L, null, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 5), CategoryType.EXPENSE, 10L, null, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -226,7 +231,7 @@ class TransactionServiceTest {
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         Card card = Card.builder().id(5L).user(owner).closingDay(null).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 28), CategoryType.EXPENSE, 10L, 5L, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 28), CategoryType.EXPENSE, 10L, 5L, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -274,7 +279,7 @@ class TransactionServiceTest {
         User otherUser = User.builder().id(2L).build();
         Transaction transaction = Transaction.builder().id(99L).user(otherUser).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -294,7 +299,7 @@ class TransactionServiceTest {
         Transaction transaction = Transaction.builder().id(99L).user(owner).build();
         Category category = Category.builder().id(10L).user(otherUser).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -314,7 +319,7 @@ class TransactionServiceTest {
         Transaction transaction = Transaction.builder().id(99L).user(owner).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
         TransactionCreateRequest request = new TransactionCreateRequest(
-                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null
+                "Mercado", new BigDecimal("100.00"), LocalDate.now(), CategoryType.EXPENSE, 10L, null, null, null
         );
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -326,6 +331,45 @@ class TransactionServiceTest {
 
         assertThat(result.getDescription()).isEqualTo("Mercado");
         assertThat(result.getCategory()).isEqualTo(category);
+    }
+
+    @Test
+    void update_preservesInstallmentOffset_evenThoughRequestNeverSendsIt() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
+        Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
+
+        // Parcela 3/10 (índice 2) criada originalmente caindo em maio
+        // (fatura base de março + 2 meses).
+        Transaction transaction = Transaction.builder()
+                .id(99L).user(owner).category(category).card(card).type(CategoryType.EXPENSE)
+                .description("Sofá (3/10)").amount(new BigDecimal("100.00"))
+                .date(LocalDate.of(2026, 3, 5))
+                .invoiceYear(2026).invoiceMonth(5)
+                .installmentIndex(2).installmentTotal(10)
+                .build();
+
+        // O formulário de edição só muda o valor — nunca envia installmentIndex.
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                "Sofá (3/10)", new BigDecimal("120.00"), LocalDate.of(2026, 3, 5),
+                CategoryType.EXPENSE, 10L, 5L, null, null
+        );
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findById(99L)).thenReturn(Optional.of(transaction));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Transaction result = transactionService.update(99L, request);
+
+        assertThat(result.getAmount()).isEqualByComparingTo("120.00");
+        // Continua caindo em maio — se o índice nulo do request fosse usado em
+        // vez do índice já gravado na transação, isso voltaria pra março.
+        assertThat(result.getInvoiceYear()).isEqualTo(2026);
+        assertThat(result.getInvoiceMonth()).isEqualTo(5);
+        assertThat(result.getInstallmentIndex()).isEqualTo(2);
+        assertThat(result.getInstallmentTotal()).isEqualTo(10);
     }
 
     @Test

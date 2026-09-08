@@ -7,6 +7,14 @@ function getToken() {
   return localStorage.getItem("token");
 }
 
+// Declarado logo no topo (não junto da seção "Ocultar valores" mais abaixo,
+// onde seria o lugar natural) porque updateHideValuesIcon() já é chamado
+// pelo bloco de auto-init do tema/privacidade mais abaixo — se esse init
+// rodar de forma síncrona (document.readyState já "complete" ao carregar o
+// script, como acontece em teste, fora do fluxo normal do navegador), uma
+// declaração "let" mais tarde no arquivo estaria em temporal dead zone.
+let valuesHidden = localStorage.getItem("hideValues") === "true";
+
 // Desloga e volta pro login. Uma "message" opcional (ex: servidor fora do ar)
 // é mostrada como toast na tela de login, pra não parecer erro de senha.
 function forceLogout(message) {
@@ -414,8 +422,7 @@ if (document.readyState === "loading") {
 }
 
 // ---------- Ocultar valores monetários ----------
-let valuesHidden = localStorage.getItem("hideValues") === "true";
-
+// (a variável "valuesHidden" é declarada no topo do arquivo — ver comentário lá)
 function updateHideValuesIcon() {
   const icon = valuesHidden ? ICON_EYE_OFF : ICON_EYE;
   const label = valuesHidden ? "Mostrar valores" : "Ocultar valores";
@@ -759,6 +766,23 @@ function endTour() {
   tourSteps = [];
   tourIndex = 0;
   tourKey = null;
+}
+
+// Divide o valor total de uma compra parcelada em N parcelas cujo valor
+// exato em centavos some de volta ao total (ex: R$100,00 em 3x vira
+// 33,33 / 33,33 / 33,34, não 33,33 x3 = 99,99). O centavo que sobra da
+// divisão vai pras últimas parcelas.
+function splitIntoInstallments(totalAmount, count) {
+  const totalCents = Math.round(totalAmount * 100);
+  const baseCents = Math.floor(totalCents / count);
+  const remainder = totalCents - (baseCents * count);
+
+  const amounts = [];
+  for (let i = 0; i < count; i++) {
+    const cents = baseCents + (i >= count - remainder ? 1 : 0);
+    amounts.push(cents / 100);
+  }
+  return amounts;
 }
 
 function formatCurrency(value) {

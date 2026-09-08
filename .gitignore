@@ -68,6 +68,9 @@ build/
 .parcel-cache/
 .eslintcache
 
+# Relatório de cobertura de testes (gerado por "npm run test:coverage")
+coverage/
+
 # ========================
 # DOCKER & INFRA
 # ========================
