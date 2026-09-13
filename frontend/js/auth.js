@@ -18,7 +18,8 @@ async function login(event) {
     });
 
     if (!response.ok) {
-      showToast("Login inválido. Verifique suas credenciais.", "error");
+      const err = await response.json().catch(() => ({}));
+      showToast(err.message || "Login inválido. Verifique suas credenciais.", "error");
       return;
     }
 

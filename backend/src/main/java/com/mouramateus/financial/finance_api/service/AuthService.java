@@ -1,6 +1,7 @@
 package com.mouramateus.financial.finance_api.service;
 
 import com.mouramateus.financial.finance_api.security.JwtService;
+import com.mouramateus.financial.finance_api.security.LoginAttemptService;
 import com.mouramateus.financial.finance_api.dto.AuthResponse;
 import com.mouramateus.financial.finance_api.dto.LoginRequest;
 import com.mouramateus.financial.finance_api.dto.RegisterRequest;
@@ -20,6 +21,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final LoginAttemptService loginAttemptService;
 
     public AuthResponse register( RegisterRequest request ) {
         if (userRepository.existsByEmail(request.email())) {
@@ -40,12 +42,23 @@ public class AuthService {
     }
 
     public AuthResponse login( LoginRequest request ) {
+        if (loginAttemptService.isLocked(request.email())) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Muitas tentativas de login para esta conta. Tente novamente em alguns minutos.");
+        }
+
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+                .orElseThrow(() -> {
+                    loginAttemptService.registerFailure(request.email());
+                    return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+                });
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            loginAttemptService.registerFailure(request.email());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
+
+        loginAttemptService.registerSuccess(request.email());
 
         String token = jwtService.generateToken(user.getEmail());
 

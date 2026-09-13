@@ -68,10 +68,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    // O deploy roda atrás de um único proxy reverso (o load balancer do
+    // Render), que SEMPRE acrescenta o IP real do cliente como o ÚLTIMO
+    // valor de X-Forwarded-For antes de repassar a requisição. Os valores
+    // anteriores nessa lista vêm do próprio cliente e são livremente
+    // falsificáveis — usar o PRIMEIRO (como antes) deixava qualquer um burlar
+    // o limite mandando um IP diferente a cada requisição. O último é o único
+    // que o proxy confiável realmente observou.
     private String resolveClientIp(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
+            String[] parts = forwarded.split(",");
+            return parts[parts.length - 1].trim();
         }
         return request.getRemoteAddr();
     }

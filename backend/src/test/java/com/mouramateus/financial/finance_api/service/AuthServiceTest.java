@@ -6,6 +6,7 @@ import com.mouramateus.financial.finance_api.dto.RegisterRequest;
 import com.mouramateus.financial.finance_api.entity.User;
 import com.mouramateus.financial.finance_api.repository.UserRepository;
 import com.mouramateus.financial.finance_api.security.JwtService;
+import com.mouramateus.financial.finance_api.security.LoginAttemptService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -34,6 +35,9 @@ class AuthServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private LoginAttemptService loginAttemptService;
+
     private AuthService authService;
 
     private static final String EMAIL = "user@test.com";
@@ -42,7 +46,7 @@ class AuthServiceTest {
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtService);
+        authService = new AuthService(userRepository, passwordEncoder, jwtService, loginAttemptService);
     }
 
     @Test
@@ -88,10 +92,11 @@ class AuthServiceTest {
         AuthResponse response = authService.login(request);
 
         assertThat(response.token()).isEqualTo("jwt-token");
+        verify(loginAttemptService).registerSuccess(EMAIL);
     }
 
     @Test
-    void login_withWrongPassword_throws() {
+    void login_withWrongPassword_throwsAndRegistersFailure() {
         User user = User.builder().email(EMAIL).name("Jane Doe").password(ENCODED_PASSWORD).build();
         LoginRequest request = new LoginRequest(EMAIL, "wrong-password");
 
@@ -101,15 +106,33 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Invalid credentials");
+
+        verify(loginAttemptService).registerFailure(EMAIL);
+        verify(loginAttemptService, never()).registerSuccess(any());
     }
 
     @Test
-    void login_withUnknownEmail_throws() {
+    void login_withUnknownEmail_throwsAndRegistersFailure() {
         LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Invalid credentials");
+
+        verify(loginAttemptService).registerFailure(EMAIL);
+    }
+
+    @Test
+    void login_whenAccountIsLocked_throwsTooManyRequestsWithoutCheckingPassword() {
+        LoginRequest request = new LoginRequest(EMAIL, RAW_PASSWORD);
+        when(loginAttemptService.isLocked(EMAIL)).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Muitas tentativas");
+
+        verify(userRepository, never()).findByEmail(any());
+        verify(loginAttemptService, never()).registerFailure(any());
     }
 }
