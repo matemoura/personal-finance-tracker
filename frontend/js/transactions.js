@@ -2,6 +2,7 @@ let allCategories = [];
 let allCards = [];
 let editingTransactionId = null;
 let editingCardId = null;
+let editingCardMonthOverride = null;
 let activeInvoiceCard = null;
 
 const now = new Date();
@@ -304,7 +305,13 @@ function changePage(delta) {
 }
 
 async function deleteTransaction(id) {
-    if (!confirm("Tem certeza que deseja excluir esta transação?")) return;
+    const transaction = allTransactions.find(t => t.id === id);
+    const deletesWholePurchase = !!transaction && isFirstInstallment(transaction.description);
+
+    const message = deletesWholePurchase
+        ? "Esta é a parcela 1 de uma compra parcelada. Excluir ela também exclui TODAS as parcelas seguintes dessa compra. Deseja continuar?"
+        : "Tem certeza que deseja excluir esta transação?";
+    if (!confirm(message)) return;
 
     try {
         const response = await apiFetch(`/api/transactions/${id}`, {
@@ -312,8 +319,9 @@ async function deleteTransaction(id) {
         });
 
         if (response.ok) {
-            showToast("Transação excluída!", "success");
+            showToast(deletesWholePurchase ? "Compra parcelada excluída!" : "Transação excluída!", "success");
             loadTransactions(currentYear, currentMonth);
+            loadCards();
         } else {
             showToast("Erro ao excluir.", "error");
         }
@@ -470,11 +478,20 @@ function renderCardsPanel() {
         const hasOlderPending = pendingAll > pendingMonth + 0.005;
         const monthColor = pendingMonth > 0 ? 'var(--app-danger)' : 'var(--app-muted)';
 
+        const today = new Date();
+        const monthOverride = closingOverrideFor(c, today.getFullYear(), today.getMonth() + 1);
+        let closingText = c.closingDay ? ` · fecha dia ${c.closingDay}` : '';
+        if (monthOverride) {
+            closingText += c.closingDay
+                ? ` (este mês: dia ${monthOverride.closingDay})`
+                : ` · fecha dia ${monthOverride.closingDay} (só este mês)`;
+        }
+
         chip.innerHTML = `
             ${renderCardIcon(c.icon, c.name, "w-5 h-5 text-base")}
             <div class="leading-tight min-w-0 flex-1">
                 <div class="text-[12px] font-semibold truncate" style="color:var(--app-heading)">${escapeHtml(c.name)}</div>
-                <div class="text-[11px] break-words" style="color:var(--app-muted)">Total: R$ ${formatCurrency(c.totalSpent)}${c.closingDay ? ` · fecha dia ${c.closingDay}` : ''}${c.dueDay ? ` · vence dia ${c.dueDay}` : ''}</div>
+                <div class="text-[11px] break-words" style="color:var(--app-muted)">Total: R$ ${formatCurrency(c.totalSpent)}${closingText}${c.dueDay ? ` · vence dia ${c.dueDay}` : ''}</div>
                 <div class="text-[11px] font-semibold break-words" style="color:${monthColor}">Pendente (mês): R$ ${formatCurrency(c.pendingCurrentMonth)}</div>
                 ${hasOlderPending ? `<div class="text-[11px] font-semibold break-words" style="color:var(--app-danger)">Pendente (total): R$ ${formatCurrency(c.pendingTotal)}</div>` : ''}
             </div>
@@ -526,9 +543,11 @@ function onCardBankChange() {
 
 function openCardModal(card = null) {
     document.getElementById("cardModal").classList.remove("hidden");
-    clearFieldErrors(["cardName"]);
+    clearFieldErrors(["cardName", "cardMonthClosingDay"]);
     const bankSelect = document.getElementById("cardBankSelect");
     const iconInput = document.getElementById("cardIcon");
+    const monthSection = document.getElementById("cardMonthClosingSection");
+    const monthInput = document.getElementById("cardMonthClosingDay");
 
     if (card) {
         editingCardId = card.id;
@@ -541,8 +560,19 @@ function openCardModal(card = null) {
         bankSelect.value = bank ? bank.domain : "";
         iconInput.value = bank ? "" : (card.icon || "");
         iconInput.classList.toggle("hidden", !!bank);
+
+        // Ajuste de fechamento só do mês atual — só faz sentido num cartão que
+        // já existe (um cartão novo ainda não tem compra nenhuma pra reposicionar).
+        const today = new Date();
+        const override = closingOverrideFor(card, today.getFullYear(), today.getMonth() + 1);
+        editingCardMonthOverride = override ? override.closingDay : null;
+        document.getElementById("cardMonthClosingLabel").textContent =
+            `${MONTHS_LONG[today.getMonth()]} de ${today.getFullYear()}`;
+        monthInput.value = editingCardMonthOverride || "";
+        monthSection.classList.remove("hidden");
     } else {
         editingCardId = null;
+        editingCardMonthOverride = null;
         document.getElementById("cardModalTitle").innerText = "Novo Cartão";
         document.getElementById("cardName").value = "";
         bankSelect.value = "";
@@ -550,6 +580,8 @@ function openCardModal(card = null) {
         iconInput.classList.remove("hidden");
         document.getElementById("cardClosingDay").value = "";
         document.getElementById("cardDueDay").value = "";
+        monthInput.value = "";
+        monthSection.classList.add("hidden");
     }
 }
 
@@ -559,13 +591,28 @@ function closeCardModal() {
 
 async function saveCard() {
     const name = document.getElementById("cardName").value;
-    const icon = document.getElementById("cardIcon").value || "💳";
+    // Com um banco escolhido, o campo de emoji fica vazio (e escondido) — o
+    // ícone salvo é o domínio do banco. Ler só o campo de emoji fazia qualquer
+    // edição de um cartão com logo trocá-lo silenciosamente por 💳.
+    const icon = document.getElementById("cardBankSelect").value
+        || document.getElementById("cardIcon").value
+        || "💳";
     const closingDayValue = document.getElementById("cardClosingDay").value;
     const closingDay = closingDayValue ? parseInt(closingDayValue, 10) : null;
     const dueDayValue = document.getElementById("cardDueDay").value;
     const dueDay = dueDayValue ? parseInt(dueDayValue, 10) : null;
+    const monthOverrideValue = document.getElementById("cardMonthClosingDay").value;
+    const monthOverride = monthOverrideValue ? parseInt(monthOverrideValue, 10) : null;
 
-    if (!validateFields([{ id: "cardName", valid: !!name, message: "Digite um nome para o cartão." }])) return;
+    const isValid = validateFields([
+        { id: "cardName", valid: !!name, message: "Digite um nome para o cartão." },
+        {
+            id: "cardMonthClosingDay",
+            valid: monthOverride === null || (monthOverride >= 1 && monthOverride <= 31),
+            message: "Use um dia de 1 a 31."
+        }
+    ]);
+    if (!isValid) return;
 
     try {
         const response = editingCardId
@@ -581,9 +628,38 @@ async function saveCard() {
             });
 
         if (response.ok) {
+            let overrideChanged = false;
+
+            // Ajuste do mês atual: só chama a API se mudou em relação ao que já
+            // estava salvo (vazio = voltar ao dia padrão do cartão).
+            if (editingCardId && monthOverride !== editingCardMonthOverride) {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = today.getMonth() + 1;
+
+                const overrideResponse = monthOverride === null
+                    ? await apiFetch(`/api/cards/${editingCardId}/closing-overrides?year=${year}&month=${month}`, {
+                        method: "DELETE"
+                    })
+                    : await apiFetch(`/api/cards/${editingCardId}/closing-overrides`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ year, month, closingDay: monthOverride })
+                    });
+
+                if (overrideResponse.ok) {
+                    overrideChanged = true;
+                } else {
+                    const err = await overrideResponse.json().catch(() => ({}));
+                    showToast("Cartão salvo, mas o ajuste do mês falhou: " + (err.message || "tente de novo."), "error");
+                }
+            }
+
             showToast(editingCardId ? "Cartão atualizado com sucesso!" : "Cartão criado com sucesso!", "success");
             closeCardModal();
             await loadCards();
+            // Mudar o fechamento reposiciona compras entre faturas/meses.
+            if (overrideChanged) loadTransactions(currentYear, currentMonth);
         } else {
             const err = await response.json();
             showToast("Erro: " + (err.message || "Falha ao salvar cartão."), "error");
@@ -796,6 +872,8 @@ function closeModal() {
 function filterCategoriesByType() {
     const selectedType = document.getElementById("type").value;
     const select = document.getElementById("categoryId");
+
+    updateInstallmentToggleVisibility(!!editingTransactionId);
     select.innerHTML = "";
 
     const filtered = allCategories.filter(c => c.type === selectedType);
@@ -834,14 +912,20 @@ function updateInvoicePreview() {
     }
 
     const card = allCards.find(c => String(c.id) === String(cardId));
-    if (!card || !card.closingDay) {
+    if (!card) {
         hint.innerHTML = "&nbsp;";
         return;
     }
 
     const [y, m, d] = dateStr.split("-").map(Number);
+    const closingDay = effectiveClosingDay(card, y, m);
+    if (!closingDay) {
+        hint.innerHTML = "&nbsp;";
+        return;
+    }
+
     let targetYear = y, targetMonth = m;
-    if (d >= card.closingDay) {
+    if (d >= closingDay) {
         targetMonth += 1;
         if (targetMonth > 12) { targetMonth = 1; targetYear += 1; }
     }
@@ -859,7 +943,7 @@ async function createTransaction() {
     const cardId = cardIdValue ? parseInt(cardIdValue, 10) : null;
 
     const installmentCheckbox = document.getElementById("isInstallment");
-    const isInstallment = !editingTransactionId && installmentCheckbox && installmentCheckbox.checked;
+    const isInstallment = !editingTransactionId && type === "EXPENSE" && installmentCheckbox && installmentCheckbox.checked;
     const installmentCount = isInstallment ? parseInt(document.getElementById("installmentCount").value, 10) : 1;
 
     const isValid = validateFields([

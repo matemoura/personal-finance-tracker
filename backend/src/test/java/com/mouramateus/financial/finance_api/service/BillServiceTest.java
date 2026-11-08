@@ -10,6 +10,7 @@ import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.Transaction;
 import com.mouramateus.financial.finance_api.entity.User;
 import com.mouramateus.financial.finance_api.repository.BillRepository;
+import com.mouramateus.financial.finance_api.repository.CardClosingOverrideRepository;
 import com.mouramateus.financial.finance_api.repository.CardRepository;
 import com.mouramateus.financial.finance_api.repository.CategoryRepository;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
@@ -50,13 +51,17 @@ class BillServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private CardClosingOverrideRepository cardClosingOverrideRepository;
+
     private BillService billService;
 
     private static final String EMAIL = "owner@test.com";
 
     @BeforeEach
     void setUp() {
-        billService = new BillService(billRepository, userRepository, categoryRepository, cardRepository, transactionRepository);
+        billService = new BillService(billRepository, userRepository, categoryRepository, cardRepository, transactionRepository,
+                new CardClosingService(cardClosingOverrideRepository));
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(EMAIL, null)
         );

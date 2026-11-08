@@ -17,8 +17,14 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +34,7 @@ public class TransactionService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final CardRepository cardRepository;
+    private final CardClosingService cardClosingService;
 
     private Card resolveCard(Long cardId, User user) {
         if (cardId == null) {
@@ -64,6 +71,11 @@ public class TransactionService {
             );
         }
 
+        if (dto.type() == CategoryType.INCOME
+                && (dto.installmentIndex() != null || dto.installmentTotal() != null)) {
+            throw new RuntimeException("Receitas não podem ser parceladas.");
+        }
+
         Card card = resolveCard(dto.cardId(), user);
         YearMonth invoicePeriod = invoicePeriodFor(dto.date(), card, dto.installmentIndex());
 
@@ -94,7 +106,7 @@ public class TransactionService {
             return null;
         }
 
-        YearMonth base = CardBilling.periodOf(date, card.getClosingDay());
+        YearMonth base = cardClosingService.basePeriod(card, date);
         int offset = installmentIndex != null ? installmentIndex : 0;
         return base.plusMonths(offset);
     }
@@ -156,7 +168,77 @@ public class TransactionService {
             throw new RuntimeException("Acesso negado: Você não pode excluir esta transação.");
         }
 
-        transactionRepository.delete(transaction);
+        List<Transaction> toDelete = new ArrayList<>();
+        toDelete.add(transaction);
+        toDelete.addAll(followingInstallments(user, transaction));
+
+        transactionRepository.deleteAll(toDelete);
+    }
+
+    private static final Pattern INSTALLMENT_SUFFIX = Pattern.compile("^(.*) \\((\\d+)/(\\d+)\\)$", Pattern.DOTALL);
+
+    // Excluir a parcela 1 de uma compra parcelada leva junto as parcelas 2..N
+    // — não faz sentido sobrar "3/10" de uma compra que o usuário apagou. Não
+    // existe um id de grupo ligando as parcelas (compras antigas nem têm
+    // installment_index), então elas são reconhecidas pelo mesmo jeito que os
+    // scripts de correção já usam: descrição "<base> (k/N)" igual na base e no
+    // N, mesmo cartão e mesmo tipo. Duas travas contra apagar a compra errada:
+    // só entram parcelas com data igual ou posterior à da parcela 1 (uma compra
+    // antiga de mesmo nome já teria data anterior), e pra cada k só UMA linha é
+    // escolhida (a mais antiga), então duas compras idênticas em paralelo não
+    // perdem as duas de uma vez. Qualquer outra parcela (2/N em diante) é
+    // excluída sozinha, como sempre.
+    private List<Transaction> followingInstallments(User user, Transaction first) {
+        if (first.getDescription() == null) {
+            return List.of();
+        }
+
+        Matcher firstMatch = INSTALLMENT_SUFFIX.matcher(first.getDescription());
+        if (!firstMatch.matches()
+                || Integer.parseInt(firstMatch.group(2)) != 1
+                || Integer.parseInt(firstMatch.group(3)) < 2) {
+            return List.of();
+        }
+
+        String base = firstMatch.group(1);
+        int total = Integer.parseInt(firstMatch.group(3));
+        Long cardId = first.getCard() != null ? first.getCard().getId() : null;
+
+        Map<Integer, Transaction> pickedByNumber = new HashMap<>();
+
+        for (Transaction candidate : transactionRepository.findByUser(user)) {
+            if (candidate.getId().equals(first.getId())
+                    || candidate.getDescription() == null
+                    || candidate.getType() != first.getType()
+                    || candidate.getDate().isBefore(first.getDate())) {
+                continue;
+            }
+
+            Long candidateCardId = candidate.getCard() != null ? candidate.getCard().getId() : null;
+            if (!Objects.equals(cardId, candidateCardId)) {
+                continue;
+            }
+
+            Matcher m = INSTALLMENT_SUFFIX.matcher(candidate.getDescription());
+            if (!m.matches() || !m.group(1).equals(base) || Integer.parseInt(m.group(3)) != total) {
+                continue;
+            }
+
+            int number = Integer.parseInt(m.group(2));
+            if (number < 2 || number > total) {
+                continue;
+            }
+
+            Transaction current = pickedByNumber.get(number);
+            boolean older = current == null
+                    || candidate.getDate().isBefore(current.getDate())
+                    || (candidate.getDate().isEqual(current.getDate()) && candidate.getId() < current.getId());
+            if (older) {
+                pickedByNumber.put(number, candidate);
+            }
+        }
+
+        return new ArrayList<>(pickedByNumber.values());
     }
 
     public Transaction update(Long id, TransactionCreateRequest request) {

@@ -41,6 +41,67 @@ describe("splitIntoInstallments", () => {
   });
 });
 
+describe("closingOverrideFor / effectiveClosingDay", () => {
+  const card = {
+    closingDay: 10,
+    closingOverrides: [{ year: 2026, month: 3, closingDay: 25 }],
+  };
+
+  test("finds the override for the exact year and month", () => {
+    expect(closingOverrideFor(card, 2026, 3)).toEqual({ year: 2026, month: 3, closingDay: 25 });
+  });
+
+  test("returns undefined for a month with no override, or the same month in another year", () => {
+    expect(closingOverrideFor(card, 2026, 4)).toBeUndefined();
+    expect(closingOverrideFor(card, 2025, 3)).toBeUndefined();
+  });
+
+  test("tolerates a card without the closingOverrides field at all", () => {
+    expect(closingOverrideFor({ closingDay: 10 }, 2026, 3)).toBeUndefined();
+    expect(closingOverrideFor(null, 2026, 3)).toBeUndefined();
+  });
+
+  test("effectiveClosingDay uses the override for that month", () => {
+    expect(effectiveClosingDay(card, 2026, 3)).toBe(25);
+  });
+
+  test("effectiveClosingDay falls back to the card's default for every other month", () => {
+    expect(effectiveClosingDay(card, 2026, 4)).toBe(10);
+  });
+
+  test("effectiveClosingDay is null/undefined when there's neither an override nor a default", () => {
+    expect(effectiveClosingDay({ closingDay: null }, 2026, 3)).toBeNull();
+  });
+
+  test("an override can supply a closing day even if the card has no default", () => {
+    const noDefault = { closingDay: null, closingOverrides: [{ year: 2026, month: 3, closingDay: 5 }] };
+    expect(effectiveClosingDay(noDefault, 2026, 3)).toBe(5);
+  });
+});
+
+describe("isFirstInstallment", () => {
+  test("is true for a description ending in (1/N) with N >= 2", () => {
+    expect(isFirstInstallment("Sofá (1/10)")).toBe(true);
+    expect(isFirstInstallment("Shopee (pai) (1/2)")).toBe(true);
+  });
+
+  test("is false for any later installment", () => {
+    expect(isFirstInstallment("Sofá (2/10)")).toBe(false);
+    expect(isFirstInstallment("Sofá (10/10)")).toBe(false);
+  });
+
+  test("is false for a single-payment '(1/1)' and for plain descriptions", () => {
+    expect(isFirstInstallment("Sofá (1/1)")).toBe(false);
+    expect(isFirstInstallment("Mercado")).toBe(false);
+    expect(isFirstInstallment("")).toBe(false);
+    expect(isFirstInstallment(null)).toBe(false);
+  });
+
+  test("only counts the suffix at the very end", () => {
+    expect(isFirstInstallment("Sofá (1/10) parcelado")).toBe(false);
+  });
+});
+
 describe("formatCurrency", () => {
   test("formats using pt-BR thousands/decimal separators", () => {
     expect(formatCurrency(1234.5)).toBe("1.234,50");

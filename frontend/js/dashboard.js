@@ -626,6 +626,8 @@ function filterCategoriesByType() {
     const selectedType = document.getElementById("type").value;
     const select = document.getElementById("categoryId");
 
+    updateInstallmentToggleVisibility(!!editingTransactionId);
+
     select.innerHTML = "";
 
     const filtered = allCategories.filter(c => c.type === selectedType);
@@ -764,14 +766,20 @@ function updateInvoicePreview() {
     }
 
     const card = allCards.find(c => String(c.id) === String(cardId));
-    if (!card || !card.closingDay) {
+    if (!card) {
         hint.innerHTML = "&nbsp;";
         return;
     }
 
     const [y, m, d] = dateStr.split("-").map(Number);
+    const closingDay = effectiveClosingDay(card, y, m);
+    if (!closingDay) {
+        hint.innerHTML = "&nbsp;";
+        return;
+    }
+
     let targetYear = y, targetMonth = m;
-    if (d >= card.closingDay) {
+    if (d >= closingDay) {
         targetMonth += 1;
         if (targetMonth > 12) { targetMonth = 1; targetYear += 1; }
     }
@@ -789,7 +797,7 @@ async function createTransaction() {
     const cardId = cardIdValue ? parseInt(cardIdValue, 10) : null;
 
     const installmentCheckbox = document.getElementById("isInstallment");
-    const isInstallment = !editingTransactionId && installmentCheckbox && installmentCheckbox.checked;
+    const isInstallment = !editingTransactionId && type === "EXPENSE" && installmentCheckbox && installmentCheckbox.checked;
     const installmentCount = isInstallment ? parseInt(document.getElementById("installmentCount").value, 10) : 1;
 
     const isValid = validateFields([

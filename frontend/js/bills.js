@@ -301,7 +301,7 @@ async function loadBills() {
         renderBills();
     } catch (error) {
         console.error(error);
-        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-red-600">Erro ao carregar contas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-red-600">Erro ao carregar contas.</td></tr>';
     }
 }
 
@@ -343,7 +343,7 @@ function renderBills() {
         : allBills.filter(b => b.status === currentFilter);
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center" style="color:var(--app-muted)">Nenhuma conta encontrada.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center" style="color:var(--app-muted)">Nenhuma conta encontrada.</td></tr>';
         return;
     }
 
@@ -363,6 +363,7 @@ function renderBills() {
                 ${cardBadge}
             </td>
             <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formatDate(bill.dueDate)}</td>
+            <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formatDate(bill.paidDate)}</td>
             <td class="money px-[18px] py-[13px] text-right font-bold whitespace-nowrap" style="color:var(--app-heading)">R$ ${formatCurrency(bill.amount)}</td>
             <td class="px-[18px] py-[13px]"><span class="${statusClass} text-[11px] font-bold px-[9px] py-[3px] rounded-xl">${statusLabel}</span></td>
             <td class="px-[18px] py-[13px] text-center whitespace-nowrap">

@@ -1,15 +1,18 @@
 package com.mouramateus.financial.finance_api.service;
 
+import com.mouramateus.financial.finance_api.dto.CardClosingOverrideRequest;
 import com.mouramateus.financial.finance_api.dto.CardCreateRequest;
 import com.mouramateus.financial.finance_api.dto.CardInvoicePayRequest;
 import com.mouramateus.financial.finance_api.dto.CardInvoiceResponse;
 import com.mouramateus.financial.finance_api.dto.CardResponse;
 import com.mouramateus.financial.finance_api.dto.CardUpdateRequest;
 import com.mouramateus.financial.finance_api.entity.Card;
+import com.mouramateus.financial.finance_api.entity.CardClosingOverride;
 import com.mouramateus.financial.finance_api.entity.CardInvoicePayment;
 import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.Transaction;
 import com.mouramateus.financial.finance_api.entity.User;
+import com.mouramateus.financial.finance_api.repository.CardClosingOverrideRepository;
 import com.mouramateus.financial.finance_api.repository.CardInvoicePaymentRepository;
 import com.mouramateus.financial.finance_api.repository.CardRepository;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
@@ -50,13 +53,17 @@ class CardServiceTest {
     @Mock
     private CardInvoicePaymentRepository cardInvoicePaymentRepository;
 
+    @Mock
+    private CardClosingOverrideRepository cardClosingOverrideRepository;
+
     private CardService cardService;
 
     private static final String EMAIL = "owner@test.com";
 
     @BeforeEach
     void setUp() {
-        cardService = new CardService(cardRepository, userRepository, transactionRepository, cardInvoicePaymentRepository);
+        cardService = new CardService(cardRepository, userRepository, transactionRepository, cardInvoicePaymentRepository,
+                cardClosingOverrideRepository, new CardClosingService(cardClosingOverrideRepository));
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(EMAIL, null)
         );
@@ -65,6 +72,162 @@ class CardServiceTest {
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
+    }
+
+    private Transaction cardPurchase(long id, Card card, LocalDate date, Integer invoiceYear, Integer invoiceMonth) {
+        return Transaction.builder()
+                .id(id).card(card).type(CategoryType.EXPENSE)
+                .amount(new BigDecimal("100.00")).date(date)
+                .invoiceYear(invoiceYear).invoiceMonth(invoiceMonth)
+                .build();
+    }
+
+    @Test
+    void setClosingOverride_repositionsThatMonthsPurchasesKeepingEachOnesInstallmentOffset() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
+        Card otherCard = Card.builder().id(6L).user(owner).closingDay(10).build();
+
+        // Fechamento padrão 10; março passa a fechar no dia 25.
+        Transaction plain = cardPurchase(1, card, LocalDate.of(2026, 3, 20), 2026, 4);
+        // Parcela 3 de uma compra feita em 20/03: fatura salva em junho (abril + 2).
+        Transaction installment = cardPurchase(2, card, LocalDate.of(2026, 3, 20), 2026, 6);
+        // Linha antiga, sem fatura gravada.
+        Transaction legacy = cardPurchase(3, card, LocalDate.of(2026, 3, 20), null, null);
+        // Mesmo cartão, outro mês: não é afetada.
+        Transaction otherMonth = cardPurchase(4, card, LocalDate.of(2026, 4, 20), 2026, 5);
+        // Outro cartão, mesmo mês: não é afetada.
+        Transaction otherCardPurchase = cardPurchase(5, otherCard, LocalDate.of(2026, 3, 20), 2026, 4);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+        when(cardClosingOverrideRepository.findByCardAndYearAndMonth(card, 2026, 3)).thenReturn(Optional.empty());
+        when(transactionRepository.findByUserAndCardIsNotNull(owner))
+                .thenReturn(List.of(plain, installment, legacy, otherMonth, otherCardPurchase));
+
+        cardService.setClosingOverride(5L, new CardClosingOverrideRequest(2026, 3, 25));
+
+        // Antes caía em abril (20 >= 10); agora março (20 < 25).
+        assertThat(plain.getInvoiceYear()).isEqualTo(2026);
+        assertThat(plain.getInvoiceMonth()).isEqualTo(3);
+        // Continua 2 meses depois da base: março + 2 = maio.
+        assertThat(installment.getInvoiceMonth()).isEqualTo(5);
+        // Sem fatura gravada antes: ganha uma, já com o fechamento novo.
+        assertThat(legacy.getInvoiceYear()).isEqualTo(2026);
+        assertThat(legacy.getInvoiceMonth()).isEqualTo(3);
+        assertThat(otherMonth.getInvoiceMonth()).isEqualTo(5);
+        assertThat(otherCardPurchase.getInvoiceMonth()).isEqualTo(4);
+
+        ArgumentCaptor<CardClosingOverride> saved = ArgumentCaptor.forClass(CardClosingOverride.class);
+        verify(cardClosingOverrideRepository).save(saved.capture());
+        assertThat(saved.getValue().getClosingDay()).isEqualTo(25);
+        assertThat(saved.getValue().getYear()).isEqualTo(2026);
+        assertThat(saved.getValue().getMonth()).isEqualTo(3);
+    }
+
+    @Test
+    void setClosingOverride_updatesTheExistingOverrideInsteadOfCreatingASecondOne() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
+        CardClosingOverride existing = CardClosingOverride.builder().card(card).year(2026).month(3).closingDay(25).build();
+        // O ajuste já era 25 e passa a 28: a compra do dia 26 caía em abril
+        // (26 >= 25) e agora cai em março (26 < 28).
+        Transaction purchase = cardPurchase(1, card, LocalDate.of(2026, 3, 26), 2026, 4);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+        when(cardClosingOverrideRepository.findByCardAndYearAndMonth(card, 2026, 3)).thenReturn(Optional.of(existing));
+        when(transactionRepository.findByUserAndCardIsNotNull(owner)).thenReturn(List.of(purchase));
+
+        cardService.setClosingOverride(5L, new CardClosingOverrideRequest(2026, 3, 28));
+
+        assertThat(existing.getClosingDay()).isEqualTo(28);
+        verify(cardClosingOverrideRepository).save(existing);
+        assertThat(purchase.getInvoiceMonth()).isEqualTo(3);
+    }
+
+    @Test
+    void setClosingOverride_toTheSameEffectiveValue_doesNotRewriteAnyTransaction() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+        when(cardClosingOverrideRepository.findByCardAndYearAndMonth(card, 2026, 3)).thenReturn(Optional.empty());
+
+        cardService.setClosingOverride(5L, new CardClosingOverrideRequest(2026, 3, 10));
+
+        verify(transactionRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void removeClosingOverride_putsThatMonthBackOnTheCardsDefaultClosing() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
+        CardClosingOverride existing = CardClosingOverride.builder().card(card).year(2026).month(3).closingDay(25).build();
+        // Com o ajuste (25), esta compra estava em março; sem ele (10), vai pra abril.
+        Transaction purchase = cardPurchase(1, card, LocalDate.of(2026, 3, 20), 2026, 3);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+        when(cardClosingOverrideRepository.findByCardAndYearAndMonth(card, 2026, 3)).thenReturn(Optional.of(existing));
+        when(transactionRepository.findByUserAndCardIsNotNull(owner)).thenReturn(List.of(purchase));
+
+        cardService.removeClosingOverride(5L, 2026, 3);
+
+        verify(cardClosingOverrideRepository).delete(existing);
+        assertThat(purchase.getInvoiceMonth()).isEqualTo(4);
+    }
+
+    @Test
+    void removeClosingOverride_whenThereIsNone_doesNothing() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+        when(cardClosingOverrideRepository.findByCardAndYearAndMonth(card, 2026, 3)).thenReturn(Optional.empty());
+
+        cardService.removeClosingOverride(5L, 2026, 3);
+
+        verify(cardClosingOverrideRepository, never()).delete(any());
+        verify(transactionRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void setClosingOverride_onACardOwnedBySomeoneElse_isDenied() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        User other = User.builder().id(2L).build();
+        Card card = Card.builder().id(5L).user(other).closingDay(10).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+
+        assertThatThrownBy(() -> cardService.setClosingOverride(5L, new CardClosingOverrideRequest(2026, 3, 25)))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Acesso negado");
+
+        verify(cardClosingOverrideRepository, never()).save(any());
+    }
+
+    @Test
+    void listMine_includesEachCardsClosingOverrides() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).name("Nubank").closingDay(10).build();
+        CardClosingOverride override = CardClosingOverride.builder().card(card).year(2026).month(3).closingDay(25).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(cardRepository.findByUserOrderByNameAsc(owner)).thenReturn(List.of(card));
+        when(transactionRepository.findByUserAndCardIsNotNull(owner)).thenReturn(List.of());
+        when(cardClosingOverrideRepository.findByCardIn(List.of(card))).thenReturn(List.of(override));
+
+        List<CardResponse> result = cardService.listMine();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).closingOverrides()).hasSize(1);
+        assertThat(result.get(0).closingOverrides().get(0).year()).isEqualTo(2026);
+        assertThat(result.get(0).closingOverrides().get(0).month()).isEqualTo(3);
+        assertThat(result.get(0).closingOverrides().get(0).closingDay()).isEqualTo(25);
     }
 
     @Test

@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 @Service
@@ -30,6 +31,7 @@ public class BillService {
     private final CategoryRepository categoryRepository;
     private final CardRepository cardRepository;
     private final TransactionRepository transactionRepository;
+    private final CardClosingService cardClosingService;
 
     private User currentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -80,6 +82,13 @@ public class BillService {
             throw new RuntimeException("Esta conta já está marcada como paga.");
         }
 
+        // A fatura é gravada já na criação (e não deixada pro cálculo "ao vivo"
+        // por data + fechamento padrão) pra respeitar um fechamento ajustado
+        // pra aquele mês, que só o CardClosingService conhece.
+        YearMonth invoicePeriod = bill.getCard() != null
+                ? cardClosingService.basePeriod(bill.getCard(), dto.paidDate())
+                : null;
+
         Transaction transaction = Transaction.builder()
                 .description(bill.getDescription())
                 .amount(bill.getAmount())
@@ -88,6 +97,8 @@ public class BillService {
                 .user(bill.getUser())
                 .category(bill.getCategory())
                 .card(bill.getCard())
+                .invoiceYear(invoicePeriod != null ? invoicePeriod.getYear() : null)
+                .invoiceMonth(invoicePeriod != null ? invoicePeriod.getMonthValue() : null)
                 .build();
 
         transactionRepository.save(transaction);

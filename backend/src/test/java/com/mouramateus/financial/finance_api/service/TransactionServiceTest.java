@@ -6,6 +6,8 @@ import com.mouramateus.financial.finance_api.entity.Category;
 import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.Transaction;
 import com.mouramateus.financial.finance_api.entity.User;
+import com.mouramateus.financial.finance_api.entity.CardClosingOverride;
+import com.mouramateus.financial.finance_api.repository.CardClosingOverrideRepository;
 import com.mouramateus.financial.finance_api.repository.CardRepository;
 import com.mouramateus.financial.finance_api.repository.CategoryRepository;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -44,13 +47,17 @@ class TransactionServiceTest {
     @Mock
     private CardRepository cardRepository;
 
+    @Mock
+    private CardClosingOverrideRepository cardClosingOverrideRepository;
+
     private TransactionService transactionService;
 
     private static final String EMAIL = "owner@test.com";
 
     @BeforeEach
     void setUp() {
-        transactionService = new TransactionService(transactionRepository, userRepository, categoryRepository, cardRepository);
+        transactionService = new TransactionService(transactionRepository, userRepository, categoryRepository, cardRepository,
+                new CardClosingService(cardClosingOverrideRepository));
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(EMAIL, null)
         );
@@ -208,6 +215,70 @@ class TransactionServiceTest {
     }
 
     @Test
+    void createTransaction_usesThatMonthsClosingOverrideInsteadOfTheCardDefault() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
+        Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
+        // Dia 20 de março com fechamento padrão 10 cairia em abril — mas março
+        // fechou só no dia 25 desta vez, então a compra ainda é da fatura de março.
+        CardClosingOverride override = CardClosingOverride.builder().card(card).year(2026).month(3).closingDay(25).build();
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                "Mercado", new BigDecimal("100.00"), LocalDate.of(2026, 3, 20), CategoryType.EXPENSE, 10L, 5L, null, null
+        );
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+        when(cardClosingOverrideRepository.findByCardAndYearAndMonth(card, 2026, 3)).thenReturn(Optional.of(override));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Transaction result = transactionService.createTransaction(request);
+
+        assertThat(result.getInvoiceYear()).isEqualTo(2026);
+        assertThat(result.getInvoiceMonth()).isEqualTo(3);
+    }
+
+    @Test
+    void createTransaction_installmentsKeepTheirOffsetOnTopOfTheOverriddenBase() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
+        Card card = Card.builder().id(5L).user(owner).closingDay(10).build();
+        CardClosingOverride override = CardClosingOverride.builder().card(card).year(2026).month(3).closingDay(25).build();
+        // Parcela 3 (índice 2): base de março (por causa do override) + 2 = maio.
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                "Sofá (3/10)", new BigDecimal("100.00"), LocalDate.of(2026, 3, 20), CategoryType.EXPENSE, 10L, 5L, 2, 10
+        );
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+        when(cardRepository.findById(5L)).thenReturn(Optional.of(card));
+        when(cardClosingOverrideRepository.findByCardAndYearAndMonth(card, 2026, 3)).thenReturn(Optional.of(override));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Transaction result = transactionService.createTransaction(request);
+
+        assertThat(result.getInvoiceMonth()).isEqualTo(5);
+    }
+
+    @Test
+    void createTransaction_incomeAsInstallment_isRejected() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category category = Category.builder().id(10L).user(owner).type(CategoryType.INCOME).build();
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                "Salário (1/3)", new BigDecimal("1000.00"), LocalDate.of(2026, 3, 5), CategoryType.INCOME, 10L, null, 0, 3
+        );
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
+
+        assertThatThrownBy(() -> transactionService.createTransaction(request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Receitas não podem ser parceladas");
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
     void createTransaction_withoutCard_leavesInvoicePeriodNull() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).build();
@@ -257,7 +328,7 @@ class TransactionServiceTest {
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Acesso negado");
 
-        verify(transactionRepository, never()).delete(any());
+        verify(transactionRepository, never()).deleteAll(anyList());
     }
 
     @Test
@@ -270,7 +341,113 @@ class TransactionServiceTest {
 
         transactionService.deleteTransaction(99L);
 
-        verify(transactionRepository).delete(transaction);
+        verify(transactionRepository).deleteAll(List.of(transaction));
+    }
+
+    private Transaction installment(long id, User owner, Card card, String description, LocalDate date) {
+        return Transaction.builder()
+                .id(id).user(owner).card(card).type(CategoryType.EXPENSE)
+                .description(description).amount(new BigDecimal("100.00")).date(date)
+                .build();
+    }
+
+    @Test
+    void deleteTransaction_firstInstallment_alsoDeletesTheFollowingOnes() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).build();
+        LocalDate date = LocalDate.of(2026, 3, 5);
+        Transaction first = installment(1, owner, card, "Sofá (1/3)", date);
+        Transaction second = installment(2, owner, card, "Sofá (2/3)", date);
+        Transaction third = installment(3, owner, card, "Sofá (3/3)", date);
+        Transaction unrelated = installment(4, owner, card, "Mercado", date);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(first));
+        when(transactionRepository.findByUser(owner)).thenReturn(List.of(first, second, third, unrelated));
+
+        transactionService.deleteTransaction(1L);
+
+        ArgumentCaptor<List<Transaction>> captor = ArgumentCaptor.forClass(List.class);
+        verify(transactionRepository).deleteAll(captor.capture());
+        assertThat(captor.getValue()).containsExactlyInAnyOrder(first, second, third);
+    }
+
+    @Test
+    void deleteTransaction_nonFirstInstallment_deletesOnlyItself() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).build();
+        LocalDate date = LocalDate.of(2026, 3, 5);
+        Transaction second = installment(2, owner, card, "Sofá (2/3)", date);
+        Transaction third = installment(3, owner, card, "Sofá (3/3)", date);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(second));
+
+        transactionService.deleteTransaction(2L);
+
+        verify(transactionRepository).deleteAll(List.of(second));
+        verify(transactionRepository, never()).findByUser(any());
+    }
+
+    @Test
+    void deleteTransaction_firstInstallment_ignoresInstallmentsOfAnOlderPurchaseWithTheSameName() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).build();
+        // Compra antiga de mesmo nome (data anterior à da nova parcela 1).
+        Transaction oldTwo = installment(10, owner, card, "Sofá (2/3)", LocalDate.of(2025, 1, 5));
+        Transaction first = installment(20, owner, card, "Sofá (1/3)", LocalDate.of(2026, 3, 5));
+        Transaction newTwo = installment(21, owner, card, "Sofá (2/3)", LocalDate.of(2026, 3, 5));
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findById(20L)).thenReturn(Optional.of(first));
+        when(transactionRepository.findByUser(owner)).thenReturn(List.of(oldTwo, first, newTwo));
+
+        transactionService.deleteTransaction(20L);
+
+        ArgumentCaptor<List<Transaction>> captor = ArgumentCaptor.forClass(List.class);
+        verify(transactionRepository).deleteAll(captor.capture());
+        assertThat(captor.getValue()).containsExactlyInAnyOrder(first, newTwo);
+    }
+
+    @Test
+    void deleteTransaction_firstInstallment_ignoresOtherCardsAndOtherTotals() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).build();
+        Card otherCard = Card.builder().id(6L).user(owner).build();
+        LocalDate date = LocalDate.of(2026, 3, 5);
+        Transaction first = installment(1, owner, card, "Sofá (1/3)", date);
+        Transaction otherCardTwo = installment(2, owner, otherCard, "Sofá (2/3)", date);
+        Transaction otherTotalTwo = installment(3, owner, card, "Sofá (2/5)", date);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(first));
+        when(transactionRepository.findByUser(owner)).thenReturn(List.of(first, otherCardTwo, otherTotalTwo));
+
+        transactionService.deleteTransaction(1L);
+
+        verify(transactionRepository).deleteAll(List.of(first));
+    }
+
+    @Test
+    void deleteTransaction_firstInstallment_ofTwoIdenticalPurchases_removesOnlyOneChain() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Card card = Card.builder().id(5L).user(owner).build();
+        LocalDate date = LocalDate.of(2026, 3, 5);
+        Transaction firstA = installment(1, owner, card, "Carregador (1/2)", date);
+        Transaction firstB = installment(2, owner, card, "Carregador (1/2)", date);
+        Transaction secondA = installment(3, owner, card, "Carregador (2/2)", date);
+        Transaction secondB = installment(4, owner, card, "Carregador (2/2)", date);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(firstA));
+        when(transactionRepository.findByUser(owner)).thenReturn(List.of(firstA, firstB, secondA, secondB));
+
+        transactionService.deleteTransaction(1L);
+
+        ArgumentCaptor<List<Transaction>> captor = ArgumentCaptor.forClass(List.class);
+        verify(transactionRepository).deleteAll(captor.capture());
+        // Só uma parcela 2/2 (a mais antiga) acompanha a exclusão; a outra compra fica intacta.
+        assertThat(captor.getValue()).containsExactlyInAnyOrder(firstA, secondA);
     }
 
     @Test

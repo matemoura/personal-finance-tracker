@@ -37,6 +37,53 @@ describe("toggleInstallmentFields", () => {
   });
 });
 
+describe("updateInstallmentToggleVisibility", () => {
+  function makeFixture(type, checked = false) {
+    document.body.innerHTML = `
+      <select id="type">
+        <option value="EXPENSE"${type === "EXPENSE" ? " selected" : ""}>Despesa</option>
+        <option value="INCOME"${type === "INCOME" ? " selected" : ""}>Receita</option>
+      </select>
+      <div id="installmentToggleRow" class="hidden">
+        <input type="checkbox" id="isInstallment"${checked ? " checked" : ""}>
+      </div>
+      <div id="installmentFields"></div>
+    `;
+  }
+
+  test("shows the toggle for a new expense", () => {
+    makeFixture("EXPENSE");
+    updateInstallmentToggleVisibility(false);
+    expect(document.getElementById("installmentToggleRow").classList.contains("hidden")).toBe(false);
+  });
+
+  test("hides the toggle for an income", () => {
+    makeFixture("INCOME");
+    updateInstallmentToggleVisibility(false);
+    expect(document.getElementById("installmentToggleRow").classList.contains("hidden")).toBe(true);
+  });
+
+  test("hides the toggle while editing, even for an expense", () => {
+    makeFixture("EXPENSE");
+    updateInstallmentToggleVisibility(true);
+    expect(document.getElementById("installmentToggleRow").classList.contains("hidden")).toBe(true);
+  });
+
+  test("switching to income unchecks an already-ticked installment box and hides its fields", () => {
+    makeFixture("INCOME", true);
+
+    updateInstallmentToggleVisibility(false);
+
+    expect(document.getElementById("isInstallment").checked).toBe(false);
+    expect(document.getElementById("installmentFields").classList.contains("hidden")).toBe(true);
+  });
+
+  test("does nothing when the modal isn't on the page", () => {
+    document.body.innerHTML = "";
+    expect(() => updateInstallmentToggleVisibility(false)).not.toThrow();
+  });
+});
+
 describe("toggleMobileNavMenu / toggleDueReminders", () => {
   test("toggleMobileNavMenu flips the hidden class on the nav menu", () => {
     document.body.innerHTML = `<div id="mobile-nav-menu" class="hidden"></div>`;

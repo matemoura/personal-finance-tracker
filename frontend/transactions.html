@@ -324,6 +324,16 @@
                 <p class="text-xs mb-4" style="color:var(--app-muted)">
                     Compras feitas no dia do fechamento ou depois entram automaticamente na fatura do mês seguinte.
                 </p>
+                <div id="cardMonthClosingSection" class="hidden mb-4 p-3 rounded-lg" style="background:var(--app-soft)">
+                    <label for="cardMonthClosingDay" class="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">
+                        Fechamento só de <span id="cardMonthClosingLabel"></span>
+                    </label>
+                    <input type="number" id="cardMonthClosingDay" min="1" max="31" placeholder="Igual ao padrão"
+                        class="app-input w-full px-3 py-2.5 rounded-lg text-sm">
+                    <p class="text-xs mt-1.5" style="color:var(--app-muted)">
+                        Vale só pras compras feitas neste mês; os outros meses seguem o dia padrão acima. Deixe vazio pra voltar ao padrão.
+                    </p>
+                </div>
                 <div class="flex gap-2">
                     <button onclick="saveCard()" class="app-button flex-1 py-2.5 rounded-lg font-bold text-sm transition">Salvar</button>
                     <button onclick="closeCardModal()"

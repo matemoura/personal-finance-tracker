@@ -889,6 +889,45 @@ function setupMoneyInput() {
   });
 }
 
+// Ajuste de fechamento de um mês específico (year/month = mês em que a compra
+// foi feita), se o cartão tiver um — vem em card.closingOverrides, de /api/cards.
+function closingOverrideFor(card, year, month) {
+  return ((card && card.closingOverrides) || []).find(o => o.year === year && o.month === month);
+}
+
+// Dia de fechamento que vale pra uma compra feita nesse mês: o ajuste daquele
+// mês, se existir, senão o dia padrão do cartão (pode ser null).
+function effectiveClosingDay(card, year, month) {
+  const override = closingOverrideFor(card, year, month);
+  return override ? override.closingDay : card.closingDay;
+}
+
+// True pra uma descrição terminando em " (1/N)" com N >= 2 — a parcela 1 de
+// uma compra parcelada, cuja exclusão leva junto as parcelas seguintes.
+function isFirstInstallment(description) {
+  const match = /\s\(1\/(\d+)\)$/.exec(description || "");
+  return !!match && parseInt(match[1], 10) >= 2;
+}
+
+// "Compra parcelada?" só faz sentido numa despesa nova: receita não é
+// parcelada, e na edição cada parcela já é uma transação própria. Ao esconder,
+// desmarca a caixa (e some com o campo de nº de parcelas) pra não sobrar um
+// parcelamento "ativo" invisível ao trocar de Despesa pra Receita.
+function updateInstallmentToggleVisibility(isEditing) {
+  const row = document.getElementById("installmentToggleRow");
+  const type = document.getElementById("type");
+  if (!row || !type) return;
+
+  const allowed = !isEditing && type.value === "EXPENSE";
+  row.classList.toggle("hidden", !allowed);
+
+  if (!allowed) {
+    const checkbox = document.getElementById("isInstallment");
+    if (checkbox) checkbox.checked = false;
+    toggleInstallmentFields();
+  }
+}
+
 function toggleInstallmentFields() {
   const checkbox = document.getElementById("isInstallment");
   const fields = document.getElementById("installmentFields");
