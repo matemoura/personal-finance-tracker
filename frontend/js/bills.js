@@ -1,8 +1,8 @@
 let allBills = [];
 let allCategories = [];
-let allCards = [];
 let currentFilter = "ALL";
 let activePayBillId = null;
+let editingBillId = null;
 
 const TOUR_STEPS = [
     {
@@ -23,7 +23,7 @@ const TOUR_STEPS = [
     {
         selector: "#bills-body",
         title: "Suas contas",
-        text: "Marque como paga (o que cria a transação) ou exclua qualquer conta por aqui."
+        text: "Numa conta ainda não paga, você pode marcá-la como paga (o que cria a transação), editar ou excluir. Depois de paga, ela fica só como registro."
     }
 ];
 
@@ -32,7 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setupSettingsEvents();
     document.querySelector('.filter-pill[data-filter="ALL"]').classList.add("filter-active");
     loadCategories();
-    loadCards();
     loadBills();
     setupMoneyInput_billAmount();
     initPageTour(TOUR_STEPS, "bills");
@@ -229,7 +228,7 @@ function setupMoneyInput_billAmount() {
     });
 }
 
-// ---------- Categorias e Cartões (para os selects do modal) ----------
+// ---------- Categorias (para o select do modal) ----------
 
 async function loadCategories() {
     try {
@@ -254,33 +253,6 @@ function populateBillCategorySelect() {
         option.text = `${c.icon || '📃'} ${c.name}`;
         select.appendChild(option);
     });
-}
-
-async function loadCards() {
-    try {
-        const response = await apiFetch(`/api/cards`);
-        if (response.ok) {
-            allCards = await response.json();
-            populateBillCardSelect();
-        }
-    } catch (error) {
-        console.error("Erro ao carregar cartões:", error);
-    }
-}
-
-function populateBillCardSelect() {
-    const select = document.getElementById("billCardId");
-    if (!select) return;
-
-    select.innerHTML = '<option value="">Nenhum</option>';
-    allCards.forEach(c => {
-        const option = document.createElement("option");
-        option.value = c.id;
-        option.text = c.name;
-        option.dataset.icon = c.icon || "";
-        select.appendChild(option);
-    });
-    initCardPicker("billCardId");
 }
 
 // ---------- Contas a Pagar ----------
@@ -354,13 +326,11 @@ function renderBills() {
         const statusLabel = STATUS_LABELS[bill.status] || bill.status;
         const statusClass = STATUS_CLASSES[bill.status] || "category-pill";
         const isPaid = bill.status === "PAID";
-        const cardBadge = bill.cardId ? `<span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl ml-1 inline-flex items-center gap-1">${renderCardIcon(bill.cardIcon, bill.cardName, "w-3.5 h-3.5")} ${escapeHtml(bill.cardName)}</span>` : '';
 
         tr.innerHTML = `
             <td class="px-[18px] py-[13px] font-semibold" style="color:var(--app-heading)">${escapeHtml(bill.description)}</td>
             <td class="px-[18px] py-[13px]">
                 <span class="category-pill text-[11px] font-semibold px-[9px] py-[3px] rounded-xl">${escapeHtml(bill.categoryIcon) || '📃'} ${escapeHtml(bill.categoryName)}</span>
-                ${cardBadge}
             </td>
             <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formatDate(bill.dueDate)}</td>
             <td class="px-[18px] py-[13px] whitespace-nowrap" style="color:var(--app-muted)">${formatDate(bill.paidDate)}</td>
@@ -369,6 +339,8 @@ function renderBills() {
             <td class="px-[18px] py-[13px] text-center whitespace-nowrap">
                 ${isPaid ? "" : `<button onclick="openPayBillModal(${bill.id}, '${escapeHtml(bill.description)}', ${bill.amount})"
                     class="icon-btn px-1.5 py-1 transition hover:!text-[var(--app-primary)]" title="Marcar como pago" aria-label="Marcar conta como paga" style="color:var(--app-muted)">${ICON_CHECK}</button>`}
+                ${isPaid ? "" : `<button onclick="openBillModal(${bill.id})" title="Editar"
+                    class="icon-btn px-1.5 py-1 transition hover:!text-[var(--app-primary)]" style="color:var(--app-muted)" aria-label="Editar conta">${ICON_EDIT}</button>`}
                 ${isPaid ? "" : `<button onclick="deleteBill(${bill.id})" title="Excluir"
                     class="icon-btn px-1.5 py-1 transition hover:!text-red-600" style="color:var(--app-muted)" aria-label="Excluir conta">${ICON_TRASH}</button>`}
             </td>
@@ -378,28 +350,40 @@ function renderBills() {
     staggerRowEntrance(tbody, "ledger-row-table");
 }
 
-function openBillModal() {
+// Sem argumento, abre o modal pra uma conta nova; com o id de uma conta, abre
+// pra editá-la (só contas ainda não pagas têm o botão de editar).
+function openBillModal(billId = null) {
     document.getElementById("billModal").classList.remove("hidden");
     clearFieldErrors(["billDescription", "billAmount", "billDueDate", "billCategoryId"]);
-    document.getElementById("billDescription").value = "";
-    document.getElementById("billAmount").value = "";
-    document.getElementById("billDueDate").valueAsDate = new Date();
-    document.getElementById("billCategoryId").value = "";
-    document.getElementById("billCardId").value = "";
-    renderCardPickerTrigger("billCardId");
+
+    const bill = billId !== null ? allBills.find(b => b.id === billId) : null;
+
+    if (bill) {
+        editingBillId = bill.id;
+        document.getElementById("billModalTitle").innerText = "Editar Conta a Pagar";
+        document.getElementById("billDescription").value = bill.description;
+        document.getElementById("billAmount").value = formatCurrency(bill.amount);
+        document.getElementById("billDueDate").value = bill.dueDate;
+        document.getElementById("billCategoryId").value = bill.categoryId;
+    } else {
+        editingBillId = null;
+        document.getElementById("billModalTitle").innerText = "Nova Conta a Pagar";
+        document.getElementById("billDescription").value = "";
+        document.getElementById("billAmount").value = "";
+        document.getElementById("billDueDate").valueAsDate = new Date();
+        document.getElementById("billCategoryId").value = "";
+    }
 }
 
 function closeBillModal() {
     document.getElementById("billModal").classList.add("hidden");
 }
 
-async function createBill() {
+async function saveBill() {
     const description = document.getElementById("billDescription").value;
     const amount = parseCurrencyInput(document.getElementById("billAmount").value);
     const dueDate = document.getElementById("billDueDate").value;
     const categoryId = document.getElementById("billCategoryId").value;
-    const cardIdValue = document.getElementById("billCardId").value;
-    const cardId = cardIdValue ? parseInt(cardIdValue, 10) : null;
 
     const isValid = validateFields([
         { id: "billDescription", valid: !!description, message: "Digite uma descrição." },
@@ -409,15 +393,17 @@ async function createBill() {
     ]);
     if (!isValid) return;
 
+    const isEditing = editingBillId !== null;
+
     try {
-        const response = await apiFetch("/api/bills", {
-            method: "POST",
+        const response = await apiFetch(isEditing ? `/api/bills/${editingBillId}` : "/api/bills", {
+            method: isEditing ? "PUT" : "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ description, amount, dueDate, categoryId, cardId })
+            body: JSON.stringify({ description, amount, dueDate, categoryId: parseInt(categoryId, 10) })
         });
 
         if (response.ok) {
-            showToast("Conta registrada!", "success");
+            showToast(isEditing ? "Conta atualizada!" : "Conta registrada!", "success");
             closeBillModal();
             loadBills();
         } else {

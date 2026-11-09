@@ -3,15 +3,13 @@ package com.mouramateus.financial.finance_api.service;
 import com.mouramateus.financial.finance_api.dto.BillCreateRequest;
 import com.mouramateus.financial.finance_api.dto.BillPayRequest;
 import com.mouramateus.financial.finance_api.dto.BillResponse;
+import com.mouramateus.financial.finance_api.dto.BillUpdateRequest;
 import com.mouramateus.financial.finance_api.entity.Bill;
-import com.mouramateus.financial.finance_api.entity.Card;
 import com.mouramateus.financial.finance_api.entity.Category;
 import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.Transaction;
 import com.mouramateus.financial.finance_api.entity.User;
 import com.mouramateus.financial.finance_api.repository.BillRepository;
-import com.mouramateus.financial.finance_api.repository.CardClosingOverrideRepository;
-import com.mouramateus.financial.finance_api.repository.CardRepository;
 import com.mouramateus.financial.finance_api.repository.CategoryRepository;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
 import com.mouramateus.financial.finance_api.repository.UserRepository;
@@ -46,13 +44,7 @@ class BillServiceTest {
     private CategoryRepository categoryRepository;
 
     @Mock
-    private CardRepository cardRepository;
-
-    @Mock
     private TransactionRepository transactionRepository;
-
-    @Mock
-    private CardClosingOverrideRepository cardClosingOverrideRepository;
 
     private BillService billService;
 
@@ -60,8 +52,7 @@ class BillServiceTest {
 
     @BeforeEach
     void setUp() {
-        billService = new BillService(billRepository, userRepository, categoryRepository, cardRepository, transactionRepository,
-                new CardClosingService(cardClosingOverrideRepository));
+        billService = new BillService(billRepository, userRepository, categoryRepository, transactionRepository);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(EMAIL, null)
         );
@@ -76,7 +67,7 @@ class BillServiceTest {
     void create_withIncomeCategory_throws() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.INCOME).build();
-        BillCreateRequest request = new BillCreateRequest("Aluguel", new BigDecimal("1500.00"), LocalDate.now(), 10L, null);
+        BillCreateRequest request = new BillCreateRequest("Aluguel", new BigDecimal("1500.00"), LocalDate.now(), 10L);
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
         when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
@@ -93,7 +84,7 @@ class BillServiceTest {
         User owner = User.builder().id(1L).email(EMAIL).build();
         User otherUser = User.builder().id(2L).build();
         Category category = Category.builder().id(10L).user(otherUser).type(CategoryType.EXPENSE).build();
-        BillCreateRequest request = new BillCreateRequest("Aluguel", new BigDecimal("1500.00"), LocalDate.now(), 10L, null);
+        BillCreateRequest request = new BillCreateRequest("Aluguel", new BigDecimal("1500.00"), LocalDate.now(), 10L);
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
         when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
@@ -109,7 +100,7 @@ class BillServiceTest {
     void create_valid_savesAsUnpaid() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).name("Moradia").icon("🏠").build();
-        BillCreateRequest request = new BillCreateRequest("Aluguel", new BigDecimal("1500.00"), LocalDate.now().plusDays(5), 10L, null);
+        BillCreateRequest request = new BillCreateRequest("Aluguel", new BigDecimal("1500.00"), LocalDate.now().plusDays(5), 10L);
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
         when(categoryRepository.findById(10L)).thenReturn(Optional.of(category));
@@ -142,9 +133,8 @@ class BillServiceTest {
     void markAsPaid_createsTransactionAndUpdatesBill() {
         User owner = User.builder().id(1L).email(EMAIL).build();
         Category category = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).name("Moradia").build();
-        Card card = Card.builder().id(5L).name("Nubank").user(owner).build();
         Bill bill = Bill.builder().id(1L).description("Aluguel").amount(new BigDecimal("1500.00"))
-                .dueDate(LocalDate.now()).paid(false).category(category).card(card).user(owner).build();
+                .dueDate(LocalDate.now()).paid(false).category(category).user(owner).build();
         BillPayRequest request = new BillPayRequest(LocalDate.now());
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
@@ -166,8 +156,83 @@ class BillServiceTest {
                 t.getType() == CategoryType.EXPENSE
                         && t.getAmount().compareTo(new BigDecimal("1500.00")) == 0
                         && t.getCategory().equals(category)
-                        && t.getCard().equals(card)
+                        && t.getCard() == null
         ));
+    }
+
+    @Test
+    void update_unpaidBill_changesAllEditableFields() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category oldCategory = Category.builder().id(10L).user(owner).type(CategoryType.EXPENSE).name("Moradia").build();
+        Category newCategory = Category.builder().id(11L).user(owner).type(CategoryType.EXPENSE).name("Lazer").icon("🎮").build();
+        Bill bill = Bill.builder().id(1L).description("Aluguel").amount(new BigDecimal("1500.00"))
+                .dueDate(LocalDate.of(2026, 11, 5)).paid(false).category(oldCategory).user(owner).build();
+        BillUpdateRequest request = new BillUpdateRequest("Aluguel + condomínio", new BigDecimal("1650.50"),
+                LocalDate.of(2026, 11, 10), 11L);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(billRepository.findById(1L)).thenReturn(Optional.of(bill));
+        when(categoryRepository.findById(11L)).thenReturn(Optional.of(newCategory));
+        when(billRepository.save(any(Bill.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BillResponse result = billService.update(1L, request);
+
+        assertThat(result.description()).isEqualTo("Aluguel + condomínio");
+        assertThat(result.amount()).isEqualByComparingTo("1650.50");
+        assertThat(result.dueDate()).isEqualTo(LocalDate.of(2026, 11, 10));
+        assertThat(result.categoryName()).isEqualTo("Lazer");
+        assertThat(result.paid()).isFalse();
+    }
+
+    @Test
+    void update_paidBill_isRejected() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Bill bill = Bill.builder().id(1L).paid(true).user(owner).build();
+        BillUpdateRequest request = new BillUpdateRequest("Aluguel", new BigDecimal("1500.00"), LocalDate.now(), 10L);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(billRepository.findById(1L)).thenReturn(Optional.of(bill));
+
+        assertThatThrownBy(() -> billService.update(1L, request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("já paga");
+
+        verify(billRepository, never()).save(any());
+    }
+
+    @Test
+    void update_ownedByAnotherUser_throwsAccessDenied() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        User otherUser = User.builder().id(2L).build();
+        Bill bill = Bill.builder().id(1L).paid(false).user(otherUser).build();
+        BillUpdateRequest request = new BillUpdateRequest("Aluguel", new BigDecimal("1500.00"), LocalDate.now(), 10L);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(billRepository.findById(1L)).thenReturn(Optional.of(bill));
+
+        assertThatThrownBy(() -> billService.update(1L, request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Acesso negado");
+
+        verify(billRepository, never()).save(any());
+    }
+
+    @Test
+    void update_withIncomeCategory_isRejected() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+        Category income = Category.builder().id(12L).user(owner).type(CategoryType.INCOME).build();
+        Bill bill = Bill.builder().id(1L).paid(false).user(owner).build();
+        BillUpdateRequest request = new BillUpdateRequest("Aluguel", new BigDecimal("1500.00"), LocalDate.now(), 12L);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(billRepository.findById(1L)).thenReturn(Optional.of(bill));
+        when(categoryRepository.findById(12L)).thenReturn(Optional.of(income));
+
+        assertThatThrownBy(() -> billService.update(1L, request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("categoria de despesa");
+
+        verify(billRepository, never()).save(any());
     }
 
     @Test

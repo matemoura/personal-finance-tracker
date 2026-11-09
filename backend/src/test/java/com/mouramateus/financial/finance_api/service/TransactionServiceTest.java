@@ -615,4 +615,33 @@ class TransactionServiceTest {
 
         assertThat(result).containsExactly(wantedExpense);
     }
+
+    @Test
+    void listByMonth_ordersByDateDescendingRegardlessOfInsertionOrder() {
+        User owner = User.builder().id(1L).email(EMAIL).build();
+
+        // id 3 foi inserido por último, mas é um lançamento retroativo (dia 2):
+        // tem que aparecer depois dos de data mais recente.
+        Transaction day20 = Transaction.builder()
+                .id(1L).user(owner).type(CategoryType.EXPENSE)
+                .amount(new BigDecimal("10.00")).date(LocalDate.of(2026, 7, 20)).build();
+        Transaction day10 = Transaction.builder()
+                .id(2L).user(owner).type(CategoryType.EXPENSE)
+                .amount(new BigDecimal("20.00")).date(LocalDate.of(2026, 7, 10)).build();
+        Transaction retroactiveDay2 = Transaction.builder()
+                .id(3L).user(owner).type(CategoryType.EXPENSE)
+                .amount(new BigDecimal("30.00")).date(LocalDate.of(2026, 7, 2)).build();
+        // Mesmo dia que day10, inserido depois: desempata com o id maior primeiro.
+        Transaction day10Later = Transaction.builder()
+                .id(4L).user(owner).type(CategoryType.EXPENSE)
+                .amount(new BigDecimal("40.00")).date(LocalDate.of(2026, 7, 10)).build();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(owner));
+        when(transactionRepository.findByUser(owner))
+                .thenReturn(List.of(day20, day10, retroactiveDay2, day10Later));
+
+        List<Transaction> result = transactionService.listByMonth(2026, 7, null, null);
+
+        assertThat(result).containsExactly(day20, day10Later, day10, retroactiveDay2);
+    }
 }

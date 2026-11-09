@@ -11,6 +11,5 @@ public record BillCreateRequest(
         @NotBlank String description,
         @NotNull @Positive BigDecimal amount,
         @NotNull LocalDate dueDate,
-        @NotNull Long categoryId,
-        Long cardId
+        @NotNull Long categoryId
 ) {}

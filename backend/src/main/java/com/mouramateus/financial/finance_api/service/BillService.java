@@ -3,14 +3,13 @@ package com.mouramateus.financial.finance_api.service;
 import com.mouramateus.financial.finance_api.dto.BillCreateRequest;
 import com.mouramateus.financial.finance_api.dto.BillPayRequest;
 import com.mouramateus.financial.finance_api.dto.BillResponse;
+import com.mouramateus.financial.finance_api.dto.BillUpdateRequest;
 import com.mouramateus.financial.finance_api.entity.Bill;
-import com.mouramateus.financial.finance_api.entity.Card;
 import com.mouramateus.financial.finance_api.entity.Category;
 import com.mouramateus.financial.finance_api.entity.CategoryType;
 import com.mouramateus.financial.finance_api.entity.Transaction;
 import com.mouramateus.financial.finance_api.entity.User;
 import com.mouramateus.financial.finance_api.repository.BillRepository;
-import com.mouramateus.financial.finance_api.repository.CardRepository;
 import com.mouramateus.financial.finance_api.repository.CategoryRepository;
 import com.mouramateus.financial.finance_api.repository.TransactionRepository;
 import com.mouramateus.financial.finance_api.repository.UserRepository;
@@ -19,9 +18,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
 
+// Conta a pagar não tem cartão: compra no cartão é lançada como despesa (já
+// com o cartão) na tela de Transações. Aqui é só o que vence em dinheiro/conta.
 @Service
 @RequiredArgsConstructor
 public class BillService {
@@ -29,9 +29,7 @@ public class BillService {
     private final BillRepository billRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final CardRepository cardRepository;
     private final TransactionRepository transactionRepository;
-    private final CardClosingService cardClosingService;
 
     private User currentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -41,19 +39,7 @@ public class BillService {
 
     public BillResponse create(BillCreateRequest dto) {
         User user = currentUser();
-
-        Category category = categoryRepository.findById(dto.categoryId())
-                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
-
-        if (!category.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Category does not belong to user");
-        }
-
-        if (category.getType() != CategoryType.EXPENSE) {
-            throw new RuntimeException("Uma conta a pagar deve usar uma categoria de despesa");
-        }
-
-        Card card = resolveCard(dto.cardId(), user);
+        Category category = resolveExpenseCategory(dto.categoryId(), user);
 
         Bill bill = Bill.builder()
                 .description(dto.description())
@@ -61,7 +47,6 @@ public class BillService {
                 .dueDate(dto.dueDate())
                 .paid(false)
                 .category(category)
-                .card(card)
                 .user(user)
                 .build();
 
@@ -75,19 +60,34 @@ public class BillService {
                 .toList();
     }
 
+    // Só conta ainda não paga pode ser editada: ao pagar, ela vira uma
+    // transação própria (com a data do pagamento), e mexer na conta depois
+    // deixaria as duas descasadas. Pra corrigir uma conta paga, o caminho é
+    // editar a transação correspondente na tela de Transações.
+    public BillResponse update(Long id, BillUpdateRequest dto) {
+        User user = currentUser();
+        Bill bill = findOwned(id);
+
+        if (bill.isPaid()) {
+            throw new RuntimeException("Não é possível editar uma conta já paga. Edite a transação correspondente na tela de Transações.");
+        }
+
+        Category category = resolveExpenseCategory(dto.categoryId(), user);
+
+        bill.setDescription(dto.description());
+        bill.setAmount(dto.amount());
+        bill.setDueDate(dto.dueDate());
+        bill.setCategory(category);
+
+        return toResponse(billRepository.save(bill));
+    }
+
     public BillResponse markAsPaid(Long id, BillPayRequest dto) {
         Bill bill = findOwned(id);
 
         if (bill.isPaid()) {
             throw new RuntimeException("Esta conta já está marcada como paga.");
         }
-
-        // A fatura é gravada já na criação (e não deixada pro cálculo "ao vivo"
-        // por data + fechamento padrão) pra respeitar um fechamento ajustado
-        // pra aquele mês, que só o CardClosingService conhece.
-        YearMonth invoicePeriod = bill.getCard() != null
-                ? cardClosingService.basePeriod(bill.getCard(), dto.paidDate())
-                : null;
 
         Transaction transaction = Transaction.builder()
                 .description(bill.getDescription())
@@ -96,9 +96,6 @@ public class BillService {
                 .type(CategoryType.EXPENSE)
                 .user(bill.getUser())
                 .category(bill.getCategory())
-                .card(bill.getCard())
-                .invoiceYear(invoicePeriod != null ? invoicePeriod.getYear() : null)
-                .invoiceMonth(invoicePeriod != null ? invoicePeriod.getMonthValue() : null)
                 .build();
 
         transactionRepository.save(transaction);
@@ -120,19 +117,19 @@ public class BillService {
         billRepository.delete(bill);
     }
 
-    private Card resolveCard(Long cardId, User user) {
-        if (cardId == null) {
-            return null;
+    private Category resolveExpenseCategory(Long categoryId, User user) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+
+        if (!category.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Category does not belong to user");
         }
 
-        Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new RuntimeException("Cartão não encontrado"));
-
-        if (!card.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Card does not belong to user");
+        if (category.getType() != CategoryType.EXPENSE) {
+            throw new RuntimeException("Uma conta a pagar deve usar uma categoria de despesa");
         }
 
-        return card;
+        return category;
     }
 
     private Bill findOwned(Long id) {
@@ -158,7 +155,6 @@ public class BillService {
         }
 
         Category category = bill.getCategory();
-        Card card = bill.getCard();
 
         return new BillResponse(
                 bill.getId(),
@@ -171,9 +167,6 @@ public class BillService {
                 category.getId(),
                 category.getName(),
                 category.getIcon(),
-                card != null ? card.getId() : null,
-                card != null ? card.getName() : null,
-                card != null ? card.getIcon() : null,
                 bill.getTransaction() != null ? bill.getTransaction().getId() : null
         );
     }

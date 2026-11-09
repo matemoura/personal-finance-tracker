@@ -127,7 +127,11 @@ public class TransactionService {
         return transactionsForPeriod(user, target).stream()
                 .filter(t -> type == null || t.getType() == type)
                 .filter(t -> categoryId == null || (t.getCategory() != null && categoryId.equals(t.getCategory().getId())))
-                .sorted(Comparator.comparing(Transaction::getId).reversed())
+                // Mais recente primeiro pela data do lançamento, não pela ordem de
+                // inserção: um lançamento retroativo cai no dia certo. O id só
+                // desempata lançamentos do mesmo dia (último inserido em cima).
+                .sorted(Comparator.comparing(Transaction::getDate).reversed()
+                        .thenComparing(Comparator.comparing(Transaction::getId).reversed()))
                 .toList();
     }
 

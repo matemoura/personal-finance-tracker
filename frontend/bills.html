@@ -200,7 +200,7 @@
             style="background:rgba(30,41,59,.55);backdrop-filter:blur(3px)">
             <div class="app-modal rounded-xl shadow-2xl w-full max-w-[430px] max-h-[90vh] flex flex-col overflow-hidden">
                 <div class="px-5 py-4 border-b flex justify-between items-center flex-shrink-0" style="background:var(--app-bg);border-color:var(--app-border)">
-                    <h3 class="text-[15.5px] font-bold" style="color:var(--app-heading)">Nova Conta a Pagar</h3>
+                    <h3 id="billModalTitle" class="text-[15.5px] font-bold" style="color:var(--app-heading)">Nova Conta a Pagar</h3>
                     <button onclick="closeBillModal()" class="icon-btn hover:text-red-600 transition" style="color:var(--app-muted)" aria-label="Fechar"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"></path></svg></button>
                 </div>
                 <div class="p-5 flex flex-col gap-4 overflow-y-auto">
@@ -227,13 +227,7 @@
                             <option value="" disabled selected>Selecione...</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-[11.5px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--app-muted)">Cartão (opcional)</label>
-                        <select id="billCardId" class="app-select w-full px-3 py-[9px] rounded-lg text-[13px]">
-                            <option value="">Nenhum</option>
-                        </select>
-                    </div>
-                    <button id="saveBillBtn" onclick="createBill()"
+                    <button id="saveBillBtn" onclick="saveBill()"
                         class="app-button w-full font-bold text-sm py-3 rounded-lg transition mt-1">Salvar Conta</button>
                 </div>
             </div>

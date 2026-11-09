@@ -39,10 +39,6 @@ public class Bill {
     private Category category;
 
     @ManyToOne
-    @JoinColumn(name = "card_id")
-    private Card card;
-
-    @ManyToOne
     @JoinColumn(name = "transaction_id")
     private Transaction transaction;
 

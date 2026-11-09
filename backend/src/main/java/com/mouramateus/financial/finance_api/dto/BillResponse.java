@@ -14,8 +14,5 @@ public record BillResponse(
         Long categoryId,
         String categoryName,
         String categoryIcon,
-        Long cardId,
-        String cardName,
-        String cardIcon,
         Long transactionId
 ) {}

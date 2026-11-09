@@ -3,6 +3,7 @@ package com.mouramateus.financial.finance_api.controller;
 import com.mouramateus.financial.finance_api.dto.BillCreateRequest;
 import com.mouramateus.financial.finance_api.dto.BillPayRequest;
 import com.mouramateus.financial.finance_api.dto.BillResponse;
+import com.mouramateus.financial.finance_api.dto.BillUpdateRequest;
 import com.mouramateus.financial.finance_api.service.BillService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,11 @@ public class BillController {
     @GetMapping
     public List<BillResponse> list() {
         return billService.listMine();
+    }
+
+    @PutMapping("/{id}")
+    public BillResponse update(@PathVariable Long id, @RequestBody @Valid BillUpdateRequest request) {
+        return billService.update(id, request);
     }
 
     @PatchMapping("/{id}/pay")
